@@ -39,7 +39,7 @@
     };
   
     const handleAdminAccess = () => {
-      alert("Navigate to admin page");
+      navigate('/adminLogin')
     };
   
     return (

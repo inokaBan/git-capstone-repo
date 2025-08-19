@@ -31,7 +31,7 @@ const RoomSection = () => {
 
         {/* Rooms Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
-          {rooms.map((room) => (
+          {rooms.slice(0, 6).map((room) => (
             <div key={room.id} onClick={() => navigate(`/rooms/${room.id}`)} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden group">
               
               {/* Room Image */}

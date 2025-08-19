@@ -32,12 +32,12 @@ const Hero = () => {
   };
 
   return (
-    <div className="min-h-[40vh] flex items-center justify-center p-5 bg-cover bg-center bg-no-repeat "
+    <div className="min-h-screen flex items-center justify-center p-5 bg-cover bg-center bg-no-repeat "
       style={{
         backgroundImage: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3")'
       }}
     >
-      <div className="text-center text-white max-w-4xl w-full mt-32 sm:flex items-center">
+      <div className="text-center text-white max-w-4xl w-full mt-32 md:flex sm:flex items-center">
         
         <div className="mr-24 text-left">
         {/* Hero Title */}
@@ -51,7 +51,7 @@ const Hero = () => {
         </div>
         
         {/* Booking Form */}
-        <div className="bg-white p-8 rounded-xl shadow-2xl max-w-3xl mx-auto">
+        <div className="bg-white p-8 rounded-xl shadow-2xl max-w-xl w-full mr-auto">
           <h3 className="text-gray-800 text-2xl font-semibold mb-8">
             Book Your Stay
           </h3>
@@ -130,7 +130,7 @@ const Hero = () => {
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            className="w-full bg-blue-700 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-300 transform hover:scale-105"
+            className="w-full bg-blue-700 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-transform duration-300 ease-in-out hover:scale-105"
           >
             Check Availability
           </button>

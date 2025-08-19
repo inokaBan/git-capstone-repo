@@ -13,22 +13,24 @@ import ContactsPage from "./pages/ContactsPage";
 import RoomDetailsPage from "./pages/RoomDetailsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage"
-
+import AdminLogin from "./admin/AdminLogin";
 
 
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
       {/* Default route: Login page */}
-      <Route path="/" element={<LoginPage />} />
+      
 
       {/* Auth routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage/>} />
+      <Route path="/adminLogin" element={<AdminLogin />} />
 
       {/* User pages with MainLayout */}
       <Route element={<MainLayout />}>
-        <Route path="/home" element={<HomePage />} />
+      <Route path="/" element={<HomePage />} />
+
         <Route path="/rooms" element={<RoomsPage />} />
         <Route path="/rooms/:id" element={<RoomDetailsPage />} />
         <Route path="/contacts" element={<ContactsPage />} />

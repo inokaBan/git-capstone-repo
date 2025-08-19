@@ -15,7 +15,7 @@ const Navbar = () => {
   };
 
   const navItems = [
-    { name: 'Home', to: '/home' },
+    { name: 'Home', to: '/' },
     { name: 'Rooms', to: '/rooms' },
     { name: 'Contacts', to: '/contacts' },
     { name: 'About us', to: '/aboutUs' }
@@ -26,7 +26,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <NavLink to='/home'>
+          <NavLink to='/'>
             <div className="flex items-center flex-shrink-0">
                       <img src={logo} alt="Logo" className="w-8 h-8 rounded-full object-cover"
                       />
