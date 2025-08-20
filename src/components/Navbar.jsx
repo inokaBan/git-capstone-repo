@@ -18,7 +18,9 @@ const Navbar = () => {
     { name: 'Home', to: '/' },
     { name: 'Rooms', to: '/rooms' },
     { name: 'Contacts', to: '/contacts' },
-    { name: 'About us', to: '/aboutUs' }
+    { name: 'About us', to: '/aboutUs' },
+    { name: 'Log in', to: '/login', className: 'login-btn' },
+    { name: 'Sign up', to: '/register', className: 'signup-btn' }
   ];
 
   return (
@@ -38,16 +40,30 @@ const Navbar = () => {
 
           {/* Desktop Menu */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-8">
-              {navItems.map((item) => (
-                <NavLink
-                  key={item.name}
-                  to={item.to}
-                  className={({ isActive }) => isActive ? "text-blue-700  hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200" : "text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-md text-base font-medium transition-colors duration-200"}
-                >
-                  {item.name}
-                </NavLink>
-              ))}
+            <div className="ml-10 flex items-baseline space-x-2">
+              {navItems.map((item) => {
+                let customClass = "";
+                if (item.className === "login-btn") {
+                  customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-2 px-6 rounded-lg text-sm transition-all duration-300 transform hover:scale-105";
+                } else if (item.className === "signup-btn") {
+                  customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-transform duration-300 ease-in-out hover:scale-105";
+                }
+                return (
+                  <NavLink
+                    key={item.name}
+                    to={item.to}
+                    className={({ isActive }) => {
+                      let baseClass = isActive
+                        ? "text-blue-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200";
+                      if (customClass) baseClass = customClass;
+                      return baseClass;
+                    }}
+                  >
+                    {item.name}
+                  </NavLink>
+                );
+              })}
             </div>
           </div>
 
@@ -68,25 +84,45 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Menu */}
-        <div className={`md:hidden transition-all duration-300 ease-in-out ${
-          isOpen 
-            ? 'max-h-64 opacity-100 visible' 
-            : 'max-h-0 opacity-0 invisible overflow-hidden'
-        }`}>
-          <div className="px-2 pt-2 pb-3 space-y-1 bg-gray-50 rounded-lg mt-2">
-            {navItems.map((item) => (
-              <NavLink
-                key={item.name}
-                to={item.to}
+        {/* Mobile Menu - Slide in from left */}
+        {isOpen && (
+          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-gray-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-5">
+            <div className="px-4 pt-8 pb-6 space-y-3 flex flex-col items-stretch h-full">
+              {/* Close button for mobile menu */}
+              <button
                 onClick={closeMenu}
-                className={({ isActive }) => isActive ? "text-blue-700 hover:text-blue-600 hover:bg-white block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter" : "text-gray-700 hover:text-blue-600 hover:bg-white block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter"}
+                className="self-end mb-4 text-gray-700 hover:text-blue-600 focus:outline-none"
+                aria-label="Close menu"
               >
-                {item.name}
-              </NavLink>
-            ))}
+                <X className="h-6 w-6" />
+              </button>
+              {navItems.map((item) => {
+                let customClass = "";
+                if (item.className === "login-btn") {
+                  customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
+                } else if (item.className === "signup-btn") {
+                  customClass = "bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
+                }
+                return (
+                  <NavLink
+                    key={item.name}
+                    to={item.to}
+                    onClick={closeMenu}
+                    className={({ isActive }) => {
+                      let baseClass = isActive
+                        ? "text-blue-700 hover:text-blue-600 hover:bg-white block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-white block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter";
+                      if (customClass) baseClass = customClass;
+                      return baseClass;
+                    }}
+                  >
+                    {item.name}
+                  </NavLink>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </nav>
   );

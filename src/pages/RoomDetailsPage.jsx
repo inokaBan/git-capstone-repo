@@ -251,7 +251,7 @@ const RoomDetailPage = () => {
             <button 
               onClick={handleBooking} 
               // TEMPORARILY DISABLED VALIDATION FOR TESTING - Uncomment line below to re-enable
-              // disabled={!checkIn || !checkOut || !guestName || !guestContact}
+              //  disabled={!checkIn || !checkOut || !guestName || !guestContact}
               className="w-full bg-blue-600 text-white py-3 rounded-lg mt-12 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               Book Now

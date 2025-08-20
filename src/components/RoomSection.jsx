@@ -106,7 +106,7 @@ const RoomSection = () => {
 
         {/* View All Rooms Button */}
         <div className="text-center mt-12">
-          <Link to='/rooms' className="bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
+          <Link to='/rooms' className="bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-4 px-8 rounded-xl transition-all duration-300 transform hover:scale-105">
             View All Rooms
           </Link>
         </div>
