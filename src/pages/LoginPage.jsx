@@ -1,46 +1,58 @@
   import React, { useState } from "react";
   import { useNavigate } from 'react-router-dom'
   import logo from '../assets/logo.jpg'
+  import LoginValidation from "../context/LoginValidation"
+  import axios from 'axios'
   
   
   const LoginPage = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const navigate = useNavigate();
-    
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      axios.post('http://localhost/8081/user', {email, password})
-      .then(res => console.log(res))
-      .catch(err => console.log(err))
-    }
-  
-    const handleLogin = (e) => {
-      e.preventDefault();
-      if (!email.trim() || !password.trim()) {
-          alert("Please fill in both email and password.");
-          return;
-        }
-        
-        navigate("/home");
+      const [values, setValues] = useState({
+        email: "",
+        password: ""})
+
+      const navigate = useNavigate();
+      const [errors, setErrors] = useState({});
       
-        // Optional: Basic email format check
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-          alert("Please enter a valid email address.");
-          return;
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        const validationErrors = LoginValidation(values);
+        setErrors(validationErrors);
+
+        const hasNoErrors = validationErrors.email === "" && validationErrors.password === "";
+        if (hasNoErrors) {
+          axios.post('http://localhost:8081/login', {
+            email: values.email,
+            password: values.password
+          })
+          .then((res) => {
+            const data = res?.data;
+            if (!data || !data.user) {
+              setErrors((prev) => ({ ...prev, api: 'Unexpected server response' }));
+              return;
+            }
+            alert('Login successful!');
+            navigate('/');
+          })
+          .catch((err) => {
+            const message = err?.response?.data?.error || 'Invalid email or password';
+            setErrors((prev) => ({ ...prev, api: message }));
+          })
         }
-        
-    };
+      }
+
+      const handleInput = (e) => {
+        setValues(prev => ({
+          ...prev, [e.target.name]: e.target.value
+        }))
+      }
     
-  
-    const handleSignUp = () => {
-      navigate('/register')
-    };
-  
-    const handleAdminAccess = () => {
-      navigate('/adminLogin')
-    };
+      const handleSignUp = () => {
+        navigate('/register')
+      };
+    
+      const handleAdminAccess = () => {
+        navigate('/adminLogin')
+      };
   
     return (
       <div className="min-h-screen bg-white md:bg-gradient-to-br md:from-gray-50 md:to-gray-100 flex flex-col justify-center p-6 md:items-center">
@@ -54,6 +66,11 @@
             <p className="text-gray-500 text-base mt-3">Welcome to Osner Hotel, please enter your details</p>
           </div>
           <form onSubmit={handleSubmit}>
+            {errors.api && (
+              <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm mb-4">
+                {errors.api}
+              </div>
+            )}
             <div className="space-y-6">
                         <div>
                           <label className="block text-base font-medium text-gray-700 mb-3">
@@ -63,9 +80,10 @@
                             type="email"
                             className="w-full px-5 py-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 text-base"
                             placeholder="john@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            onChange={handleInput}
+                            name="email"
                           />
+                          <span className="text-red-500 text-sm mt-2">{errors.email}</span>
                         </div>
                         
                         <div>
@@ -76,13 +94,14 @@
                             type="password"
                             className="w-full px-5 py-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 text-base"
                             placeholder="Enter your pasword"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
+                            onChange={handleInput}
+                            name="password"
                           />
+                          <span className="text-red-500 text-sm mt-2">{errors.password}</span>  
                         </div>
                         
                         <button
-                          onClick={handleLogin}
+                          type="submit"
                           className="w-full bg-blue-600 text-white py-4 px-4 rounded-xl font-medium hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 shadow-lg text-base"
                         >
                           Sign in
@@ -94,7 +113,7 @@
           <div className="mt-8 text-center">
             <p className="text-gray-600 text-base">
               Don't have an account?{" "}
-              <button 
+              <button
                 onClick={handleSignUp}
                 className="text-blue-600 hover:text-blue-700 font-medium hover:underline transition-colors"
               >

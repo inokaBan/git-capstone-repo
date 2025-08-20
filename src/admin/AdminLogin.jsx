@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.jpg'
+import axios from 'axios'
 
 const AdminLogin = () => {
 
@@ -8,30 +9,38 @@ const AdminLogin = () => {
       const [password, setPassword] = useState("");
       const navigate = useNavigate();
       
+      const [apiError, setApiError] = useState("");
+
       const handleSubmit = (e) => {
         e.preventDefault();
-        axios.post('http://localhost/8081/user', {email, password})
-        .then(res => console.log(res))
-        .catch(err => console.log(err))
-      }
-    
-      const handleLogin = (e) => {
-        e.preventDefault();
+        setApiError("");
+
         if (!email.trim() || !password.trim()) {
-            alert("Please fill in both email and password.");
-            return;
-          }
-          
-          navigate("/home");
-        
-          // Optional: Basic email format check
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(email)) {
-            alert("Please enter a valid email address.");
-            return;
-          }
-          
-      };
+          setApiError("Please fill in both email and password.");
+          return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          setApiError("Please enter a valid email address.");
+          return;
+        }
+
+        axios
+          .post('http://localhost:8081/admin/login', { email, password })
+          .then((res) => {
+            if (!res?.data?.admin) {
+              setApiError('Unexpected server response');
+              return;
+            }
+            alert('Admin login successful!');
+            navigate('/admin');
+          })
+          .catch((err) => {
+            const message = err?.response?.data?.error || 'Invalid email or password';
+            setApiError(message);
+          })
+      }
     
       const handleBackToUser = () => {
         navigate('/')
@@ -50,6 +59,11 @@ const AdminLogin = () => {
           <p className="text-gray-500 text-base mt-3">Please enter you admin account detailds.</p>
         </div>
         <form onSubmit={handleSubmit}>
+          {apiError && (
+            <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm mb-4">
+              {apiError}
+            </div>
+          )}
           <div className="space-y-6">
                       <div>
                         <label className="block text-base font-medium text-gray-700 mb-3">
@@ -78,7 +92,7 @@ const AdminLogin = () => {
                       </div>
                       
                       <button
-                        onClick={handleLogin}
+                        type="submit"
                         className="w-full bg-blue-600 text-white py-4 px-4 rounded-xl font-medium hover:bg-blue-700 focus:ring-4 focus:ring-blue-200 transition-all duration-200 shadow-lg text-base"
                       >
                         Sign in

@@ -30,7 +30,7 @@ const Navbar = () => {
           {/* Logo */}
           <NavLink to='/'>
             <div className="flex items-center flex-shrink-0">
-                      <img src={logo} alt="Logo" className="w-8 h-8 rounded-full object-cover"
+                      <img src={logo} alt="Logo" className="w-10 h-10 rounded-full object-cover"
                       />
             
                         <h1 className=":text-2xl font-bold text-gray-800 font-inter">Osner Hotel</h1>
@@ -86,8 +86,8 @@ const Navbar = () => {
 
         {/* Mobile Menu - Slide in from left */}
         {isOpen && (
-          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-gray-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-5">
-            <div className="px-4 pt-8 pb-6 space-y-3 flex flex-col items-stretch h-full">
+          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-gray-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4">
+            <div className="px-4 pt-8 pb-6 space-y-2 flex flex-col items-stretch h-full"> 
               {/* Close button for mobile menu */}
               <button
                 onClick={closeMenu}
@@ -101,7 +101,7 @@ const Navbar = () => {
                 if (item.className === "login-btn") {
                   customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
                 } else if (item.className === "signup-btn") {
-                  customClass = "bg-white border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
+                  customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
                 }
                 return (
                   <NavLink

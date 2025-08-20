@@ -1,40 +1,60 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from '../assets/logo.jpg'
+import SignUpValidation from "../context/SignUpValidation";
+import axios from "axios";
 
 const RegisterPage = () => {
-  const [formData, setFormData] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [values, setValues] = useState({
+        username: "",
+        email: "",
+        password: ""})
 
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-  };
+      const navigate = useNavigate();
+      const [errors, setErrors] = useState({});
+      const handleInput = (e) => {
+        setValues(prev => ({
+          ...prev, [e.target.name]: e.target.value
+        }))
+      }
+      
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        const validationErrors = SignUpValidation(values);
+        setErrors(validationErrors);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+        const hasNoErrors =
+          validationErrors.username === "" &&
+          validationErrors.email === "" &&
+          validationErrors.password === "";
 
-    // Simple password check
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
+        if (hasNoErrors) {
+          axios
+            .post('http://localhost:8081/osner_db', values)
+            .then((res) => {
+              const responseData = res?.data;
+              const isStringError =
+                typeof responseData === 'string' && responseData.toLowerCase().includes('error');
+              const isObjectError =
+                responseData && typeof responseData === 'object' && responseData.error;
 
-    // Save user data (placeholder)
-    console.log("User registered:", formData);
-    alert("Registration successful! Please sign in.");
+              if (isStringError || isObjectError) {
+                const message = isObjectError ? responseData.error : String(responseData);
+                console.error('Server error:', message);
+                setErrors((prev) => ({ ...prev, api: `Server error: ${message}` }));
+                return;
+              }
+              alert("Registration successful!");
+              navigate('/login');
+            })
+            .catch((err) => {
+              console.error(err);
+              setErrors((prev) => ({ ...prev, api: 'Network or server error' }));
+            });
+        }
+      }
 
-    // Reset form
-    setFormData({
-      username: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    });
-  };
+      
 
   return (
     <div className="min-h-screen bg-white md:bg-gradient-to-br md:from-gray-50 md:to-gray-100 flex flex-col justify-center p-6 md:items-center">
@@ -57,7 +77,7 @@ const RegisterPage = () => {
           </div>
   
           {/* Form */}
-          <div onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Username Field */}
             <div>
               <label className="block text-gray-700 text-base font-medium mb-2">
@@ -66,12 +86,12 @@ const RegisterPage = () => {
               <input
                 type="text"
                 name="username"
-                placeholder="Enter your username"
-                value={formData.username}
-                onChange={handleChange}
+                placeholder="Enter your name"
+                onChange={handleInput}
                 className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
+              <span className="text-red-500 text-sm mt-2">{errors.username}</span>
             </div>
   
             {/* Email Field */}
@@ -83,11 +103,11 @@ const RegisterPage = () => {
                 type="email"
                 name="email"
                 placeholder="john@example.com"
-                value={formData.email}
-                onChange={handleChange}
+                onChange={handleInput}
                 className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
+              <span className="text-red-500 text-sm mt-2">{errors.email}</span>
             </div>
   
             {/* Password Field */}
@@ -99,15 +119,15 @@ const RegisterPage = () => {
                 type="password"
                 name="password"
                 placeholder="Enter your password"
-                value={formData.password}
-                onChange={handleChange}
+                onChange={handleInput}
                 className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
+              <span className="text-red-500 text-sm mt-2">{errors.password}</span>
             </div>
   
             {/* Confirm Password Field */}
-            <div>
+            {/* <div>
               <label className="block text-gray-700 text-base font-medium mb-2">
                 Confirm Password
               </label>
@@ -115,22 +135,20 @@ const RegisterPage = () => {
                 type="password"
                 name="confirmPassword"
                 placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
+                onChange={handleInput}
                 className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
-            </div>
+            </div> */}
   
             {/* Sign Up Button */}
             <button
-              type="button"
-              onClick={handleSubmit}
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium text-lg py-4 rounded-xl transition-colors duration-200 mt-8"
             >
               Sign up
             </button>
-          </div>
+          </form>
   
           {/* Footer Links */}
           <div className="text-center mt-8 space-y-4">
