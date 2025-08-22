@@ -130,7 +130,7 @@ const Hero = () => {
           {/* Submit Button */}
           <button
             onClick={handleSubmit}
-            className="w-full bg-blue-700 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-transform duration-300 ease-in-out hover:scale-105"
+            className="w-full bg-blue-700 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-transform duration-300 ease-in-out hover:scale-102"
           >
             Check Availability
           </button>

@@ -8,7 +8,8 @@ const RegisterPage = () => {
   const [values, setValues] = useState({
         username: "",
         email: "",
-        password: ""})
+        password: "",
+        confirmPassword: ""})
 
       const navigate = useNavigate();
       const [errors, setErrors] = useState({});
@@ -23,6 +24,12 @@ const RegisterPage = () => {
         const validationErrors = SignUpValidation(values);
         setErrors(validationErrors);
 
+        // Check if password and confirmPassword match
+        if (values.password !== values.confirmPassword) {
+          setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match" }));
+          return;
+        }
+
         const hasNoErrors =
           validationErrors.username === "" &&
           validationErrors.email === "" &&
@@ -33,10 +40,8 @@ const RegisterPage = () => {
             .post('http://localhost:8081/osner_db', values)
             .then((res) => {
               const responseData = res?.data;
-              const isStringError =
-                typeof responseData === 'string' && responseData.toLowerCase().includes('error');
-              const isObjectError =
-                responseData && typeof responseData === 'object' && responseData.error;
+              const isStringError = typeof responseData === 'string' && responseData.toLowerCase().includes('error');
+              const isObjectError = responseData && typeof responseData === 'object' && responseData.error;
 
               if (isStringError || isObjectError) {
                 const message = isObjectError ? responseData.error : String(responseData);
@@ -88,7 +93,7 @@ const RegisterPage = () => {
                 name="username"
                 placeholder="Enter your name"
                 onChange={handleInput}
-                className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
               <span className="text-red-500 text-sm mt-2">{errors.username}</span>
@@ -104,7 +109,7 @@ const RegisterPage = () => {
                 name="email"
                 placeholder="john@example.com"
                 onChange={handleInput}
-                className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
               <span className="text-red-500 text-sm mt-2">{errors.email}</span>
@@ -120,14 +125,14 @@ const RegisterPage = () => {
                 name="password"
                 placeholder="Enter your password"
                 onChange={handleInput}
-                className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
               <span className="text-red-500 text-sm mt-2">{errors.password}</span>
             </div>
   
             {/* Confirm Password Field */}
-            {/* <div>
+            <div>
               <label className="block text-gray-700 text-base font-medium mb-2">
                 Confirm Password
               </label>
@@ -136,10 +141,11 @@ const RegisterPage = () => {
                 name="confirmPassword"
                 placeholder="Confirm your password"
                 onChange={handleInput}
-                className="w-full px-4 py-4 text-base bg-gray-100 border-0 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
-            </div> */}
+              <span className="text-red-500 text-sm mt-2">{errors.confirmPassword}</span>
+            </div>
   
             {/* Sign Up Button */}
             <button
@@ -154,9 +160,9 @@ const RegisterPage = () => {
           <div className="text-center mt-8 space-y-4">
             <p className="text-gray-600">
               Already have an account?{" "}
-              <span className="text-blue-600 hover:underline font-medium cursor-pointer">
+              <Link to="/login" className="text-blue-600 hover:underline font-medium cursor-pointer">
                 Sign in
-              </span>
+              </Link>
             </p>
             
           </div>

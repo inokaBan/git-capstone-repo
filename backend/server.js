@@ -32,6 +32,50 @@ app.post("/osner_db", (req, res) => {
     })
 })
 
+// Save booking data
+app.post("/api/bookings", (req, res) => {
+    const {
+        bookingId,
+        roomId,
+        roomName,
+        guestName,
+        guestContact,
+        checkIn,
+        checkOut,
+        guests,
+        totalPrice,
+        status,
+        bookingDate
+    } = req.body || {};
+
+    if (!bookingId || !roomId || !roomName || !guestName || !guestContact || !checkIn || !checkOut || !guests || !totalPrice || !status || !bookingDate) {
+        return res.status(400).json({ error: "Missing required booking fields." });
+    }
+
+    const sql = `INSERT INTO bookings (bookingId, roomId, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status, bookingDate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [bookingId, roomId, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status, bookingDate];
+
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        // Return the saved booking with its new ID
+        res.status(201).json({
+            bookingId,
+            roomId,
+            roomName,
+            guestName,
+            guestContact,
+            checkIn,
+            checkOut,
+            guests,
+            totalPrice,
+            status,
+            bookingDate
+        });
+    });
+});
+
 app.listen(8081, () => {
     console.log("Server is running on port 8081")
 })

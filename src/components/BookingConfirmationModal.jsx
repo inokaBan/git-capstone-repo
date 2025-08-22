@@ -79,7 +79,7 @@ const BookingConfirmationModal = ({
               
               <div className="flex justify-between items-center border-t pt-3">
                 <span className="text-base font-bold text-gray-900">Total Amount</span>
-                <span className="text-lg font-bold text-green-600">${bookingDetails.totalPrice}</span>
+                <span className="text-lg font-bold text-green-600">₱{bookingDetails.totalPrice}</span>
               </div>
             </div>
 

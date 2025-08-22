@@ -86,7 +86,7 @@ const Navbar = () => {
 
         {/* Mobile Menu - Slide in from left */}
         {isOpen && (
-          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-gray-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4">
+          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-blue-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4 inset-0">
             <div className="px-4 pt-8 pb-6 space-y-2 flex flex-col items-stretch h-full"> 
               {/* Close button for mobile menu */}
               <button
@@ -99,7 +99,7 @@ const Navbar = () => {
               {navItems.map((item) => {
                 let customClass = "";
                 if (item.className === "login-btn") {
-                  customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
+                  customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center mt-56";
                 } else if (item.className === "signup-btn") {
                   customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
                 }

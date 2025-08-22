@@ -52,19 +52,9 @@ const RoomDetailPage = () => {
       return alert('Check-out date must be after check-in date');
     }
 
-    // Mock API call with loading state
-    const loadingAlert = 'Processing your booking...';
-    console.log(loadingAlert);
-    
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Generate a mock booking ID
-      const bookingId = 'HTL-' + Date.now().toString().slice(-6);
-      
-      // Mock successful booking response
-      const mockBookingData = {
+      const bookingId = 'OSNHTL-' + Date.now().toString().slice(-6);
+      const bookingData = {
         bookingId,
         roomId: room.id,
         roomName: room.name,
@@ -78,20 +68,26 @@ const RoomDetailPage = () => {
         bookingDate: new Date().toISOString()
       };
 
-      // Store booking in localStorage for persistence (in a real app, this would be in a database)
-      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push(mockBookingData);
-      localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      // Send booking data to backend
+      const response = await fetch('http://localhost:8081/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(bookingData)
+      });
 
-      // Set booking details and show confirmation modal
-      setBookingDetails(mockBookingData);
+      if (!response.ok) {
+        throw new Error('Failed to save booking');
+      }
+
+      const savedBooking = await response.json();
+      setBookingDetails(savedBooking);
       setIsBookingConfirmationOpen(true);
-      
+
       // Clear form
       setGuestName('');
       setGuestContact('');
-      
-      
     } catch (error) {
       console.error('Booking error:', error);
       alert('❌ Booking failed. Please try again or contact support.');
