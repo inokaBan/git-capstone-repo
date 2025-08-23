@@ -55,13 +55,13 @@ const RoomsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 px-4 py-4 flex items-center">
-        <div className="flex-1 overflow-x-auto flex space-x-2 scrollbar-hide mx-8">
+      <div className="bg-white border-b border-gray-200 sticky top-0 right-0 left-0 z-10 px-4 py-4 flex items-center md:right-8">
+        <div className="flex-1 overflow-x-auto flex space-x-2 scrollbar-hide ">
           {categories.map((category) => (
             <button
               key={category}
               onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+              className={`px-2 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
                 selectedCategory === category
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -88,7 +88,7 @@ const RoomsPage = () => {
       {/* Available Rooms */}
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Available Rooms</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
           {availableRooms.length > 0 ? (
             availableRooms.map(room => (
               <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />

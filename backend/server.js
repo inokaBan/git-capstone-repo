@@ -82,11 +82,20 @@ app.listen(8081, () => {
 
 // Login route: verify user credentials
 
-// Get pending bookings for admin panel
+// Get all bookings for admin panel
 app.get("/api/bookings", (req, res) => {
-    const status = req.query.status || "pending";
-    const sql = "SELECT * FROM bookings WHERE status = ?";
-    db.query(sql, [status], (err, results) => {
+    const status = req.query.status;
+    let sql = "SELECT * FROM bookings";
+    let params = [];
+    
+    if (status && status !== 'all') {
+        sql += " WHERE status = ?";
+        params.push(status);
+    }
+    
+    sql += " ORDER BY bookingDate DESC";
+    
+    db.query(sql, params, (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
