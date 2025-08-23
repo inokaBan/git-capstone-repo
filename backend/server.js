@@ -81,6 +81,35 @@ app.listen(8081, () => {
 })
 
 // Login route: verify user credentials
+
+// Get pending bookings for admin panel
+app.get("/api/bookings", (req, res) => {
+    const status = req.query.status || "pending";
+    const sql = "SELECT * FROM bookings WHERE status = ?";
+    db.query(sql, [status], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(200).json(results);
+    });
+});
+
+// Update booking status (approve/decline)
+app.patch("/api/bookings/:bookingId", (req, res) => {
+    const { bookingId } = req.params;
+    const { status } = req.body;
+    if (!bookingId || !status) {
+        return res.status(400).json({ error: "Missing bookingId or status." });
+    }
+    const sql = "UPDATE bookings SET status = ? WHERE bookingId = ?";
+    db.query(sql, [status, bookingId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(200).json({ success: true });
+    });
+});
+
 app.post("/login", (req, res) => {
     const { email, password } = req.body || {};
 

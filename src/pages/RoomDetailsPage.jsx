@@ -64,7 +64,7 @@ const RoomDetailPage = () => {
         checkOut,
         guests,
         totalPrice: calculateTotalPrice(),
-        status: 'confirmed',
+        status: 'pending',
         bookingDate: new Date().toISOString()
       };
 
