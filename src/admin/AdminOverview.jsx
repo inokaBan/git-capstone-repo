@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Bed, Calendar, Package, Users, DollarSign, TrendingUp, Bell, Menu, X, Settings, BarChart3, Home } from 'lucide-react';
 import logo from "../assets/logo.jpg"
 
-const AdminPanel = () => {
+const AdminOverview = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -255,4 +255,4 @@ const AdminPanel = () => {
   );
 };
 
-export default AdminPanel;
+export default AdminOverview;
