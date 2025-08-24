@@ -16,7 +16,7 @@ const RoomSection = () => {
   };
 
   return (
-    <section className="py-20 bg-gray-50">
+    <section className="py-20 bg-blue-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Section Header */}
@@ -96,7 +96,7 @@ const RoomSection = () => {
                 </div>
 
                 {/* Book Button */}
-                <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <button className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-102 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                   View Details
                 </button>
               </div>

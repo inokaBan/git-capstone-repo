@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, User, Home, Clock, Check, X, Loader2, Filter, Eye } from 'lucide-react';
+import axios from 'axios';
 
 const AdminPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -13,10 +14,9 @@ const AdminPage = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await fetch('http://localhost:8081/api/bookings?status=all');
-        const data = await response.json();
-        console.log('Fetched all bookings:', data); // Debug log
-        setBookings(data);
+        const response = await axios.get('http://localhost:8081/api/bookings?status=all');
+        console.log('Fetched all bookings:', response.data); // Debug log
+        setBookings(response.data);
       } catch (error) {
         console.error('Error fetching bookings:', error);
       } finally {
@@ -30,16 +30,10 @@ const AdminPage = () => {
     setProcessingId(bookingId);
     try {
       // Send PATCH request to update booking status
-      const response = await fetch(`http://localhost:8081/api/bookings/${bookingId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: action === 'approve' ? 'confirmed' : 'declined' })
+      const response = await axios.patch(`http://localhost:8081/api/bookings/${bookingId}`, {
+        status: action === 'approve' ? 'confirmed' : 'declined'
       });
-      if (!response.ok) {
-        throw new Error('Failed to update booking status');
-      }
+      
       // Update the booking in the local state
       setBookings(prevBookings => 
         prevBookings.map(booking => 

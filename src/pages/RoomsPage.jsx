@@ -55,8 +55,8 @@ const RoomsPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 right-0 left-0 z-10 px-4 py-4 flex items-center md:right-8">
-        <div className="flex-1 overflow-x-auto flex space-x-2 scrollbar-hide ">
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 px-4 py-4 flex items-center md:right-8">
+        <div className="flex-1 overflow-x-auto flex space-x-2 scrollbar-hide">
           {categories.map((category) => (
             <button
               key={category}
