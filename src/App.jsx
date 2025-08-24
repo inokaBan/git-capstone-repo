@@ -27,7 +27,7 @@ const router = createBrowserRouter(
 
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route path="/admin/bookings" element={<Bookings />} />
-      <Route path="/admin/0verview" element={<AdminOverview />} />
+      <Route path="/admin/overview" element={<AdminOverview />} />
 
 
       {/* User pages with MainLayout */}
