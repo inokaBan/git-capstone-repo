@@ -84,6 +84,7 @@ const RoomsManagementPage = () => {
     if (confirm('Are you sure you want to delete this room? This will permanently remove the room and all its images.')) {
       try {
         setError('');
+        console.log('Deleting room with ID:', id);
         const response = await axios.delete(`http://localhost:8081/api/rooms/${id}`);
         
         if (response.data.success) {
@@ -94,6 +95,7 @@ const RoomsManagementPage = () => {
         }
       } catch (error) {
         console.error('Delete room error:', error);
+        console.error('Error response:', error.response);
         setError(error?.response?.data?.error || 'Failed to delete room');
       }
     }
@@ -330,7 +332,10 @@ const RoomsManagementPage = () => {
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => handleDeleteRoom(room.id)}
+                          onClick={() => {
+                            console.log('Delete button clicked for room:', room);
+                            handleDeleteRoom(room.id);
+                          }}
                           className="text-red-600 hover:text-red-800 p-1"
                           title="Delete room"
                         >

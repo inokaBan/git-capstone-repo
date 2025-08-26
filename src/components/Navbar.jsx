@@ -86,7 +86,7 @@ const Navbar = () => {
 
         {/* Mobile Menu - Slide in from left */}
         {isOpen && (
-          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-blue-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4 inset-0">
+          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-blue-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4">
             <div className="px-4 pt-8 pb-6 space-y-2 flex flex-col items-stretch h-full"> 
               {/* Close button for mobile menu */}
               <button
