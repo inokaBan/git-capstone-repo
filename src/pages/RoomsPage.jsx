@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Wifi, Car, Coffee, Waves, Users, Star, Filter, Search } from 'lucide-react';
-import data from '../data.json';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RoomCard from '../components/RoomCard'
+import axios from 'axios'
 
 const capitalize = str => str?.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
@@ -20,9 +20,21 @@ const RoomsPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState('All');
 
-  const categories = data.categories;
-  const priceRanges = data.priceRanges;
-  const allRooms = data.rooms;
+  const [allRooms, setAllRooms] = useState([]);
+  const categories = useMemo(() => ['All','Standard Room','Deluxe Suite','Executive Suite','Premium Suite'], []);
+  const priceRanges = ['All','Under $200','$200-$400','Above $400'];
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await axios.get('http://localhost:8081/api/rooms')
+        setAllRooms(Array.isArray(res.data) ? res.data : [])
+      } catch (e) {
+        setAllRooms([])
+      }
+    }
+    load()
+  }, [])
 
   const filteredRooms = allRooms.filter(room => {
     const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
@@ -37,8 +49,8 @@ const RoomsPage = () => {
     return matchesCategory && matchesSearch && matchesPrice && matchesGuests;
   });
 
-  const availableRooms = filteredRooms.filter(room => room.status === 'available');
-  const otherRooms = filteredRooms.filter(room => room.status !== 'available');
+  const availableRooms = filteredRooms.filter(room => (room.status || '').toLowerCase() === 'available');
+  const otherRooms = filteredRooms.filter(room => (room.status || '').toLowerCase() !== 'available');
 
   return (
     <div className="min-h-screen bg-gray-50 mt-24">

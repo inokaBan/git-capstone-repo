@@ -34,7 +34,7 @@ const AdminLogin = () => {
               return;
             }
             alert('Admin login successful!');
-            navigate('/admin');
+            navigate('/admin/overview');
           })
           .catch((err) => {
             const message = err?.response?.data?.error || 'Invalid email or password';

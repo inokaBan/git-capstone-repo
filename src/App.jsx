@@ -15,9 +15,14 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 
 import AdminLogin from "./admin/AdminLogin";
-import Bookings from "./admin/BookingsPage"; 
 import AdminOverview from "./admin/AdminOverview";
-
+import AdminLayout from "./admin/AdminLayout";
+import RoomsManagementPage from "./admin/RoomsManagementPage";
+import BookingsPage from "./admin/BookingsPage";
+import InventoryPage from "./admin/InventoryPage";
+import AnalyticsPage from "./admin/AnalyticsPage";
+import SettingsPage from "./admin/SettingsPage";
+import BookingsCalendar from "./admin/BookingsCalendar";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -26,8 +31,16 @@ const router = createBrowserRouter(
       <Route path="/register" element={<RegisterPage/>} />
 
       <Route path="/admin/login" element={<AdminLogin />} />
-      <Route path="/admin/bookings" element={<Bookings />} />
-      <Route path="/admin/overview" element={<AdminOverview />} />
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={<AdminOverview />} />
+        <Route path="overview" element={<AdminOverview />} />
+        <Route path="rooms" element={<RoomsManagementPage />} />
+        <Route path="bookings" element={<BookingsPage />} />
+        <Route path="inventory" element={<InventoryPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="calendar" element={<BookingsCalendar />} />
+      </Route>
 
 
       {/* User pages with MainLayout */}
@@ -38,7 +51,7 @@ const router = createBrowserRouter(
         <Route path="/rooms/:id" element={<RoomDetailsPage />} />
         <Route path="/contacts" element={<ContactsPage />} />
         <Route path="/aboutUs" element={<AboutUsPage />} />
-    </Route>
+      </Route>
     </>
   )
 );

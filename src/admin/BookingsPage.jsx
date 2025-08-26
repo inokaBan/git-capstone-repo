@@ -7,6 +7,7 @@ const BookingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
@@ -102,9 +103,15 @@ const BookingsPage = () => {
     }
   };
 
-  const filteredBookings = bookings.filter(booking => 
-    statusFilter === 'all' || booking.status === statusFilter
-  );
+  const filteredBookings = bookings.filter((booking) => {
+    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+    if (!matchesStatus) return false;
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+    const name = (booking.guestName || '').toString().toLowerCase();
+    const idStr = (booking.bookingId || '').toString().toLowerCase();
+    return name.includes(query) || idStr.includes(query);
+  });
 
   const statusCounts = {
     all: bookings.length,
@@ -123,7 +130,7 @@ const BookingsPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 p-4 md:p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
             <div className="flex flex-col items-center justify-center space-y-4">
               <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
               <p className="text-gray-600 font-medium">Loading all bookings...</p>
@@ -137,52 +144,50 @@ const BookingsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <div className="flex items-center space-x-3 mb-2">
-            <Calendar className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-              Admin Bookings Management
-            </h1>
-          </div>
-          <p className="text-gray-600">
-            View and manage all booking requests from the database
-          </p>
-        </div>
-
         {/* Filter Section */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <Filter className="w-5 h-5 text-gray-500" />
-              <span className="text-sm font-medium text-gray-700">Filter by status:</span>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 md:p-6 mb-6 overflow-x-auto">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="w-full lg:max-w-sm">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or booking ID"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            <div className="flex space-x-2">
-              {[
-                { key: 'all', label: 'All', count: statusCounts.all },
-                { key: 'pending', label: 'Pending', count: statusCounts.pending },
-                { key: 'confirmed', label: 'Confirmed', count: statusCounts.confirmed },
-                { key: 'declined', label: 'Declined', count: statusCounts.declined },
-                { key: 'cancelled', label: 'Cancelled', count: statusCounts.cancelled }
-              ].map((filter) => (
-                <button
-                  key={filter.key}
-                  onClick={() => setStatusFilter(filter.key)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    statusFilter === filter.key
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {filter.label} ({filter.count})
-                </button>
-              ))}
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <Filter className="w-5 h-5 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Filter by status:</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { key: 'all', label: 'All', count: statusCounts.all },
+                  { key: 'pending', label: 'Pending', count: statusCounts.pending },
+                  { key: 'confirmed', label: 'Confirmed', count: statusCounts.confirmed },
+                  { key: 'declined', label: 'Declined', count: statusCounts.declined },
+                  { key: 'cancelled', label: 'Cancelled', count: statusCounts.cancelled }
+                ].map((filter) => (
+                  <button
+                    key={filter.key}
+                    onClick={() => setStatusFilter(filter.key)}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      statusFilter === filter.key
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {filter.label} ({filter.count})
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl border border-slate-400">
           {filteredBookings.length === 0 ? (
             /* Empty State */
             <div className="p-8 md:p-12 text-center">
@@ -202,7 +207,7 @@ const BookingsPage = () => {
           ) : (
             <>
               {/* Header with count */}
-              <div className="px-4 md:px-6 py-4 border-b border-gray-200">
+              <div className="px-4 md:px-6 py-4 border-b border-slate-200">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-gray-900">
                     {statusFilter === 'all' ? 'All Bookings' : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Bookings`}
@@ -216,8 +221,11 @@ const BookingsPage = () => {
               {/* Desktop Table View */}
               <div className="hidden md:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Booking ID
+                      </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Customer
                       </th>
@@ -250,6 +258,7 @@ const BookingsPage = () => {
                   <tbody className="bg-white divide-y divide-gray-200">
                     {filteredBookings.map((booking) => (
                       <tr key={booking.bookingId} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{booking.bookingId}</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">

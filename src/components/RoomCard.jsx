@@ -17,7 +17,7 @@ const RoomCard = ({ room, onClick }) => {
     >
       <div className="relative overflow-hidden">
         <img 
-          src={room.image} 
+          src={(room.images && room.images[0]) || 'https://via.placeholder.com/600x400?text=Room'} 
           alt={room.name}
           className="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -66,8 +66,8 @@ const RoomCard = ({ room, onClick }) => {
 
         <div className="flex items-center justify-between mb-4">
           <div>
-            <span className="text-2xl font-bold text-gray-900">{room.price}</span>
-            <span className="text-sm text-gray-500 line-through ml-2">{room.originalPrice}</span>
+            <span className="text-2xl font-bold text-gray-900">₱{Number(room.price).toLocaleString()}</span>
+            {/* originalPrice omitted */}
             <p className="text-xs text-gray-500">per night</p>
           </div>
         </div>

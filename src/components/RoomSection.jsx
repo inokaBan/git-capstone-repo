@@ -1,11 +1,28 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Wifi, Car, Coffee, Waves, Users, Star } from 'lucide-react';
-import data from '../data.json'
 import { Link, useNavigate } from 'react-router-dom'
+import axios from 'axios'
 
 const RoomSection = () => {
   const navigate = useNavigate()
-  const rooms = data.rooms
+  const [rooms, setRooms] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true)
+        const res = await axios.get('http://localhost:8081/api/rooms')
+        setRooms(Array.isArray(res.data) ? res.data : [])
+      } catch (e) {
+        setError('Failed to load rooms')
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
   
   const getAmenityIcon = (amenity) => {
     if (amenity.includes('WiFi')) return <Wifi className="w-4 h-4" />;
@@ -31,13 +48,17 @@ const RoomSection = () => {
 
         {/* Rooms Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
-          {rooms.slice(0, 6).map((room) => (
+          {loading ? (
+            <div className="col-span-3 text-center text-gray-600">Loading rooms…</div>
+          ) : error ? (
+            <div className="col-span-3 text-center text-red-600">{error}</div>
+          ) : rooms.slice(0, 6).map((room) => (
             <div key={room.id} onClick={() => navigate(`/rooms/${room.id}`)} className="bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden group">
               
               {/* Room Image */}
               <div className="relative overflow-hidden">
                 <img 
-                  src={room.image} 
+                  src={(room.images && room.images[0]) || 'https://via.placeholder.com/600x400?text=Room'} 
                   alt={room.name}
                   className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
                 />
@@ -58,7 +79,7 @@ const RoomSection = () => {
                   <h3 className="text-xl font-bold text-gray-900">{room.name}</h3>
                   <div className="flex items-center space-x-1 text-gray-500">
                     <Users className="w-4 h-4" />
-                    <span className="text-sm">{room.guests}</span>
+                    <span className="text-sm">{room.maxGuests}</span>
                   </div>
                 </div>
 
@@ -75,7 +96,7 @@ const RoomSection = () => {
                 <div className="mb-6">
                   <span className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2 block">Amenities</span>
                   <div className="grid grid-cols-2 gap-2">
-                    {room.amenities.slice(0, 4).map((amenity, index) => (
+                    {(room.amenities || []).slice(0, 4).map((amenity, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <div className="text-blue-600">
                           {getAmenityIcon(amenity)}
@@ -89,8 +110,8 @@ const RoomSection = () => {
                 {/* Pricing */}
                 <div className="flex items-center justify-between mb-6">
                   <div>
-                    <span className="text-2xl font-bold text-gray-900">{room.price}</span>
-                    <span className="text-sm text-gray-500 line-through ml-2">{room.originalPrice}</span>
+                    <span className="text-2xl font-bold text-gray-900">₱{Number(room.price).toLocaleString()}</span>
+                    {/* originalPrice omitted */}
                     <p className="text-xs text-gray-500">per night</p>
                   </div>
                 </div>

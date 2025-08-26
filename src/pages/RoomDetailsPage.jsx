@@ -3,7 +3,7 @@ import {
   Wifi, Car, Coffee, Waves, Users, Star, ArrowLeft,
   Bed, Bath, Maximize, MapPin, Calendar, Phone
 } from 'lucide-react';
-import data from '../data.json';
+import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import BookingConfirmationModal from '../components/BookingConfirmationModal';
 import { useBooking } from '../context/BookingContext'; 
@@ -33,13 +33,31 @@ const RoomDetailPage = () => {
     return iconMap[name] || <Coffee className="w-5 h-5" />;
   };
 
+  // Normalize price regardless of API representation
+  const getNumericPrice = () => {
+    const priceNum = room?.priceNum ?? room?.price_num;
+    if (priceNum != null && !Number.isNaN(Number(priceNum))) return Number(priceNum);
+    const parsed = Number(String(room?.price || '').replace(/[^\d.]/g, ''));
+    return Number.isNaN(parsed) ? 0 : parsed;
+  };
+
+  const getDisplayPrice = () => {
+    if (typeof room?.price === 'string' && room.price.trim().length > 0) return room.price;
+    return `₱${getNumericPrice().toLocaleString()}`;
+  };
+
   useEffect(() => {
-    const foundRoom = data.rooms.find(r => r.id === Number(id));
-    if (foundRoom) {
-      setRoom(foundRoom);
-    } else {
-      console.warn('Room not found');
+    const load = async () => {
+      try {
+        const res = await axios.get('http://localhost:8081/api/rooms')
+        const list = Array.isArray(res.data) ? res.data : []
+        const found = list.find(r => String(r.id) === String(id))
+        if (found) setRoom(found)
+      } catch (e) {
+        console.warn('Failed to load room', e)
+      }
     }
+    load()
   }, [id]);
 
   // Mock booking function - simulates a successful booking
@@ -78,7 +96,8 @@ const RoomDetailPage = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save booking');
+        const errText = await response.text();
+        throw new Error(errText || 'Failed to save booking');
       }
 
       const savedBooking = await response.json();
@@ -101,7 +120,7 @@ const RoomDetailPage = () => {
     const start = new Date(checkIn);
     const end = new Date(checkOut);
     const nights = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
-    const pricePerNight = parseFloat(room.price.replace('₱', ''));
+    const pricePerNight = getNumericPrice();
     
     return nights * pricePerNight;
   };
@@ -133,9 +152,9 @@ const RoomDetailPage = () => {
         {/* Left side images and description */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <img src={room.images[selectedImageIndex]} alt={room.name} className="w-full h-64 sm:h-80 object-cover" />
+            <img src={(room.images && room.images[selectedImageIndex]) || (room.images && room.images[0]) || 'https://via.placeholder.com/800x400?text=Room'} alt={room.name} className="w-full h-64 sm:h-80 object-cover" />
             <div className="flex overflow-x-auto space-x-2 p-4">
-              {room.images.map((img, i) => (
+              {(room.images || []).map((img, i) => (
                 <img
                   key={i}
                   src={img}
@@ -149,11 +168,13 @@ const RoomDetailPage = () => {
 
           <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
             <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
-            <p className="text-gray-700 text-sm">{room.longDescription}</p>
+            <p className="text-gray-700 text-sm">{room.longDescription || room.description || ''}</p>
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center space-x-2"><Users className="w-4 h-4" /><span>{room.guests} Guests</span></div>
               <div className="flex items-center space-x-2"><Bed className="w-4 h-4" /><span>{room.beds} Bed</span></div>
-              <div className="flex items-center space-x-2"><Bath className="w-4 h-4" /><span>{room.bathrooms} Bathroom</span></div>
+              {room.bathrooms != null && (
+                <div className="flex items-center space-x-2"><Bath className="w-4 h-4" /><span>{room.bathrooms} Bathroom</span></div>
+              )}
               <div className="flex items-center space-x-2"><Maximize className="w-4 h-4" /><span>{room.size}</span></div>
             </div>
           </div>
@@ -177,8 +198,10 @@ const RoomDetailPage = () => {
         <div className="space-y-6">
           <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-20 ">
             <div className="mb-4">
-              <div className="text-2xl font-bold text-gray-900">{room.price}</div>
-              <div className="text-sm line-through text-gray-500">{room.originalPrice}</div>
+              <div className="text-2xl font-bold text-gray-900">{getDisplayPrice()}</div>
+              {room.originalPrice && (
+                <div className="text-sm line-through text-gray-500">{room.originalPrice}</div>
+              )}
               <p className="text-xs text-gray-600">Per night</p>
               {checkIn && checkOut && (
                 <p className="text-sm text-green-600 font-medium mt-2">
@@ -257,7 +280,7 @@ const RoomDetailPage = () => {
             </button>
 
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-              <strong>Free Cancellation:</strong> {room.policies.cancellation}
+              <strong>Free Cancellation:</strong> {room?.policies?.cancellation || 'Free cancellation on eligible rates'}
             </div>
           </div>
         </div>

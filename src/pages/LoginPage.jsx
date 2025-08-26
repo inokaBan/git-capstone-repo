@@ -51,7 +51,7 @@
       };
     
       const handleAdminAccess = () => {
-        navigate('/adminLogin')
+        navigate('/admin/login')
       };
   
     return (
