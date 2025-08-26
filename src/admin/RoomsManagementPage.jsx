@@ -80,9 +80,22 @@ const RoomsManagementPage = () => {
     setShowAddModal(true);
   };
 
-  const handleDeleteRoom = (id) => {
-    if (confirm('Are you sure you want to delete this room?')) {
-      setRooms(rooms.filter(room => room.id !== id));
+  const handleDeleteRoom = async (id) => {
+    if (confirm('Are you sure you want to delete this room? This will permanently remove the room and all its images.')) {
+      try {
+        setError('');
+        const response = await axios.delete(`http://localhost:8081/api/rooms/${id}`);
+        
+        if (response.data.success) {
+          setRooms(rooms.filter(room => room.id !== id));
+          console.log(`Room deleted successfully. Removed ${response.data.deletedFiles} image files.`);
+        } else {
+          setError('Failed to delete room');
+        }
+      } catch (error) {
+        console.error('Delete room error:', error);
+        setError(error?.response?.data?.error || 'Failed to delete room');
+      }
     }
   };
 
@@ -476,16 +489,16 @@ const RoomsManagementPage = () => {
                       placeholder="e.g., ₱150"
                     />
                   </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Room Size</label>
-                  <input
-                    type="text"
-                    value={newRoom.size}
-                    onChange={(e) => setNewRoom({...newRoom, size: e.target.value})}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., 45 sqm"
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Room Size</label>
+                    <input
+                      type="text"
+                      value={newRoom.size}
+                      onChange={(e) => setNewRoom({...newRoom, size: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="e.g., 45 sqm"
                   />
                 </div>
 

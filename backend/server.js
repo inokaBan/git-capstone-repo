@@ -1,12 +1,56 @@
 const express = require("express")
 const mysql = require("mysql")
 const cors = require("cors")
+const path = require("path")
+const fs = require("fs")
 
 const app = express()
 app.use(cors())
 // Increase body size limits to handle base64 images from admin room uploads
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
+
+// Helper function to save base64 image as file
+const saveBase64Image = (base64Data, roomId, index) => {
+    try {
+        // Create uploads directory if it doesn't exist
+        const uploadsDir = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadsDir)) {
+            fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        // Extract base64 data (remove data:image/jpeg;base64, prefix)
+        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+            throw new Error('Invalid base64 image data');
+        }
+
+        const imageType = matches[1];
+        const imageData = matches[2];
+        const buffer = Buffer.from(imageData, 'base64');
+
+        // Determine file extension
+        const ext = imageType.includes('jpeg') || imageType.includes('jpg') ? 'jpg' : 
+                   imageType.includes('png') ? 'png' : 
+                   imageType.includes('gif') ? 'gif' : 'jpg';
+
+        // Generate filename
+        const filename = `room_${roomId}_${index}_${Date.now()}.${ext}`;
+        const filepath = path.join(uploadsDir, filename);
+
+        // Save file
+        fs.writeFileSync(filepath, buffer);
+
+        // Return the URL path
+        return `/uploads/${filename}`;
+    } catch (error) {
+        console.error('Error saving image:', error);
+        return null;
+    }
+};
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -82,17 +126,17 @@ app.post("/api/bookings", (req, res) => {
             }
             // Return the saved booking
             return res.status(201).json({
-                bookingId,
-                roomId,
-                roomName,
-                guestName,
-                guestContact,
-                checkIn,
-                checkOut,
-                guests,
-                totalPrice,
-                status,
-                bookingDate
+            bookingId,
+            roomId,
+            roomName,
+            guestName,
+            guestContact,
+            checkIn,
+            checkOut,
+            guests,
+            totalPrice,
+            status,
+            bookingDate
             });
         });
     });
@@ -222,6 +266,17 @@ app.get("/api/rooms", (req, res) => {
             if (images.length === 0 && image) {
                 images.push(image);
             }
+            
+            // Convert relative paths to full URLs
+            const fullImageUrls = images.map(img => {
+                if (img && img.startsWith('/uploads/')) {
+                    return `http://localhost:8081${img}`;
+                }
+                return img;
+            });
+            
+            // Debug: log image data
+            console.log(`Room ${id} images:`, fullImageUrls.length, fullImageUrls.slice(0, 1));
 
             return {
                 id,
@@ -240,7 +295,7 @@ app.get("/api/rooms", (req, res) => {
                 bathrooms,
                 reviews,
                 amenities,
-                images,
+                images: fullImageUrls,
                 created_at,
                 updated_at
             };
@@ -285,6 +340,14 @@ app.get("/api/rooms/:id", (req, res) => {
             images.push(row.image);
         }
         
+        // Convert relative paths to full URLs
+        const fullImageUrls = images.map(img => {
+            if (img && img.startsWith('/uploads/')) {
+                return `http://localhost:8081${img}`;
+            }
+            return img;
+        });
+        
         const room = {
             id: row.id,
             name: row.name,
@@ -302,7 +365,7 @@ app.get("/api/rooms/:id", (req, res) => {
             bathrooms: Number(row.bathrooms) || 0,
             reviews: Number(row.reviews) || 0,
             amenities,
-            images,
+            images: fullImageUrls,
             created_at: row.created_at,
             updated_at: row.updated_at
         };
@@ -414,8 +477,15 @@ app.post("/api/rooms", (req, res) => {
                         Promise.all(roomAmenityPromises).then(() => {
                             // Insert room images
                             if (images.length > 0) {
-                                const imagePromises = images.map(imageUrl => {
+                                const imagePromises = images.map((imageData, index) => {
                                     return new Promise((resolve, reject) => {
+                                        // Save base64 image as file
+                                        const imageUrl = saveBase64Image(imageData, roomId, index);
+                                        if (!imageUrl) {
+                                            reject(new Error(`Failed to save image ${index}`));
+                                            return;
+                                        }
+                                        
                                         const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
                                         db.query(imageSql, [roomId, imageUrl], (err) => {
                                             if (err) {
@@ -464,8 +534,15 @@ app.post("/api/rooms", (req, res) => {
                 } else {
                     // No amenities, just insert images
                     if (images.length > 0) {
-                        const imagePromises = images.map(imageUrl => {
+                        const imagePromises = images.map((imageData, index) => {
                             return new Promise((resolve, reject) => {
+                                // Save base64 image as file
+                                const imageUrl = saveBase64Image(imageData, roomId, index);
+                                if (!imageUrl) {
+                                    reject(new Error(`Failed to save image ${index}`));
+                                    return;
+                                }
+                                
                                 const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
                                 db.query(imageSql, [roomId, imageUrl], (err) => {
                                     if (err) {
@@ -502,6 +579,105 @@ app.post("/api/rooms", (req, res) => {
                         });
                     }
                 }
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
+    });
+});
+
+// Delete room and its associated data
+app.delete("/api/rooms/:id", (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+        return res.status(400).json({ error: "Room ID is required" });
+    }
+    
+    // Start transaction
+    db.beginTransaction(async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        try {
+            // First, get the room images to delete files
+            const getImagesSql = "SELECT image_url FROM room_images WHERE room_id = ?";
+            db.query(getImagesSql, [id], (err, imageResults) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: err.message });
+                    });
+                }
+                
+                // Delete image files from uploads directory
+                const imageFiles = imageResults || [];
+                imageFiles.forEach(img => {
+                    if (img.image_url && img.image_url.startsWith('/uploads/')) {
+                        const filePath = path.join(__dirname, img.image_url);
+                        if (fs.existsSync(filePath)) {
+                            try {
+                                fs.unlinkSync(filePath);
+                                console.log(`Deleted image file: ${filePath}`);
+                            } catch (fileErr) {
+                                console.warn(`Failed to delete image file: ${filePath}`, fileErr);
+                            }
+                        }
+                    }
+                });
+                
+                // Delete room images from database
+                const deleteImagesSql = "DELETE FROM room_images WHERE room_id = ?";
+                db.query(deleteImagesSql, [id], (err) => {
+                    if (err) {
+                        return db.rollback(() => {
+                            res.status(500).json({ error: err.message });
+                        });
+                    }
+                    
+                    // Delete room amenities
+                    const deleteAmenitiesSql = "DELETE FROM room_amenities WHERE room_id = ?";
+                    db.query(deleteAmenitiesSql, [id], (err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: err.message });
+                            });
+                        }
+                        
+                        // Finally, delete the room
+                        const deleteRoomSql = "DELETE FROM rooms WHERE id = ?";
+                        db.query(deleteRoomSql, [id], (err, result) => {
+                            if (err) {
+                                return db.rollback(() => {
+                                    res.status(500).json({ error: err.message });
+                                });
+                            }
+                            
+                            if (result.affectedRows === 0) {
+                                return db.rollback(() => {
+                                    res.status(404).json({ error: "Room not found" });
+                                });
+                            }
+                            
+                            // Commit transaction
+                            db.commit((err) => {
+                                if (err) {
+                                    return db.rollback(() => {
+                                        res.status(500).json({ error: "Failed to commit transaction" });
+                                    });
+                                }
+                                
+                                res.status(200).json({ 
+                                    success: true, 
+                                    message: "Room and associated data deleted successfully",
+                                    deletedFiles: imageFiles.length
+                                });
+                            });
+                        });
+                    });
+                });
             });
         } catch (error) {
             db.rollback(() => {
