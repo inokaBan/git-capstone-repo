@@ -8,7 +8,6 @@ app.use(cors())
 app.use(express.json({ limit: '50mb' }))
 app.use(express.urlencoded({ extended: true, limit: '50mb' }))
 
-
 const db = mysql.createConnection({
     host: "localhost",
     user: "root",
@@ -163,116 +162,352 @@ app.post("/login", (req, res) => {
     })
 })
 
-// Rooms: list all rooms
-app.get("/api/rooms", (req, res) => {
-    const sql = "SELECT * FROM rooms ORDER BY id DESC";
+// Get all amenities
+app.get("/api/amenities", (req, res) => {
+    const sql = "SELECT * FROM amenities ORDER BY name";
     db.query(sql, [], (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
-        // Parse JSON fields
-        const rooms = (results || []).map((row) => {
-            const id = row.id ?? row.room_id ?? row.ID;
-            const name = row.name ?? row.room_name ?? row.Name;
-            const description = row.description ?? row.room_description ?? row.Description;
-            const ratingRaw = row.rating ?? row.room_rating ?? row.Rating;
-            const status = row.status ?? row.room_status ?? row.Status ?? "Available";
-            const bedsRaw = row.beds ?? row.num_beds ?? row.Beds;
-            const priceRaw = row.price_num ?? row.price ?? row.room_price ?? row.Price;
-            const maxGuestsRaw = row.maxGuests ?? row.max_guests ?? row.capacity ?? row.guests ?? row.MaxGuests;
-            const size = row.size ?? row.room_size ?? row.Size ?? "";
-            const amenitiesRaw = row.amenities ?? row.room_amenities ?? row.Amenities;
-            const imagesRaw = row.images ?? row.room_images ?? row.Images;
+        return res.status(200).json(results);
+    });
+});
 
-            const parseJSON = (val) => {
-                if (val == null) return [];
-                if (Array.isArray(val)) return val;
-                try { return JSON.parse(val); } catch { return []; }
-            };
+// Rooms: list all rooms with amenities and images
+app.get("/api/rooms", (req, res) => {
+    const sql = `
+        SELECT 
+            r.*,
+            GROUP_CONCAT(DISTINCT a.name) as amenity_names,
+            GROUP_CONCAT(DISTINCT ri.image_url) as room_images
+        FROM rooms r
+        LEFT JOIN room_amenities ra ON r.id = ra.room_id
+        LEFT JOIN amenities a ON ra.amenity_id = a.id
+        LEFT JOIN room_images ri ON r.id = ri.room_id
+        GROUP BY r.id
+        ORDER BY r.id DESC
+    `;
+    
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        
+        // Process results to format amenities and images
+        const rooms = (results || []).map((row) => {
+            const id = row.id;
+            const name = row.name;
+            const description = row.description;
+            const long_description = row.long_description;
+            const rating = Number(row.rating) || 0;
+            const status = row.status || "Available";
+            const beds = Number(row.beds) || 0;
+            const bathrooms = Number(row.bathrooms) || 0;
+            const price = Number(row.price) || 0;
+            const original_price = row.original_price;
+            const guests = Number(row.guests) || 0;
+            const size = row.size || "";
+            const category = row.category;
+            const reviews = Number(row.reviews) || 0;
+            const image = row.image;
+            const created_at = row.created_at;
+            const updated_at = row.updated_at;
+
+            // Parse amenities from comma-separated string
+            const amenities = row.amenity_names ? row.amenity_names.split(',') : [];
+            
+            // Parse images from comma-separated string
+            const images = row.room_images ? row.room_images.split(',') : [];
+            // If no room_images but has main image, use that
+            if (images.length === 0 && image) {
+                images.push(image);
+            }
 
             return {
                 id,
                 name,
-                description,
-                rating: Number(ratingRaw) || 0,
+                category,
+                image,
+                price,
+                original_price,
                 status,
-                beds: Number(bedsRaw) || 0,
-                price: Number(priceRaw) || 0,
-                maxGuests: Number(maxGuestsRaw) || 0,
+                rating,
+                guests,
                 size,
-                amenities: parseJSON(amenitiesRaw),
-                images: parseJSON(imagesRaw)
+                description,
+                long_description,
+                beds,
+                bathrooms,
+                reviews,
+                amenities,
+                images,
+                created_at,
+                updated_at
             };
         });
+        
         return res.status(200).json(rooms);
     });
 });
 
-// Rooms: create a new room
+// Get single room with amenities and images
+app.get("/api/rooms/:id", (req, res) => {
+    const { id } = req.params;
+    
+    const sql = `
+        SELECT 
+            r.*,
+            GROUP_CONCAT(DISTINCT a.name) as amenity_names,
+            GROUP_CONCAT(DISTINCT ri.image_url) as room_images
+        FROM rooms r
+        LEFT JOIN room_amenities ra ON r.id = ra.room_id
+        LEFT JOIN amenities a ON ra.amenity_id = a.id
+        LEFT JOIN room_images ri ON r.id = ri.room_id
+        WHERE r.id = ?
+        GROUP BY r.id
+    `;
+    
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        
+        if (!results || results.length === 0) {
+            return res.status(404).json({ error: "Room not found" });
+        }
+        
+        const row = results[0];
+        
+        // Parse amenities and images
+        const amenities = row.amenity_names ? row.amenity_names.split(',') : [];
+        const images = row.room_images ? row.room_images.split(',') : [];
+        if (images.length === 0 && row.image) {
+            images.push(row.image);
+        }
+        
+        const room = {
+            id: row.id,
+            name: row.name,
+            category: row.category,
+            image: row.image,
+            price: Number(row.price) || 0,
+            original_price: row.original_price,
+            status: row.status || "Available",
+            rating: Number(row.rating) || 0,
+            guests: Number(row.guests) || 0,
+            size: row.size || "",
+            description: row.description,
+            long_description: row.long_description,
+            beds: Number(row.beds) || 0,
+            bathrooms: Number(row.bathrooms) || 0,
+            reviews: Number(row.reviews) || 0,
+            amenities,
+            images,
+            created_at: row.created_at,
+            updated_at: row.updated_at
+        };
+        
+        return res.status(200).json(room);
+    });
+});
+
+// Rooms: create a new room with amenities and images
 app.post("/api/rooms", (req, res) => {
     const body = req.body || {};
 
-    // Accept both new admin payload and legacy data.json-like fields
     const name = body.name;
     const description = body.description ?? "";
+    const long_description = body.long_description ?? "";
     const rating = Number(body.rating ?? 0);
     const status = body.status ?? "Available";
     const beds = Number(body.beds ?? 1);
+    const bathrooms = Number(body.bathrooms ?? 1);
     const reviews = Number(body.reviews ?? 0);
     const size = body.size ?? "";
-    const category = body.category ?? null;
-
-    // Price: support either numeric price or string like "₱200" + optional price_num
-    const priceNum = body.price_num != null
-        ? Number(body.price_num)
-        : (typeof body.price === 'number' ? Number(body.price) : Number(String(body.price || '').replace(/[^\d.]/g, '')) || 0);
-    const priceStr = body.price != null && typeof body.price === 'string' ? body.price : `₱${priceNum}`;
-    const originalPrice = body.original_price ?? null;
-
-    // Guests field in DB is `guests`; accept maxGuests or guests
-    const guests = Number(body.maxGuests ?? body.guests ?? 1);
-
-    // Images: store cover in `image` and full array JSON in `images`
+    const category = body.category ?? "Standard";
+    const price = Number(body.price ?? 0);
+    const original_price = body.original_price ?? null;
+    const guests = Number(body.guests ?? 1);
     const images = Array.isArray(body.images) ? body.images.slice(0, 5) : [];
     const image = body.image ?? images[0] ?? null;
-
     const amenities = Array.isArray(body.amenities) ? body.amenities : [];
 
     if (!name) {
         return res.status(400).json({ error: "Missing required field: name" });
     }
 
-    const sql = `INSERT INTO rooms (
-        name, category, image, price, original_price, price_num,
-        status, rating, guests, size, description,
-        amenities, images, beds, reviews, check_in, check_out
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-
-    const values = [
-        name,
-        category,
-        image,
-        priceStr,
-        originalPrice,
-        priceNum,
-        status,
-        rating,
-        guests,
-        size,
-        description,
-        JSON.stringify(amenities),
-        JSON.stringify(images),
-        beds,
-        reviews,
-        body.check_in ?? null,
-        body.check_out ?? null,
-    ];
-
-    db.query(sql, values, (err, result) => {
+    // Start transaction
+    db.beginTransaction(async (err) => {
         if (err) {
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
+            return res.status(500).json({ error: "Failed to start transaction" });
         }
-        return res.status(201).json({ id: result.insertId });
+
+        try {
+            // Insert room
+            const roomSql = `INSERT INTO rooms (
+                name, category, image, price, original_price,
+                status, rating, guests, size, description, long_description,
+                beds, bathrooms, reviews, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
+
+            const roomValues = [
+                name, category, image, price, original_price,
+                status, rating, guests, size, description, long_description,
+                beds, bathrooms, reviews
+            ];
+
+            db.query(roomSql, roomValues, (err, result) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: err.code || err.message || "Database error" });
+                    });
+                }
+
+                const roomId = result.insertId;
+
+                // Insert amenities
+                if (amenities.length > 0) {
+                    const amenityPromises = amenities.map(amenityName => {
+                        return new Promise((resolve, reject) => {
+                            // First, get or create amenity
+                            const getAmenitySql = "SELECT id FROM amenities WHERE name = ?";
+                            db.query(getAmenitySql, [amenityName], (err, results) => {
+                                if (err) {
+                                    reject(err);
+                                    return;
+                                }
+
+                                let amenityId;
+                                if (results.length > 0) {
+                                    amenityId = results[0].id;
+                                    resolve(amenityId);
+                                } else {
+                                    // Create new amenity
+                                    const createAmenitySql = "INSERT INTO amenities (name) VALUES (?)";
+                                    db.query(createAmenitySql, [amenityName], (err, result) => {
+                                        if (err) {
+                                            reject(err);
+                                            return;
+                                        }
+                                        resolve(result.insertId);
+                                    });
+                                }
+                            });
+                        });
+                    });
+
+                    Promise.all(amenityPromises).then(amenityIds => {
+                        // Insert room-amenity relationships
+                        const roomAmenityPromises = amenityIds.map(amenityId => {
+                            return new Promise((resolve, reject) => {
+                                const roomAmenitySql = "INSERT INTO room_amenities (room_id, amenity_id) VALUES (?, ?)";
+                                db.query(roomAmenitySql, [roomId, amenityId], (err) => {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        resolve();
+                                    }
+                                });
+                            });
+                        });
+
+                        Promise.all(roomAmenityPromises).then(() => {
+                            // Insert room images
+                            if (images.length > 0) {
+                                const imagePromises = images.map(imageUrl => {
+                                    return new Promise((resolve, reject) => {
+                                        const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
+                                        db.query(imageSql, [roomId, imageUrl], (err) => {
+                                            if (err) {
+                                                reject(err);
+                                            } else {
+                                                resolve();
+                                            }
+                                        });
+                                    });
+                                });
+
+                                Promise.all(imagePromises).then(() => {
+                                    db.commit((err) => {
+                                        if (err) {
+                                            return db.rollback(() => {
+                                                res.status(500).json({ error: "Failed to commit transaction" });
+                                            });
+                                        }
+                                        res.status(201).json({ id: roomId });
+                                    });
+                                }).catch(err => {
+                                    db.rollback(() => {
+                                        res.status(500).json({ error: err.message });
+                                    });
+                                });
+                            } else {
+                                db.commit((err) => {
+                                    if (err) {
+                                        return db.rollback(() => {
+                                            res.status(500).json({ error: "Failed to commit transaction" });
+                                        });
+                                    }
+                                    res.status(201).json({ id: roomId });
+                                });
+                            }
+                        }).catch(err => {
+                            db.rollback(() => {
+                                res.status(500).json({ error: err.message });
+                            });
+                        });
+                    }).catch(err => {
+                        db.rollback(() => {
+                            res.status(500).json({ error: err.message });
+                        });
+                    });
+                } else {
+                    // No amenities, just insert images
+                    if (images.length > 0) {
+                        const imagePromises = images.map(imageUrl => {
+                            return new Promise((resolve, reject) => {
+                                const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
+                                db.query(imageSql, [roomId, imageUrl], (err) => {
+                                    if (err) {
+                                        reject(err);
+                                    } else {
+                                        resolve();
+                                    }
+                                });
+                            });
+                        });
+
+                        Promise.all(imagePromises).then(() => {
+                            db.commit((err) => {
+                                if (err) {
+                                    return db.rollback(() => {
+                                        res.status(500).json({ error: "Failed to commit transaction" });
+                                    });
+                                }
+                                res.status(201).json({ id: roomId });
+                            });
+                        }).catch(err => {
+                            db.rollback(() => {
+                                res.status(500).json({ error: err.message });
+                            });
+                        });
+                    } else {
+                        db.commit((err) => {
+                            if (err) {
+                                return db.rollback(() => {
+                                    res.status(500).json({ error: "Failed to commit transaction" });
+                                });
+                            }
+                            res.status(201).json({ id: roomId });
+                        });
+                    }
+                }
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
     });
 });
 

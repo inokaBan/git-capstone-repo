@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Eye, Star, Users, Bed, Home, Wifi, Car, Coffee, Waves, Dumbbell, Wind } from 'lucide-react';
+import { Plus, Edit2, Trash2, Eye, Star, Users, Bed, Home, Wifi, Car, Coffee, Waves, Dumbbell, Wind, Bath } from 'lucide-react';
 
 const RoomsManagementPage = () => {
   const MAX_IMAGES = 5;
@@ -8,24 +8,29 @@ const RoomsManagementPage = () => {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [amenities, setAmenities] = useState([]);
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [newRoom, setNewRoom] = useState({
     name: '',
+    category: 'Standard',
     description: '',
+    long_description: '',
     rating: 5,
     status: 'Available',
     beds: 1,
+    bathrooms: 1,
     price: 0,
-    maxGuests: 1,
+    original_price: '',
+    guests: 1,
     size: '',
     amenities: [],
     images: []
   });
 
   const statusOptions = ['Available', 'Occupied', 'Maintenance', 'Cleaning'];
-  const amenityOptions = ['WiFi', 'Air Conditioning', 'Mini Bar', 'Ocean View', 'Parking', 'Gym Access', 'Pool Access', 'Room Service'];
+  const categoryOptions = ['Standard', 'Deluxe', 'Suite', 'Presidential'];
 
   const handleAddRoom = async () => {
     try {
@@ -49,12 +54,16 @@ const RoomsManagementPage = () => {
       }
       setNewRoom({
         name: '',
+        category: 'Standard',
         description: '',
+        long_description: '',
         rating: 5,
         status: 'Available',
         beds: 1,
+        bathrooms: 1,
         price: 0,
-        maxGuests: 1,
+        original_price: '',
+        guests: 1,
         size: '',
         amenities: [],
         images: []
@@ -176,8 +185,18 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const loadAmenities = async () => {
+    try {
+      const res = await axios.get('http://localhost:8081/api/amenities');
+      setAmenities(res.data || []);
+    } catch (e) {
+      console.error('Failed to load amenities', e);
+    }
+  };
+
   useEffect(() => {
     loadRooms();
+    loadAmenities();
   }, []);
 
   return (
@@ -216,6 +235,7 @@ const RoomsManagementPage = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Room Details</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Category</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Rating</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Capacity</th>
@@ -236,9 +256,18 @@ const RoomsManagementPage = () => {
                             <Bed className="w-4 h-4" />
                             {room.beds} beds
                           </span>
+                          <span className="flex items-center gap-1">
+                            <Bath className="w-4 h-4" />
+                            {room.bathrooms} baths
+                          </span>
                           <span>{room.size}</span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                        {room.category}
+                      </span>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
@@ -254,11 +283,14 @@ const RoomsManagementPage = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1">
                         <Users className="w-4 h-4 text-gray-500" />
-                        <span>{room.maxGuests} guests</span>
+                        <span>{room.guests} guests</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="font-semibold text-gray-900">₱{Number(room.price || 0).toLocaleString()}</span>
+                      {room.original_price && (
+                        <div className="text-sm line-through text-gray-500">{room.original_price}</div>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
@@ -325,6 +357,21 @@ const RoomsManagementPage = () => {
                   </div>
                   
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select
+                      value={newRoom.category}
+                      onChange={(e) => setNewRoom({...newRoom, category: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      {categoryOptions.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                     <select
                       value={newRoom.status}
@@ -335,6 +382,19 @@ const RoomsManagementPage = () => {
                         <option key={status} value={status}>{status}</option>
                       ))}
                     </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      step="0.1"
+                      value={newRoom.rating}
+                      onChange={(e) => setNewRoom({...newRoom, rating: parseFloat(e.target.value)})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                   </div>
                 </div>
 
@@ -349,8 +409,19 @@ const RoomsManagementPage = () => {
                   />
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Long Description</label>
+                  <textarea
+                    value={newRoom.long_description}
+                    onChange={(e) => setNewRoom({...newRoom, long_description: e.target.value})}
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Enter detailed room description"
+                  />
+                </div>
+
                 {/* Room Specifications */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Beds</label>
                     <input
@@ -363,12 +434,23 @@ const RoomsManagementPage = () => {
                   </div>
                   
                   <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Bathrooms</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={newRoom.bathrooms}
+                      onChange={(e) => setNewRoom({...newRoom, bathrooms: parseInt(e.target.value)})}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Max Guests</label>
                     <input
                       type="number"
                       min="1"
-                      value={newRoom.maxGuests}
-                      onChange={(e) => setNewRoom({...newRoom, maxGuests: parseInt(e.target.value)})}
+                      value={newRoom.guests}
+                      onChange={(e) => setNewRoom({...newRoom, guests: parseInt(e.target.value)})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
@@ -385,27 +467,25 @@ const RoomsManagementPage = () => {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Room Size</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (₱)</label>
                     <input
                       type="text"
-                      value={newRoom.size}
-                      onChange={(e) => setNewRoom({...newRoom, size: e.target.value})}
+                      value={newRoom.original_price}
+                      onChange={(e) => setNewRoom({...newRoom, original_price: e.target.value})}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="e.g., 45 sqm"
+                      placeholder="e.g., ₱150"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Room Size</label>
                   <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    step="0.1"
-                    value={newRoom.rating}
-                    onChange={(e) => setNewRoom({...newRoom, rating: parseFloat(e.target.value)})}
+                    type="text"
+                    value={newRoom.size}
+                    onChange={(e) => setNewRoom({...newRoom, size: e.target.value})}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="e.g., 45 sqm"
                   />
                 </div>
 
@@ -413,17 +493,17 @@ const RoomsManagementPage = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">Amenities</label>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {amenityOptions.map(amenity => (
-                      <label key={amenity} className="flex items-center gap-2 cursor-pointer">
+                    {amenities.map(amenity => (
+                      <label key={amenity.id} className="flex items-center gap-2 cursor-pointer">
                         <input
                           type="checkbox"
-                          checked={newRoom.amenities.includes(amenity)}
-                          onChange={() => toggleAmenity(amenity)}
+                          checked={newRoom.amenities.includes(amenity.name)}
+                          onChange={() => toggleAmenity(amenity.name)}
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
                         <div className="flex items-center gap-1">
-                          {getAmenityIcon(amenity)}
-                          <span className="text-sm">{amenity}</span>
+                          {getAmenityIcon(amenity.name)}
+                          <span className="text-sm">{amenity.name}</span>
                         </div>
                       </label>
                     ))}
@@ -476,12 +556,16 @@ const RoomsManagementPage = () => {
                     setEditingRoom(null);
                     setNewRoom({
                       name: '',
+                      category: 'Standard',
                       description: '',
+                      long_description: '',
                       rating: 5,
                       status: 'Available',
                       beds: 1,
+                      bathrooms: 1,
                       price: 0,
-                      maxGuests: 1,
+                      original_price: '',
+                      guests: 1,
                       size: '',
                       amenities: [],
                       images: []

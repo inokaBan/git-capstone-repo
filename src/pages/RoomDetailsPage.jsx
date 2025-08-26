@@ -25,10 +25,38 @@ const RoomDetailPage = () => {
 
   const getAmenityIcon = (name) => {
     const iconMap = {
-      'Free WiFi': <Wifi className="w-5 h-5" />,
+      'WiFi': <Wifi className="w-5 h-5" />,
       'Room Service': <Coffee className="w-5 h-5" />,
       'Garden View': <Waves className="w-5 h-5" />,
-      'Parking': <Car className="w-5 h-5" />
+      'Parking': <Car className="w-5 h-5" />,
+      'Air Conditioning': <Wifi className="w-5 h-5" />,
+      'Mini Bar': <Coffee className="w-5 h-5" />,
+      'Balcony': <Waves className="w-5 h-5" />,
+      'Premium Bedding': <Bed className="w-5 h-5" />,
+      'Coffee Machine': <Coffee className="w-5 h-5" />,
+      'King Bed': <Bed className="w-5 h-5" />,
+      'Marble Bathroom': <Bath className="w-5 h-5" />,
+      'Panoramic View': <Waves className="w-5 h-5" />,
+      'Floor-to-ceiling Windows': <Waves className="w-5 h-5" />,
+      'Seating Area': <Bed className="w-5 h-5" />,
+      'Premium WiFi': <Wifi className="w-5 h-5" />,
+      'Living Area': <Bed className="w-5 h-5" />,
+      'Concierge Service': <Coffee className="w-5 h-5" />,
+      'Premium Amenities': <Coffee className="w-5 h-5" />,
+      'Connecting Rooms': <Bed className="w-5 h-5" />,
+      'Kid-friendly': <Users className="w-5 h-5" />,
+      'Kitchenette': <Coffee className="w-5 h-5" />,
+      'Family Games': <Users className="w-5 h-5" />,
+      'Private Balcony': <Waves className="w-5 h-5" />,
+      'Jacuzzi': <Bath className="w-5 h-5" />,
+      'Champagne Service': <Coffee className="w-5 h-5" />,
+      'Rose Petals': <Waves className="w-5 h-5" />,
+      'Private Terrace': <Waves className="w-5 h-5" />,
+      'Butler Service': <Coffee className="w-5 h-5" />,
+      'Premium Dining': <Coffee className="w-5 h-5" />,
+      'Personal Chef': <Coffee className="w-5 h-5" />,
+      'Private Elevator': <Users className="w-5 h-5" />,
+      '24/7 Butler': <Coffee className="w-5 h-5" />
     };
     return iconMap[name] || <Coffee className="w-5 h-5" />;
   };
@@ -49,15 +77,22 @@ const RoomDetailPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios.get('http://localhost:8081/api/rooms')
-        const list = Array.isArray(res.data) ? res.data : []
-        const found = list.find(r => String(r.id) === String(id))
-        if (found) setRoom(found)
+        const res = await axios.get(`http://localhost:8081/api/rooms/${id}`);
+        setRoom(res.data);
       } catch (e) {
-        console.warn('Failed to load room', e)
+        console.warn('Failed to load room', e);
+        // Fallback to loading all rooms and finding the specific one
+        try {
+          const res = await axios.get('http://localhost:8081/api/rooms');
+          const list = Array.isArray(res.data) ? res.data : [];
+          const found = list.find(r => String(r.id) === String(id));
+          if (found) setRoom(found);
+        } catch (fallbackError) {
+          console.error('Fallback also failed', fallbackError);
+        }
       }
     }
-    load()
+    load();
   }, [id]);
 
   // Mock booking function - simulates a successful booking
@@ -152,7 +187,11 @@ const RoomDetailPage = () => {
         {/* Left side images and description */}
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-            <img src={(room.images && room.images[selectedImageIndex]) || (room.images && room.images[0]) || 'https://via.placeholder.com/800x400?text=Room'} alt={room.name} className="w-full h-64 sm:h-80 object-cover" />
+            <img 
+              src={(room.images && room.images[selectedImageIndex]) || (room.images && room.images[0]) || room.image || 'https://via.placeholder.com/800x400?text=Room'} 
+              alt={room.name} 
+              className="w-full h-64 sm:h-80 object-cover" 
+            />
             <div className="flex overflow-x-auto space-x-2 p-4">
               {(room.images || []).map((img, i) => (
                 <img
@@ -167,13 +206,18 @@ const RoomDetailPage = () => {
           </div>
 
           <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-            <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
-            <p className="text-gray-700 text-sm">{room.longDescription || room.description || ''}</p>
+            <div className="flex items-center justify-between">
+              <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {room.category}
+              </span>
+            </div>
+            <p className="text-gray-700 text-sm">{room.long_description || room.description || ''}</p>
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center space-x-2"><Users className="w-4 h-4" /><span>{room.guests} Guests</span></div>
-              <div className="flex items-center space-x-2"><Bed className="w-4 h-4" /><span>{room.beds} Bed</span></div>
+              <div className="flex items-center space-x-2"><Bed className="w-4 h-4" /><span>{room.beds} Bed{room.beds > 1 ? 's' : ''}</span></div>
               {room.bathrooms != null && (
-                <div className="flex items-center space-x-2"><Bath className="w-4 h-4" /><span>{room.bathrooms} Bathroom</span></div>
+                <div className="flex items-center space-x-2"><Bath className="w-4 h-4" /><span>{room.bathrooms} Bathroom{room.bathrooms > 1 ? 's' : ''}</span></div>
               )}
               <div className="flex items-center space-x-2"><Maximize className="w-4 h-4" /><span>{room.size}</span></div>
             </div>
@@ -199,8 +243,8 @@ const RoomDetailPage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-20 ">
             <div className="mb-4">
               <div className="text-2xl font-bold text-gray-900">{getDisplayPrice()}</div>
-              {room.originalPrice && (
-                <div className="text-sm line-through text-gray-500">{room.originalPrice}</div>
+              {room.original_price && (
+                <div className="text-sm line-through text-gray-500">{room.original_price}</div>
               )}
               <p className="text-xs text-gray-600">Per night</p>
               {checkIn && checkOut && (
@@ -280,7 +324,7 @@ const RoomDetailPage = () => {
             </button>
 
             <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800">
-              <strong>Free Cancellation:</strong> {room?.policies?.cancellation || 'Free cancellation on eligible rates'}
+              <strong>Free Cancellation:</strong> Free cancellation on eligible rates
             </div>
           </div>
         </div>
