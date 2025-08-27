@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Wifi, Car, Coffee, Waves, Users, Star } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import AmenityIcon from '../context/AmenityIcon';
 
 const RoomSection = () => {
   const navigate = useNavigate()
@@ -99,7 +100,7 @@ const RoomSection = () => {
                     {(room.amenities || []).slice(0, 4).map((amenity, index) => (
                       <div key={index} className="flex items-center space-x-2">
                         <div className="text-blue-600">
-                          {getAmenityIcon(amenity)}
+                          {<AmenityIcon name={amenity} />}
                         </div>
                         <span className="text-xs text-gray-600">{amenity}</span>
                       </div>

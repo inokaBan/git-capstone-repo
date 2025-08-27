@@ -1,5 +1,6 @@
 import React from 'react';
-import { Wifi, Car, Coffee, Waves, Users, Star, Bath } from 'lucide-react';
+import { Wifi, Car, Coffee, Waves, Users, Star } from 'lucide-react';
+import AmenityIcon from '../context/AmenityIcon';
 
 const RoomCard = ({ room, onClick }) => {
   const getAmenityIcon = (amenity) => {
@@ -17,7 +18,7 @@ const RoomCard = ({ room, onClick }) => {
     >
       <div className="relative overflow-hidden">
         <img 
-          src={(room.images && room.images[0]) || room.image || 'https://via.placeholder.com/600x400?text=Room'} 
+          src={(room.images && room.images[0]) || 'https://via.placeholder.com/600x400?text=Room'} 
           alt={room.name}
           className="w-full h-40 object-cover group-hover:scale-110 transition-transform duration-500"
         />
@@ -50,27 +51,13 @@ const RoomCard = ({ room, onClick }) => {
           <p className="text-sm text-gray-700">{room.size}</p>
         </div>
 
-        <div className="mb-4">
-          <span className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2 block">Room Details</span>
-          <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span className="flex items-center gap-1">
-              <Users className="w-4 h-4" />
-              {room.guests} guests
-            </span>
-            <span className="flex items-center gap-1">
-              <Bath className="w-4 h-4" />
-              {room.bathrooms} baths
-            </span>
-          </div>
-        </div>
-
         <div className="mb-6">
           <span className="text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2 block">Amenities</span>
           <div className="grid grid-cols-2 gap-2">
             {room.amenities.slice(0, 4).map((amenity, index) => (
               <div key={index} className="flex items-center space-x-2">
                 <div className="text-blue-600">
-                  {getAmenityIcon(amenity)}
+                  {<AmenityIcon name={amenity} />}
                 </div>
                 <span className="text-xs text-gray-600">{amenity}</span>
               </div>
@@ -81,9 +68,7 @@ const RoomCard = ({ room, onClick }) => {
         <div className="flex items-center justify-between mb-4">
           <div>
             <span className="text-2xl font-bold text-gray-900">₱{Number(room.price).toLocaleString()}</span>
-            {room.original_price && (
-              <p className="text-sm line-through text-gray-500">{room.original_price}</p>
-            )}
+            {/* originalPrice omitted */}
             <p className="text-xs text-gray-500">per night</p>
           </div>
         </div>

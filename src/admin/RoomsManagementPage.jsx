@@ -35,6 +35,8 @@ const RoomsManagementPage = () => {
   const handleAddRoom = async () => {
     try {
       setError('');
+      console.log('Submitting room data:', newRoom);
+      
       if (editingRoom) {
         // Optional: implement update endpoint later
         setRooms(rooms.map(room => 
@@ -42,7 +44,49 @@ const RoomsManagementPage = () => {
         ));
         setEditingRoom(null);
       } else {
-        const res = await axios.post('http://localhost:8081/api/rooms', newRoom);
+        // Create FormData for file upload
+        const formData = new FormData();
+        
+        // Add text fields
+        formData.append('name', newRoom.name);
+        formData.append('category', newRoom.category);
+        formData.append('description', newRoom.description);
+        formData.append('long_description', newRoom.long_description);
+        formData.append('rating', newRoom.rating);
+        formData.append('status', newRoom.status);
+        formData.append('beds', newRoom.beds);
+        formData.append('bathrooms', newRoom.bathrooms);
+        formData.append('price', newRoom.price);
+        formData.append('original_price', newRoom.original_price);
+        formData.append('guests', newRoom.guests);
+        formData.append('size', newRoom.size);
+        
+        // Add amenities
+        newRoom.amenities.forEach(amenity => {
+          formData.append('amenities', amenity);
+        });
+        
+        // Add images (convert base64 back to files)
+        newRoom.images.forEach((imageData, index) => {
+          // Convert base64 to blob
+          const byteString = atob(imageData.split(',')[1]);
+          const mimeString = imageData.split(',')[0].split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          const blob = new Blob([ab], { type: mimeString });
+          const file = new File([blob], `image${index}.jpg`, { type: mimeString });
+          formData.append('images', file);
+        });
+        
+        const res = await axios.post('http://localhost:8081/api/rooms', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        
         const createdId = res?.data?.id;
         if (createdId) {
           // Merge the newly created id with the room draft to avoid rendering issues
@@ -70,6 +114,9 @@ const RoomsManagementPage = () => {
       });
       setShowAddModal(false);
     } catch (e) {
+      console.error('Add room error:', e);
+      console.error('Error response:', e.response);
+      console.error('Error data:', e.response?.data);
       setError(e?.response?.data?.error || 'Failed to save room');
     }
   };
@@ -103,14 +150,52 @@ const RoomsManagementPage = () => {
 
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
-    // Filter out very large files (> 3 MB) to avoid 413 Payload Too Large
-    const MAX_FILE_MB = 3;
+    // Filter out very large files (> 2 MB) to avoid packet size issues
+    const MAX_FILE_MB = 2;
     const filtered = files.filter(f => (f.size || 0) <= MAX_FILE_MB * 1024 * 1024);
     const rejectedCount = files.length - filtered.length;
     if (rejectedCount > 0) {
       setError(`Some images were skipped (>${MAX_FILE_MB}MB).`);
     }
-    const imagePromises = filtered.map(file => compressImageFile(file));
+
+    // Convert files to base64 with compression to reduce size
+    const imagePromises = filtered.map(file => {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          // Compress the image to reduce size
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const MAX_SIZE = 800; // Max dimension
+            let { width, height } = img;
+            
+            if (width > height) {
+              if (width > MAX_SIZE) {
+                height = (height * MAX_SIZE) / width;
+                width = MAX_SIZE;
+              }
+            } else {
+              if (height > MAX_SIZE) {
+                width = (width * MAX_SIZE) / height;
+                height = MAX_SIZE;
+              }
+            }
+            
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // Use lower quality JPEG to reduce size
+            const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+            resolve(compressedDataUrl);
+          };
+          img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    });
 
     Promise.all(imagePromises).then(images => {
       setNewRoom(prev => {
@@ -119,32 +204,9 @@ const RoomsManagementPage = () => {
         const next = [...prev.images, ...toAdd];
         return { ...prev, images: next.slice(0, MAX_IMAGES) };
       });
-    });
-  };
-
-  const compressImageFile = (file) => {
-    const MAX_DIMENSION = 1280; // px
-    const JPEG_QUALITY = 0.7;  // 0-1
-
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (evt) => {
-        const img = new Image();
-        img.onload = () => {
-          let { width, height } = img;
-          const scale = Math.min(1, MAX_DIMENSION / Math.max(width, height));
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.round(width * scale);
-          canvas.height = Math.round(height * scale);
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          // Prefer JPEG to get better compression
-          const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
-          resolve(dataUrl);
-        };
-        img.src = evt.target.result;
-      };
-      reader.readAsDataURL(file);
+    }).catch(error => {
+      console.error('Error processing images:', error);
+      setError('Failed to process some images. Please try again.');
     });
   };
 
@@ -404,15 +466,15 @@ const RoomsManagementPage = () => {
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="5"
-                      step="0.1"
-                      value={newRoom.rating}
-                      onChange={(e) => setNewRoom({...newRoom, rating: parseFloat(e.target.value)})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                                         <input
+                       type="number"
+                       min="1"
+                       max="5"
+                       step="0.1"
+                       value={newRoom.rating || ''}
+                       onChange={(e) => setNewRoom({...newRoom, rating: parseFloat(e.target.value) || 5})}
+                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     />
                   </div>
                 </div>
 
@@ -442,46 +504,46 @@ const RoomsManagementPage = () => {
                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Beds</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newRoom.beds}
-                      onChange={(e) => setNewRoom({...newRoom, beds: parseInt(e.target.value)})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                                         <input
+                       type="number"
+                       min="1"
+                       value={newRoom.beds || ''}
+                       onChange={(e) => setNewRoom({...newRoom, beds: parseInt(e.target.value) || 1})}
+                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Bathrooms</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newRoom.bathrooms}
-                      onChange={(e) => setNewRoom({...newRoom, bathrooms: parseInt(e.target.value)})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                                         <input
+                       type="number"
+                       min="1"
+                       value={newRoom.bathrooms || ''}
+                       onChange={(e) => setNewRoom({...newRoom, bathrooms: parseInt(e.target.value) || 1})}
+                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Max Guests</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={newRoom.guests}
-                      onChange={(e) => setNewRoom({...newRoom, guests: parseInt(e.target.value)})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                                         <input
+                       type="number"
+                       min="1"
+                       value={newRoom.guests || ''}
+                       onChange={(e) => setNewRoom({...newRoom, guests: parseInt(e.target.value) || 1})}
+                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     />
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Price (₱)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={newRoom.price}
-                      onChange={(e) => setNewRoom({...newRoom, price: parseInt(e.target.value)})}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+                                         <input
+                       type="number"
+                       min="0"
+                       value={newRoom.price || ''}
+                       onChange={(e) => setNewRoom({...newRoom, price: parseInt(e.target.value) || 0})}
+                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     />
                   </div>
                   
                   <div>
@@ -535,14 +597,18 @@ const RoomsManagementPage = () => {
                     <p className="text-sm text-gray-600">Add up to 5 images. First image will be the cover.</p>
                     <span className="text-sm font-medium text-gray-700">{newRoom.images.length}/{MAX_IMAGES}</span>
                   </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    disabled={newRoom.images.length >= MAX_IMAGES}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-60 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                                     <input
+                     type="file"
+                     multiple
+                     accept="image/*"
+                     onChange={handleImageUpload}
+                     disabled={newRoom.images.length >= MAX_IMAGES}
+                     className="w-full px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-60 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                     onError={(e) => {
+                       console.error('File input error:', e);
+                       setError('Error with file input. Please try again.');
+                     }}
+                   />
                   {newRoom.images.length > 0 && (
                     <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                       {newRoom.images.map((image, index) => (

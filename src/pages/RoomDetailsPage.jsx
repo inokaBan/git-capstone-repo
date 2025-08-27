@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Wifi, Car, Coffee, Waves, Users, Star, ArrowLeft,
-  Bed, Bath, Maximize, MapPin, Calendar, Phone
+  Users, Star, ArrowLeft,
+  Bed, Bath, Maximize, MapPin, Calendar, Phone, Wind
 } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import BookingConfirmationModal from '../components/BookingConfirmationModal';
 import { useBooking } from '../context/BookingContext'; 
+import AmenityIcon from '../context/AmenityIcon';
 
 const RoomDetailPage = () => {
   const { id } = useParams();
@@ -25,38 +26,16 @@ const RoomDetailPage = () => {
 
   const getAmenityIcon = (name) => {
     const iconMap = {
-      'WiFi': <Wifi className="w-5 h-5" />,
-      'Room Service': <Coffee className="w-5 h-5" />,
-      'Garden View': <Waves className="w-5 h-5" />,
-      'Parking': <Car className="w-5 h-5" />,
-      'Air Conditioning': <Wifi className="w-5 h-5" />,
-      'Mini Bar': <Coffee className="w-5 h-5" />,
-      'Balcony': <Waves className="w-5 h-5" />,
-      'Premium Bedding': <Bed className="w-5 h-5" />,
-      'Coffee Machine': <Coffee className="w-5 h-5" />,
-      'King Bed': <Bed className="w-5 h-5" />,
-      'Marble Bathroom': <Bath className="w-5 h-5" />,
-      'Panoramic View': <Waves className="w-5 h-5" />,
-      'Floor-to-ceiling Windows': <Waves className="w-5 h-5" />,
-      'Seating Area': <Bed className="w-5 h-5" />,
+      'Free WiFi': <Wifi className="w-5 h-5" />,
       'Premium WiFi': <Wifi className="w-5 h-5" />,
-      'Living Area': <Bed className="w-5 h-5" />,
-      'Concierge Service': <Coffee className="w-5 h-5" />,
-      'Premium Amenities': <Coffee className="w-5 h-5" />,
-      'Connecting Rooms': <Bed className="w-5 h-5" />,
-      'Kid-friendly': <Users className="w-5 h-5" />,
-      'Kitchenette': <Coffee className="w-5 h-5" />,
-      'Family Games': <Users className="w-5 h-5" />,
-      'Private Balcony': <Waves className="w-5 h-5" />,
-      'Jacuzzi': <Bath className="w-5 h-5" />,
+      'Air Conditioning': <Wind className="w-5 h-5" />,
+      'Room Service': <Bed className="w-5 h-5" />,
+      'Coffee Machine': <Coffee className="w-5 h-5" />,
+      'Mini Bar': <Coffee className="w-5 h-5" />,
       'Champagne Service': <Coffee className="w-5 h-5" />,
-      'Rose Petals': <Waves className="w-5 h-5" />,
-      'Private Terrace': <Waves className="w-5 h-5" />,
-      'Butler Service': <Coffee className="w-5 h-5" />,
       'Premium Dining': <Coffee className="w-5 h-5" />,
-      'Personal Chef': <Coffee className="w-5 h-5" />,
-      'Private Elevator': <Users className="w-5 h-5" />,
-      '24/7 Butler': <Coffee className="w-5 h-5" />
+      'Balcony': <Waves className="w-5 h-5" />,
+      'Parking': <Car className="w-5 h-5" />,
     };
     return iconMap[name] || <Coffee className="w-5 h-5" />;
   };
@@ -228,7 +207,7 @@ const RoomDetailPage = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {room.amenities.map((a, i) => (
                 <div key={i} className="flex items-start space-x-3">
-                  <div className="text-blue-600">{getAmenityIcon(a)}</div>
+                  <div className="text-blue-600"><AmenityIcon name={a} /></div>
                   <div>
                     <p className="font-medium text-gray-900">{a}</p>
                   </div>

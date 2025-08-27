@@ -3,54 +3,52 @@ const mysql = require("mysql")
 const cors = require("cors")
 const path = require("path")
 const fs = require("fs")
+const multer = require("multer")
 
 const app = express()
 app.use(cors())
-// Increase body size limits to handle base64 images from admin room uploads
-app.use(express.json({ limit: '50mb' }))
-app.use(express.urlencoded({ extended: true, limit: '50mb' }))
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: true, limit: '10mb' }))
+
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, uploadsDir)
+    },
+    filename: function (req, file, cb) {
+        // Generate unique filename with timestamp
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9)
+        const ext = path.extname(file.originalname)
+        cb(null, 'room-' + uniqueSuffix + ext)
+    }
+})
+
+const upload = multer({ 
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+        files: 5 // Max 5 files
+    },
+    fileFilter: function (req, file, cb) {
+        // Accept only image files
+        if (file.mimetype.startsWith('image/')) {
+            cb(null, true)
+        } else {
+            cb(new Error('Only image files are allowed'), false)
+        }
+    }
+})
 
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
-// Helper function to save base64 image as file
-const saveBase64Image = (base64Data, roomId, index) => {
-    try {
-        // Create uploads directory if it doesn't exist
-        const uploadsDir = path.join(__dirname, 'uploads');
-        if (!fs.existsSync(uploadsDir)) {
-            fs.mkdirSync(uploadsDir, { recursive: true });
-        }
 
-        // Extract base64 data (remove data:image/jpeg;base64, prefix)
-        const matches = base64Data.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (!matches || matches.length !== 3) {
-            throw new Error('Invalid base64 image data');
-        }
-
-        const imageType = matches[1];
-        const imageData = matches[2];
-        const buffer = Buffer.from(imageData, 'base64');
-
-        // Determine file extension
-        const ext = imageType.includes('jpeg') || imageType.includes('jpg') ? 'jpg' : 
-                   imageType.includes('png') ? 'png' : 
-                   imageType.includes('gif') ? 'gif' : 'jpg';
-
-        // Generate filename
-        const filename = `room_${roomId}_${index}_${Date.now()}.${ext}`;
-        const filepath = path.join(uploadsDir, filename);
-
-        // Save file
-        fs.writeFileSync(filepath, buffer);
-
-        // Return the URL path
-        return `/uploads/${filename}`;
-    } catch (error) {
-        console.error('Error saving image:', error);
-        return null;
-    }
-};
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -374,9 +372,16 @@ app.get("/api/rooms/:id", (req, res) => {
     });
 });
 
-// Rooms: create a new room with amenities and images
-app.post("/api/rooms", (req, res) => {
+// Rooms: create a new room with amenities and images using Multer
+app.post("/api/rooms", upload.array('images', 5), (req, res) => {
     const body = req.body || {};
+    const uploadedFiles = req.files || [];
+    
+    console.log('Received room creation request:', {
+        name: body.name,
+        uploadedFilesCount: uploadedFiles.length,
+        amenitiesCount: body.amenities?.length || 0
+    });
 
     const name = body.name;
     const description = body.description ?? "";
@@ -391,9 +396,15 @@ app.post("/api/rooms", (req, res) => {
     const price = Number(body.price ?? 0);
     const original_price = body.original_price ?? null;
     const guests = Number(body.guests ?? 1);
-    const images = Array.isArray(body.images) ? body.images.slice(0, 5) : [];
-    const image = body.image ?? images[0] ?? null;
-    const amenities = Array.isArray(body.amenities) ? body.amenities : [];
+    
+    // Get image URLs from uploaded files
+    const imageUrls = uploadedFiles.map(file => `/uploads/${file.filename}`);
+    const image = imageUrls[0] ?? null;
+    
+    // Parse amenities from form data
+    const amenities = body.amenities ? 
+        (Array.isArray(body.amenities) ? body.amenities : [body.amenities]) : 
+        [];
 
     if (!name) {
         return res.status(400).json({ error: "Missing required field: name" });
@@ -476,16 +487,9 @@ app.post("/api/rooms", (req, res) => {
 
                         Promise.all(roomAmenityPromises).then(() => {
                             // Insert room images
-                            if (images.length > 0) {
-                                const imagePromises = images.map((imageData, index) => {
+                            if (imageUrls.length > 0) {
+                                const imagePromises = imageUrls.map((imageUrl) => {
                                     return new Promise((resolve, reject) => {
-                                        // Save base64 image as file
-                                        const imageUrl = saveBase64Image(imageData, roomId, index);
-                                        if (!imageUrl) {
-                                            reject(new Error(`Failed to save image ${index}`));
-                                            return;
-                                        }
-                                        
                                         const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
                                         db.query(imageSql, [roomId, imageUrl], (err) => {
                                             if (err) {
@@ -533,16 +537,9 @@ app.post("/api/rooms", (req, res) => {
                     });
                 } else {
                     // No amenities, just insert images
-                    if (images.length > 0) {
-                        const imagePromises = images.map((imageData, index) => {
+                    if (imageUrls.length > 0) {
+                        const imagePromises = imageUrls.map((imageUrl) => {
                             return new Promise((resolve, reject) => {
-                                // Save base64 image as file
-                                const imageUrl = saveBase64Image(imageData, roomId, index);
-                                if (!imageUrl) {
-                                    reject(new Error(`Failed to save image ${index}`));
-                                    return;
-                                }
-                                
                                 const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
                                 db.query(imageSql, [roomId, imageUrl], (err) => {
                                     if (err) {
