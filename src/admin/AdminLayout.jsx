@@ -32,7 +32,7 @@ const AdminLayout = () => {
         <TopHeader setSidebarOpen={setSidebarOpen} title={title} />
 
         <main className="flex-1 overflow-y-auto">
-          <div className="px-4 sm:px-6 lg:px-8 py-8">
+          <div className="px-2 sm:px-2 lg:px-6 py-6">
             <Outlet />
           </div>
         </main>

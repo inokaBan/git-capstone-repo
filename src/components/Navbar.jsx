@@ -18,7 +18,7 @@ const Navbar = () => {
     { name: 'Home', to: '/' },
     { name: 'Rooms', to: '/rooms' },
     { name: 'Contacts', to: '/contacts' },
-    { name: 'About us', to: '/aboutUs' },
+    { name: 'About us', to: '/aboutus' },
     { name: 'Log in', to: '/login', className: 'login-btn' },
     { name: 'Sign up', to: '/register', className: 'signup-btn' }
   ];

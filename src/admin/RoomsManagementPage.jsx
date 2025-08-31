@@ -16,7 +16,6 @@ const RoomsManagementPage = () => {
     name: '',
     category: 'Standard',
     description: '',
-    long_description: '',
     rating: 5,
     status: 'Available',
     beds: 1,
@@ -51,7 +50,6 @@ const RoomsManagementPage = () => {
         formData.append('name', newRoom.name);
         formData.append('category', newRoom.category);
         formData.append('description', newRoom.description);
-        formData.append('long_description', newRoom.long_description);
         formData.append('rating', newRoom.rating);
         formData.append('status', newRoom.status);
         formData.append('beds', newRoom.beds);
@@ -100,7 +98,6 @@ const RoomsManagementPage = () => {
         name: '',
         category: 'Standard',
         description: '',
-        long_description: '',
         rating: 5,
         status: 'Available',
         beds: 1,
@@ -277,7 +274,7 @@ const RoomsManagementPage = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -327,7 +324,6 @@ const RoomsManagementPage = () => {
                     <td className="px-6 py-4">
                       <div>
                         <h3 className="font-semibold text-gray-900">{room.name}</h3>
-                        <p className="text-sm text-gray-600 mt-1">{room.description}</p>
                         <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
                             <Bed className="w-4 h-4" />
@@ -483,20 +479,9 @@ const RoomsManagementPage = () => {
                   <textarea
                     value={newRoom.description}
                     onChange={(e) => setNewRoom({...newRoom, description: e.target.value})}
-                    rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter room description"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Long Description</label>
-                  <textarea
-                    value={newRoom.long_description}
-                    onChange={(e) => setNewRoom({...newRoom, long_description: e.target.value})}
                     rows={4}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter detailed room description"
+                    placeholder="Enter room description"
                   />
                 </div>
 
@@ -642,7 +627,6 @@ const RoomsManagementPage = () => {
                       name: '',
                       category: 'Standard',
                       description: '',
-                      long_description: '',
                       rating: 5,
                       status: 'Available',
                       beds: 1,
@@ -671,7 +655,7 @@ const RoomsManagementPage = () => {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
 };
 

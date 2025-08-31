@@ -191,7 +191,7 @@ const RoomDetailPage = () => {
                 {room.category}
               </span>
             </div>
-            <p className="text-gray-700 text-sm">{room.long_description || room.description || ''}</p>
+            <p className="text-gray-700 text-sm">{room.description || ''}</p>
             <div className="text-sm text-gray-600 space-y-1">
               <div className="flex items-center space-x-2"><Users className="w-4 h-4" /><span>{room.guests} Guests</span></div>
               <div className="flex items-center space-x-2"><Bed className="w-4 h-4" /><span>{room.beds} Bed{room.beds > 1 ? 's' : ''}</span></div>

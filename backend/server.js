@@ -240,7 +240,6 @@ app.get("/api/rooms", (req, res) => {
             const id = row.id;
             const name = row.name;
             const description = row.description;
-            const long_description = row.long_description;
             const rating = Number(row.rating) || 0;
             const status = row.status || "Available";
             const beds = Number(row.beds) || 0;
@@ -288,7 +287,6 @@ app.get("/api/rooms", (req, res) => {
                 guests,
                 size,
                 description,
-                long_description,
                 beds,
                 bathrooms,
                 reviews,
@@ -358,7 +356,6 @@ app.get("/api/rooms/:id", (req, res) => {
             guests: Number(row.guests) || 0,
             size: row.size || "",
             description: row.description,
-            long_description: row.long_description,
             beds: Number(row.beds) || 0,
             bathrooms: Number(row.bathrooms) || 0,
             reviews: Number(row.reviews) || 0,
@@ -385,7 +382,6 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
 
     const name = body.name;
     const description = body.description ?? "";
-    const long_description = body.long_description ?? "";
     const rating = Number(body.rating ?? 0);
     const status = body.status ?? "Available";
     const beds = Number(body.beds ?? 1);
@@ -420,13 +416,13 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
             // Insert room
             const roomSql = `INSERT INTO rooms (
                 name, category, image, price, original_price,
-                status, rating, guests, size, description, long_description,
+                status, rating, guests, size, description,
                 beds, bathrooms, reviews, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
 
             const roomValues = [
                 name, category, image, price, original_price,
-                status, rating, guests, size, description, long_description,
+                status, rating, guests, size, description,
                 beds, bathrooms, reviews
             ];
 

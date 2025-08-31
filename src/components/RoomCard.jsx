@@ -1,14 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Wifi, Car, Coffee, Waves, Users, Star } from 'lucide-react';
 import AmenityIcon from '../context/AmenityIcon';
 
 const RoomCard = ({ room, onClick }) => {
+  const [showFullDescription, setShowFullDescription] = useState(false);
+  const MAX_DESCRIPTION_LENGTH = 100;
+
   const getAmenityIcon = (amenity) => {
     if (amenity.includes('WiFi')) return <Wifi className="w-4 h-4" />;
     if (amenity.includes('Service') || amenity.includes('Butler') || amenity.includes('Chef')) return <Coffee className="w-4 h-4" />;
     if (amenity.includes('View') || amenity.includes('Ocean') || amenity.includes('Panoramic')) return <Waves className="w-4 h-4" />;
     if (amenity.includes('Parking')) return <Car className="w-4 h-4" />;
     return <Coffee className="w-4 h-4" />;
+  };
+
+  const truncateDescription = (text) => {
+    if (!text) return '';
+    if (text.length <= MAX_DESCRIPTION_LENGTH) return text;
+    return text.substring(0, MAX_DESCRIPTION_LENGTH) + '...';
+  };
+
+  const handleDescriptionClick = (e) => {
+    e.stopPropagation();
+    setShowFullDescription(!showFullDescription);
   };
 
   return (
@@ -42,13 +56,18 @@ const RoomCard = ({ room, onClick }) => {
           </div>
         </div>
 
-        <p className="text-gray-600 text-sm mb-4 leading-relaxed">
-          {room.description}
-        </p>
-
         <div className="mb-4">
-          <span className="text-xs text-gray-500 uppercase tracking-wide font-semibold">Room Size</span>
-          <p className="text-sm text-gray-700">{room.size}</p>
+          <p className="text-gray-600 text-sm leading-relaxed">
+            {showFullDescription ? room.description : truncateDescription(room.description)}
+          </p>
+          {room.description && room.description.length > MAX_DESCRIPTION_LENGTH && (
+            <button
+              onClick={handleDescriptionClick}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-1 transition-colors"
+            >
+              {showFullDescription ? 'See less' : 'See more'}
+            </button>
+          )}
         </div>
 
         <div className="mb-6">
