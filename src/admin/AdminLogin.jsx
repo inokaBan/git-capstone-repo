@@ -70,6 +70,7 @@ const AdminLogin = () => {
                           Admin address
                         </label>
                         <input
+                          autoFocus
                           type="email"
                           className="w-full px-5 py-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 text-base"
                           placeholder="Enter admin address"

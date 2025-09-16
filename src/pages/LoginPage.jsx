@@ -77,6 +77,7 @@
                             Email address
                           </label>
                           <input
+                            autoFocus
                             type="email"
                             className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                             placeholder="john@example.com"

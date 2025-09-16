@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, Home, Clock, Check, X, Loader2, Filter, Eye } from 'lucide-react';
+import { Calendar, User, Home, Clock, Check, X, Loader2, Eye } from 'lucide-react';
+import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 
 const BookingsPage = () => {
@@ -133,25 +134,23 @@ const BookingsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Bookings Dashboard</h1>
-          <p className="text-sm text-gray-500 mt-1">Manage and review all hotel bookings</p>
-        </div>
+        <div className="mb-6 flex items-center">
+          <div className="mr-auto">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Bookings Dashboard</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage and review all hotel bookings</p>
+          </div>
 
-        {/* Filter Section */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="w-full sm:w-80">
+          <div className="w-full sm:w-80">
               <div className="relative">
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search by name or booking ID"
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  className="bg-white w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 />
                 <span className="absolute left-3 top-1/2 -translate-y-1/2">
                   <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,33 +159,16 @@ const BookingsPage = () => {
                 </span>
               </div>
             </div>
-            <div className="flex items-center gap-4 overflow-x-auto">
-              <div className="flex items-center gap-2">
-                <Filter className="w-5 h-5 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">Filter:</span>
-              </div>
-              <div className="flex gap-2">
-                {[
-                  { key: 'all', label: 'All', count: statusCounts.all },
-                  { key: 'pending', label: 'Pending', count: statusCounts.pending },
-                  { key: 'confirmed', label: 'Confirmed', count: statusCounts.confirmed },
-                  { key: 'declined', label: 'Declined', count: statusCounts.declined },
-                  { key: 'cancelled', label: 'Cancelled', count: statusCounts.cancelled }
-                ].map((filter) => (
-                  <button
-                    key={filter.key}
-                    onClick={() => setStatusFilter(filter.key)}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all duration-200 ${
-                      statusFilter === filter.key
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {filter.label} ({filter.count})
-                  </button>
-                ))}
-              </div>
-            </div>
+        </div>
+
+        {/* Filter Section */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <FilterButtonGroup 
+              statusFilter={statusFilter}
+              statusCounts={statusCounts}
+              setStatusFilter={setStatusFilter}
+            />
           </div>
         </div>
 
@@ -200,7 +182,7 @@ const BookingsPage = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
               <p className="text-gray-500 text-sm">
                 {statusFilter === 'all'
-                  ? 'No bookings available in the system.'
+                  ? 'No bookings available in the syst em.'
                   : `No ${statusFilter} bookings found.`}
               </p>
             </div>
@@ -240,9 +222,6 @@ const BookingsPage = () => {
                         <td className="px-6 py-4 text-sm font-medium text-gray-900">#{booking.bookingId}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center">
-                            <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
-                              <User className="w-5 h-5 text-blue-600" />
-                            </div>
                             <div className="ml-4">
                               <div className="text-sm font-medium text-gray-900">{booking.guestName}</div>
                               <div className="text-sm text-gray-500">{booking.guestContact}</div>

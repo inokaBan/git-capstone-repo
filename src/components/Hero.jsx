@@ -32,22 +32,25 @@ const Hero = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5 bg-cover bg-center bg-no-repeat "
+    <div className="min-h-screen flex items-center justify-center p-5 bg-cover bg-center bg-no-repeat"
       style={{
         backgroundImage: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url("https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3")'
       }}
     >
-      <div className="text-center text-white max-w-4xl w-full mt-32 md:flex sm:flex items-center">
+      <div className="text-center text-white max-w-4xl mt-32 md:flex sm:cols-1 items-center gap-0">
         
-        <div className="mr-24 text-left">
+        <div className="mr-flex text-left">
         {/* Hero Title */}
         <h1 className="text-5xl md:text-5xl font-bold mb-4">
           Welcome to Osner Hotel
         </h1>
         
-        <p className="text-xl md:text-2xl mb-12 opacity-70">
-          Your gateway to comfort and convenience.
-        </p>
+        <div>
+          <p className="text-xl md:text-2xl mb-12 opacity-70">
+            Your gateway to comfort and convenience.
+          </p>
+        </div>
+        
         </div>
         
         {/* Booking Form */}

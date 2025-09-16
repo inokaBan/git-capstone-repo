@@ -74,7 +74,7 @@ const AdminOverview = () => {
                   {overviewStats.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
-                      <div key={index} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
+                      <div key={index} className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <p className="text-sm font-medium text-gray-600">{stat.title}</p>
@@ -94,7 +94,7 @@ const AdminOverview = () => {
                 </div>
 
                 {/* Recent Bookings */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
                   <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-purple-50">
                     <div className="flex items-center justify-between">
                       <div>

@@ -248,7 +248,7 @@ const RoomsManagementPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
-      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 border border-gray-100">
+      <div className="bg-white rounded-xl p-4 sm:p-6 mb-6 border border-slate-200">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Room Management</h1>
@@ -267,7 +267,7 @@ const RoomsManagementPage = () => {
 
       {/* Error and Loading States */}
       {error && (
-        <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg flex items-center justify-between flex-col sm:flex-row gap-4">
+        <div className="mb-6 bg-red-50 border border-slate-200 p-4 rounded-r-lg flex items-center justify-between flex-col sm:flex-row gap-4">
           <span className="text-sm text-red-700">{error}</span>
           <button
             onClick={loadRooms}
@@ -285,7 +285,7 @@ const RoomsManagementPage = () => {
       )}
 
       {/* Rooms Display: Table for sm and above, Cards for xs */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {/* Table Layout (sm and above) */}
         <div className="hidden sm:block overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -317,11 +317,9 @@ const RoomsManagementPage = () => {
                         <h3 className="text-sm font-medium text-gray-900">{room.name}</h3>
                         <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
-                            <Bed className="w-4 h-4" />
                             {room.beds} beds
                           </span>
                           <span className="flex items-center gap-1">
-                            <Bath className="w-4 h-4" />
                             {room.bathrooms} baths
                           </span>
                           <span>{room.size}</span>
@@ -336,7 +334,6 @@ const RoomsManagementPage = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center gap-1.5">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                       <span className="text-sm font-medium">{room.rating}</span>
                     </div>
                   </td>
@@ -347,7 +344,6 @@ const RoomsManagementPage = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-gray-500" />
                       <span className="text-sm">{room.guests} guests</span>
                     </div>
                   </td>
@@ -361,7 +357,6 @@ const RoomsManagementPage = () => {
                     <div className="flex flex-wrap gap-1.5">
                       {room.amenities.slice(0, 3).map((amenity, index) => (
                         <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-md text-xs text-gray-600">
-                          <AmenityIcon name={amenity} className="w-3 h-3" />
                           {amenity}
                         </span>
                       ))}

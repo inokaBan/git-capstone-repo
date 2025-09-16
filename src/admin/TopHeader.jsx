@@ -1,7 +1,7 @@
 import React from 'react'
 import {  Bell, Menu } from 'lucide-react';
 
-const TopHeader = ({ setSidebarOpen, title }) => {
+const TopHeader = ({activeTab, setSidebarOpen}) => {
   return (
     <>
         <header className="bg-white border-b border-slate-200 z-10">
@@ -14,9 +14,6 @@ const TopHeader = ({ setSidebarOpen, title }) => {
                 >
                   <Menu className="h-5 w-5 text-gray-500" />
                 </button>
-                {title && (
-                  <h2 className="text-lg font-semibold text-gray-900 hidden sm:block">{title}</h2>
-                )}
               </div>
               <div className="flex items-center space-x-4">
                 <button className="relative p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">

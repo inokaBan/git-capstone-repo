@@ -31,6 +31,7 @@ const router = createBrowserRouter(
       <Route path="/register" element={<RegisterPage/>} />
 
       <Route path="/admin/login" element={<AdminLogin />} />
+      
       <Route path="/admin" element={<AdminLayout />}>
         <Route index element={<AdminOverview />} />
         <Route path="overview" element={<AdminOverview />} />
@@ -45,8 +46,7 @@ const router = createBrowserRouter(
 
       {/* User pages with MainLayout */}
       <Route element={<MainLayout />}>
-      <Route path="/" element={<HomePage />} />
-
+        <Route path="/" element={<HomePage />} />
         <Route path="/rooms" element={<RoomsPage />} />
         <Route path="/rooms/:id" element={<RoomDetailsPage />} />
         <Route path="/contacts" element={<ContactsPage />} />

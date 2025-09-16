@@ -6,14 +6,6 @@ const RoomCard = ({ room, onClick }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const MAX_DESCRIPTION_LENGTH = 100;
 
-  const getAmenityIcon = (amenity) => {
-    if (amenity.includes('WiFi')) return <Wifi className="w-4 h-4" />;
-    if (amenity.includes('Service') || amenity.includes('Butler') || amenity.includes('Chef')) return <Coffee className="w-4 h-4" />;
-    if (amenity.includes('View') || amenity.includes('Ocean') || amenity.includes('Panoramic')) return <Waves className="w-4 h-4" />;
-    if (amenity.includes('Parking')) return <Car className="w-4 h-4" />;
-    return <Coffee className="w-4 h-4" />;
-  };
-
   const truncateDescription = (text) => {
     if (!text) return '';
     if (text.length <= MAX_DESCRIPTION_LENGTH) return text;
