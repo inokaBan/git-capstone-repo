@@ -24,22 +24,6 @@ const RoomDetailPage = () => {
 
   const today = new Date().toISOString().split('T')[0];
 
-  const getAmenityIcon = (name) => {
-    const iconMap = {
-      'Free WiFi': <Wifi className="w-5 h-5" />,
-      'Premium WiFi': <Wifi className="w-5 h-5" />,
-      'Air Conditioning': <Wind className="w-5 h-5" />,
-      'Room Service': <Bed className="w-5 h-5" />,
-      'Coffee Machine': <Coffee className="w-5 h-5" />,
-      'Mini Bar': <Coffee className="w-5 h-5" />,
-      'Champagne Service': <Coffee className="w-5 h-5" />,
-      'Premium Dining': <Coffee className="w-5 h-5" />,
-      'Balcony': <Waves className="w-5 h-5" />,
-      'Parking': <Car className="w-5 h-5" />,
-    };
-    return iconMap[name] || <Coffee className="w-5 h-5" />;
-  };
-
   // Normalize price regardless of API representation
   const getNumericPrice = () => {
     const priceNum = room?.priceNum ?? room?.price_num;
@@ -96,25 +80,13 @@ const RoomDetailPage = () => {
         checkOut,
         guests,
         totalPrice: calculateTotalPrice(),
-        status: 'pending',
-        bookingDate: new Date().toISOString()
+        status: 'pending'
       };
 
-      // Send booking data to backend
-      const response = await fetch('http://localhost:8081/api/bookings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(bookingData)
+      // Send booking data to backend via axios
+      const { data: savedBooking } = await axios.post('http://localhost:8081/api/bookings', bookingData, {
+        headers: { 'Content-Type': 'application/json' }
       });
-
-      if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'Failed to save booking');
-      }
-
-      const savedBooking = await response.json();
       setBookingDetails(savedBooking);
       setIsBookingConfirmationOpen(true);
 
@@ -186,7 +158,12 @@ const RoomDetailPage = () => {
 
           <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-bold text-gray-900">{room.name}</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">{room.room_number ? `#${room.room_number}` : room.name}</h1>
+                {room.room_number && (
+                  <p className="text-sm text-gray-500">{room.name}</p>
+                )}
+              </div>
               <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
                 {room.category}
               </span>

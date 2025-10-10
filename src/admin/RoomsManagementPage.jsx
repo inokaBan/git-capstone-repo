@@ -13,6 +13,7 @@ const RoomsManagementPage = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [newRoom, setNewRoom] = useState({
+    room_number: '',
     name: '',
     category: 'Standard',
     description: '',
@@ -37,12 +38,25 @@ const RoomsManagementPage = () => {
       console.log('Submitting room data:', newRoom);
       
       if (editingRoom) {
-        setRooms(rooms.map(room => 
-          room.id === editingRoom.id ? { ...newRoom, id: editingRoom.id } : room
-        ));
+        await axios.patch(`http://localhost:8081/api/rooms/${editingRoom.id}`, {
+          room_number: newRoom.room_number,
+          name: newRoom.name,
+          category: newRoom.category,
+          description: newRoom.description,
+          rating: newRoom.rating,
+          status: newRoom.status,
+          beds: newRoom.beds,
+          bathrooms: newRoom.bathrooms,
+          price: newRoom.price,
+          original_price: newRoom.original_price,
+          guests: newRoom.guests,
+          size: newRoom.size
+        });
+        await loadRooms();
         setEditingRoom(null);
       } else {
         const formData = new FormData();
+        formData.append('room_number', newRoom.room_number);
         formData.append('name', newRoom.name);
         formData.append('category', newRoom.category);
         formData.append('description', newRoom.description);
@@ -84,6 +98,7 @@ const RoomsManagementPage = () => {
         }
       }
       setNewRoom({
+        room_number: '',
         name: '',
         category: 'Standard',
         description: '',
@@ -314,7 +329,10 @@ const RoomsManagementPage = () => {
                         />
                       )}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">{room.name}</h3>
+                        <h3 className="text-sm font-medium text-gray-900">{room.room_number ? `#${room.room_number}` : room.name}</h3>
+                        {room.room_number && (
+                          <div className="text-xs text-gray-500">{room.name}</div>
+                        )}
                         <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             {room.beds} beds
@@ -495,6 +513,17 @@ const RoomsManagementPage = () => {
               <section aria-labelledby="basic-info-heading">
                 <h3 id="basic-info-heading" className="text-base sm:text-lg font-medium text-gray-900 mb-3">Basic Information</h3>
                 <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <label htmlFor="room-number" className="block text-sm font-medium text-gray-700 mb-1">Room Number</label>
+                    <input
+                      id="room-number"
+                      type="text"
+                      value={newRoom.room_number}
+                      onChange={(e) => setNewRoom({...newRoom, room_number: e.target.value})}
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      placeholder="e.g., 201-A"
+                    />
+                  </div>
                   <div>
                     <label htmlFor="room-name" className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
                     <input
@@ -713,6 +742,7 @@ const RoomsManagementPage = () => {
                   setShowAddModal(false);
                   setEditingRoom(null);
                   setNewRoom({
+                    room_number: '',
                     name: '',
                     category: 'Standard',
                     description: '',

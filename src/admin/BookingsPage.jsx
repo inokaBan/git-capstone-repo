@@ -106,7 +106,9 @@ const BookingsPage = () => {
     if (!query) return true;
     const name = (booking.guestName || '').toString().toLowerCase();
     const idStr = (booking.bookingId || '').toString().toLowerCase();
-    return name.includes(query) || idStr.includes(query);
+    const roomNumber = (booking.room_number || '').toString().toLowerCase();
+    const roomName = (booking.roomName || '').toString().toLowerCase();
+    return name.includes(query) || idStr.includes(query) || roomNumber.includes(query) || roomName.includes(query);
   });
 
   const statusCounts = {
@@ -206,7 +208,7 @@ const BookingsPage = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guest</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
@@ -228,10 +230,11 @@ const BookingsPage = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getRoomTypeColor(booking.roomName)}`}>
-                            {booking.roomName}
-                          </span>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="font-medium text-gray-900">{booking.room_number ? `#${booking.room_number}` : booking.roomName}</div>
+                          {booking.room_number && (
+                            <div className="text-gray-500">{booking.roomName}</div>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkIn)}</td>
                         <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkOut)}</td>

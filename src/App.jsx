@@ -23,6 +23,7 @@ import InventoryPage from "./admin/InventoryPage";
 import AnalyticsPage from "./admin/AnalyticsPage";
 import SettingsPage from "./admin/SettingsPage";
 import BookingsCalendar from "./admin/BookingsCalendar";
+import WalkinReservationPage from "./admin/WalkinReservationPage";
 
 const router = createBrowserRouter(
   createRoutesFromElements(
@@ -41,6 +42,7 @@ const router = createBrowserRouter(
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="calendar" element={<BookingsCalendar />} />
+        <Route path="walkin" element={<WalkinReservationPage />} />
       </Route>
 
 

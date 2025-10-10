@@ -9,6 +9,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         { to: '/admin/rooms', label: 'Rooms', icon: Bed },
         { to: '/admin/bookings', label: 'Bookings', icon: Calendar },
         { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
+        { to: '/admin/walkin', label: 'Walk-in', icon: Home },
         { to: '/admin/inventory', label: 'Inventory', icon: Package },
         { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
         { to: '/admin/settings', label: 'Settings', icon: Settings },
