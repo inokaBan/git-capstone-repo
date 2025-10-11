@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Calendar, Users, MapPin, AlertCircle, CheckCircle, Loader, ChevronRight } from 'lucide-react';
+import { Calendar, Users, MapPin, AlertCircle, CheckCircle, Loader, ChevronRight, Eye } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const todayISO = () => new Date().toISOString().slice(0,10);
 const addDays = (d, n) => {
@@ -31,6 +32,7 @@ const axios = {
 };
 
 const WalkinReservationPage = () => {
+  const navigate = useNavigate();
   const [checkIn, setCheckIn] = useState(todayISO());
   const [checkOut, setCheckOut] = useState(addDays(todayISO(), 1));
   const [guests, setGuests] = useState(1);
@@ -40,6 +42,7 @@ const WalkinReservationPage = () => {
   const [guestContact, setGuestContact] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [priceFilter, setPriceFilter] = useState(priceRanges[0].label);
+  const [sortBy, setSortBy] = useState('name');
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
 
@@ -50,14 +53,16 @@ const WalkinReservationPage = () => {
   }, [rooms]);
 
   const loadAvailable = async () => {
-    if (new Date(checkIn) >= new Date(checkOut)) return;
     setLoading(true);
     try {
-      const { data } = await axios.get('http://localhost:8081/api/availability', {
-        params: { checkIn, checkOut, guests }
-      });
-      setRooms(Array.isArray(data) ? data : []);
-      if (data?.length) setSelectedRoomId(String(data[0].id));
+      // Load all rooms from database
+      const { data } = await axios.get('http://localhost:8081/api/rooms');
+      // Filter only available rooms
+      const availableRooms = (Array.isArray(data) ? data : []).filter(room => 
+        room.status && room.status.toLowerCase() === 'available'
+      );
+      setRooms(availableRooms);
+      if (availableRooms?.length) setSelectedRoomId(String(availableRooms[0].id));
     } catch (e) {
       setNotification({ type: 'error', message: 'Failed to load available rooms' });
       console.error('Error loading rooms:', e);
@@ -67,16 +72,37 @@ const WalkinReservationPage = () => {
   };
 
   useEffect(() => { loadAvailable(); }, []);
-  useEffect(() => { loadAvailable(); }, [checkIn, checkOut, guests]);
 
   const filteredRooms = useMemo(() => {
     const pf = priceRanges.find(p => p.label === priceFilter)?.test ?? priceRanges[0].test;
-    return (rooms || []).filter(r => {
+    const filtered = (rooms || []).filter(r => {
       const byCat = categoryFilter === 'All' || r.category === categoryFilter;
       const price = Number(r.price) || 0;
       return byCat && pf(price);
     });
-  }, [rooms, categoryFilter, priceFilter]);
+
+    // Sort the filtered rooms
+    return filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'room-number':
+          return (a.room_number || '').localeCompare(b.room_number || '');
+        case 'category':
+          return (a.category || '').localeCompare(b.category || '');
+        case 'type':
+          return (a.type_name || '').localeCompare(b.type_name || '');
+        case 'price-low':
+          return (Number(a.price) || 0) - (Number(b.price) || 0);
+        case 'price-high':
+          return (Number(b.price) || 0) - (Number(a.price) || 0);
+        case 'rating':
+          return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+        default:
+          return 0;
+      }
+    });
+  }, [rooms, categoryFilter, priceFilter, sortBy]);
 
   const selectedRoom = useMemo(
     () => (rooms || []).find(r => String(r.id) === String(selectedRoomId)),
@@ -134,6 +160,7 @@ const WalkinReservationPage = () => {
         <div className="max-w-7xl mx-auto px-6 py-8">
           <h1 className="text-4xl font-bold text-slate-900">Find Your Room</h1>
           <p className="text-slate-600 mt-2">Quick walk-in booking for available rooms</p>
+          <p className="text-sm text-slate-500 mt-1">All available rooms from the database are displayed below</p>
         </div>
       </div>
 
@@ -168,7 +195,7 @@ const WalkinReservationPage = () => {
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-6">Search Criteria</h2>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             {/* Check-in */}
             <div className="lg:col-span-1">
               <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -242,6 +269,24 @@ const WalkinReservationPage = () => {
               </select>
             </div>
 
+            {/* Sort By */}
+            <div className="lg:col-span-1">
+              <label className="block text-sm font-medium text-slate-700 mb-2">Sort By</label>
+              <select 
+                value={sortBy} 
+                onChange={e => setSortBy(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+              >
+                <option value="name">Room Name</option>
+                <option value="room-number">Room Number</option>
+                <option value="category">Category</option>
+                <option value="type">Room Type</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="rating">Rating: High to Low</option>
+              </select>
+            </div>
+
             {/* Search Button */}
             <div className="flex items-end lg:col-span-1">
               <button 
@@ -252,10 +297,10 @@ const WalkinReservationPage = () => {
                 {loading ? (
                   <>
                     <Loader className="w-4 h-4 animate-spin" />
-                    Searching
+                    Loading
                   </>
                 ) : (
-                  <>Search</>
+                  <>Refresh</>
                 )}
               </button>
             </div>
@@ -264,9 +309,18 @@ const WalkinReservationPage = () => {
 
         {/* Results Section */}
         <div>
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Available Rooms</h2>
-            <p className="text-sm text-slate-600">{filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''} available</p>
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Available Rooms</h2>
+              <p className="text-sm text-slate-600">{filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''} available</p>
+            </div>
+            <button 
+              onClick={() => navigate('/rooms')}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200"
+            >
+              <Eye className="w-4 h-4" />
+              View All Rooms
+            </button>
           </div>
 
           {filteredRooms.length > 0 ? (
@@ -282,7 +336,12 @@ const WalkinReservationPage = () => {
                   }`}
                 >
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold text-slate-900">{room.name}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {room.room_number ? `Room #${room.room_number}` : room.type_name}
+                    </h3>
+                    {room.room_number && (
+                      <p className="text-sm text-slate-500">{room.type_name}</p>
+                    )}
                     <p className="text-sm text-slate-600 mt-1">{room.category}</p>
                     
                     <div className="mt-4 pt-4 border-t border-slate-200">
@@ -312,8 +371,8 @@ const WalkinReservationPage = () => {
           ) : (
             <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
               <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-              <p className="text-slate-600">No rooms match your search criteria</p>
-              <p className="text-sm text-slate-500 mt-1">Try adjusting your filters</p>
+              <p className="text-slate-600">No available rooms match your search criteria</p>
+              <p className="text-sm text-slate-500 mt-1">Try adjusting your filters or click "View All Rooms" to see all rooms</p>
             </div>
           )}
         </div>
@@ -364,7 +423,12 @@ const WalkinReservationPage = () => {
               <div className="space-y-4">
                 <div className="pb-4 border-b border-blue-200">
                   <p className="text-sm text-slate-600">Room</p>
-                  <p className="text-xl font-semibold text-slate-900">{selectedRoom.name}</p>
+                  <p className="text-xl font-semibold text-slate-900">
+                    {selectedRoom.room_number ? `Room #${selectedRoom.room_number}` : selectedRoom.type_name}
+                  </p>
+                  {selectedRoom.room_number && (
+                    <p className="text-sm text-slate-500">{selectedRoom.type_name}</p>
+                  )}
                 </div>
 
                 <div className="pb-4 border-b border-blue-200">

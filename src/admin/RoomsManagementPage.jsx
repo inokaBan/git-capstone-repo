@@ -10,15 +10,18 @@ const RoomsManagementPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [amenities, setAmenities] = useState([]);
+  const [roomTypes, setRoomTypes] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
+  const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
+  const [newRoomType, setNewRoomType] = useState('');
   const [newRoom, setNewRoom] = useState({
     room_number: '',
-    name: '',
+    room_type_id: '',
     category: 'Standard',
     description: '',
     rating: 5,
-    status: 'Available',
+    status: 'available',
     beds: 1,
     bathrooms: 1,
     price: 0,
@@ -29,7 +32,7 @@ const RoomsManagementPage = () => {
     images: []
   });
 
-  const statusOptions = ['Available', 'Occupied', 'Maintenance', 'Cleaning'];
+  const statusOptions = ['available', 'booked', 'maintenance', 'unavailable'];
   const categoryOptions = ['Standard', 'Deluxe', 'Suite', 'Presidential'];
 
   const handleAddRoom = async () => {
@@ -40,7 +43,7 @@ const RoomsManagementPage = () => {
       if (editingRoom) {
         await axios.patch(`http://localhost:8081/api/rooms/${editingRoom.id}`, {
           room_number: newRoom.room_number,
-          name: newRoom.name,
+          room_type_id: newRoom.room_type_id,
           category: newRoom.category,
           description: newRoom.description,
           rating: newRoom.rating,
@@ -57,7 +60,7 @@ const RoomsManagementPage = () => {
       } else {
         const formData = new FormData();
         formData.append('room_number', newRoom.room_number);
-        formData.append('name', newRoom.name);
+        formData.append('room_type_id', newRoom.room_type_id);
         formData.append('category', newRoom.category);
         formData.append('description', newRoom.description);
         formData.append('rating', newRoom.rating);
@@ -99,11 +102,11 @@ const RoomsManagementPage = () => {
       }
       setNewRoom({
         room_number: '',
-        name: '',
+        room_type_id: '',
         category: 'Standard',
         description: '',
         rating: 5,
-        status: 'Available',
+        status: 'available',
         beds: 1,
         bathrooms: 1,
         price: 0,
@@ -224,10 +227,10 @@ const RoomsManagementPage = () => {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Available': return 'bg-green-100 text-green-800';
-      case 'Occupied': return 'bg-red-100 text-red-800';
-      case 'Maintenance': return 'bg-yellow-100 text-yellow-800';
-      case 'Cleaning': return 'bg-blue-100 text-blue-800';
+      case 'available': return 'bg-green-100 text-green-800';
+      case 'booked': return 'bg-red-100 text-red-800';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
+      case 'unavailable': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -255,9 +258,50 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const loadRoomTypes = async () => {
+    try {
+      const res = await axios.get('http://localhost:8081/api/room-types');
+      setRoomTypes(res.data || []);
+    } catch (e) {
+      console.error('Failed to load room types', e);
+    }
+  };
+
+  const handleAddRoomType = async () => {
+    if (!newRoomType.trim()) {
+      setError('Room type name is required');
+      return;
+    }
+    
+    try {
+      await axios.post('http://localhost:8081/api/room-types', {
+        type_name: newRoomType.trim()
+      });
+      setNewRoomType('');
+      setShowRoomTypeModal(false);
+      await loadRoomTypes();
+    } catch (e) {
+      console.error('Failed to add room type', e);
+      setError(e?.response?.data?.error || 'Failed to add room type');
+    }
+  };
+
+  const handleDeleteRoomType = async (id) => {
+    if (confirm('Are you sure you want to delete this room type?')) {
+      try {
+        await axios.delete(`http://localhost:8081/api/room-types/${id}`);
+        await loadRoomTypes();
+      } catch (e) {
+        console.error('Failed to delete room type', e);
+        setError(e?.response?.data?.error || 'Failed to delete room type');
+      }
+    }
+  };
+
   useEffect(() => {
     loadRooms();
     loadAmenities();
+    loadRoomTypes();
   }, []);
 
   return (
@@ -329,9 +373,9 @@ const RoomsManagementPage = () => {
                         />
                       )}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">{room.room_number ? `#${room.room_number}` : room.name}</h3>
+                        <h3 className="text-sm font-medium text-gray-900">{room.room_number ? `#${room.room_number}` : room.type_name}</h3>
                         {room.room_number && (
-                          <div className="text-xs text-gray-500">{room.name}</div>
+                          <div className="text-xs text-gray-500">{room.type_name}</div>
                         )}
                         <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
@@ -425,7 +469,7 @@ const RoomsManagementPage = () => {
                     />
                   )}
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-900">{room.name}</h3>
+                    <h3 className="text-sm font-medium text-gray-900">{room.type_name}</h3>
                     <span className="inline-flex px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium mt-1">
                       {room.category}
                     </span>
@@ -525,17 +569,30 @@ const RoomsManagementPage = () => {
                     />
                   </div>
                   <div>
-                    <label htmlFor="room-name" className="block text-sm font-medium text-gray-700 mb-1">Room Name</label>
-                    <input
-                      id="room-name"
-                      type="text"
-                      value={newRoom.name}
-                      onChange={(e) => setNewRoom({...newRoom, name: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      placeholder="Enter room name"
-                      required
-                      aria-required="true"
-                    />
+                    <label htmlFor="room-type" className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+                    <div className="flex gap-2">
+                      <select
+                        id="room-type"
+                        value={newRoom.room_type_id}
+                        onChange={(e) => setNewRoom({...newRoom, room_type_id: e.target.value})}
+                        className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        required
+                        aria-required="true"
+                      >
+                        <option value="">Select Room Type</option>
+                        {roomTypes.map(type => (
+                          <option key={type.id} value={type.id}>{type.type_name}</option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => setShowRoomTypeModal(true)}
+                        className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        title="Add new room type"
+                      >
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -743,11 +800,11 @@ const RoomsManagementPage = () => {
                   setEditingRoom(null);
                   setNewRoom({
                     room_number: '',
-                    name: '',
+                    room_type_id: '',
                     category: 'Standard',
                     description: '',
                     rating: 5,
-                    status: 'Available',
+                    status: 'available',
                     beds: 1,
                     bathrooms: 1,
                     price: 0,
@@ -765,11 +822,75 @@ const RoomsManagementPage = () => {
               </button>
               <button
                 onClick={handleAddRoom}
-                disabled={!newRoom.name || !newRoom.description}
+                disabled={!newRoom.room_type_id || !newRoom.description}
                 className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 aria-label={editingRoom ? 'Update room' : 'Add room'}
               >
                 {editingRoom ? 'Update Room' : 'Add Room'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Room Type Management Modal */}
+      {showRoomTypeModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Manage Room Types</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Add New Room Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Add New Room Type</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newRoomType}
+                    onChange={(e) => setNewRoomType(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter room type name"
+                  />
+                  <button
+                    onClick={handleAddRoomType}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Existing Room Types */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Existing Room Types</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {roomTypes.map(type => (
+                    <div key={type.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-900">{type.type_name}</span>
+                      <button
+                        onClick={() => handleDeleteRoomType(type.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete room type"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowRoomTypeModal(false);
+                  setNewRoomType('');
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>

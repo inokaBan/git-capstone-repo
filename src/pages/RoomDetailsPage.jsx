@@ -62,10 +62,16 @@ const RoomDetailPage = () => {
   const handleBooking = async () => {
     if (!checkIn || !checkOut) return alert('Please select check-in and check-out dates');
     if (!guestName || !guestContact) return alert('Please enter your name and contact information');
+    if (!room || !room.id) return alert('Room information is missing. Please refresh the page and try again.');
     
     // Validate dates
     if (new Date(checkIn) >= new Date(checkOut)) {
       return alert('Check-out date must be after check-in date');
+    }
+
+    // Validate guest count
+    if (guests > room.guests) {
+      return alert(`Maximum ${room.guests} guests allowed for this room`);
     }
 
     try {
@@ -73,7 +79,7 @@ const RoomDetailPage = () => {
       const bookingData = {
         bookingId,
         roomId: room.id,
-        roomName: room.name,
+        roomName: room.type_name || room.name || `Room #${room.room_number}`,
         guestName,
         guestContact,
         checkIn,
@@ -83,10 +89,14 @@ const RoomDetailPage = () => {
         status: 'pending'
       };
 
+      console.log('Sending booking data:', bookingData);
+
       // Send booking data to backend via axios
       const { data: savedBooking } = await axios.post('http://localhost:8081/api/bookings', bookingData, {
         headers: { 'Content-Type': 'application/json' }
       });
+      
+      console.log('Booking successful:', savedBooking);
       setBookingDetails(savedBooking);
       setIsBookingConfirmationOpen(true);
 
@@ -95,7 +105,11 @@ const RoomDetailPage = () => {
       setGuestContact('');
     } catch (error) {
       console.error('Booking error:', error);
-      alert('❌ Booking failed. Please try again or contact support.');
+      console.error('Error response:', error.response);
+      console.error('Error data:', error.response?.data);
+      
+      const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred';
+      alert(`❌ Booking failed: ${errorMessage}`);
     }
   };
 

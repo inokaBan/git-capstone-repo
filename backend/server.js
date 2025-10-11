@@ -57,6 +57,26 @@ const db = mysql.createConnection({
     database: "osner_db"
 })
 
+// Handle database connection errors
+db.connect((err) => {
+    if (err) {
+        console.error('Database connection failed:', err);
+        process.exit(1);
+    }
+    console.log('Connected to MySQL database');
+});
+
+// Handle connection errors
+db.on('error', (err) => {
+    console.error('Database error:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('Database connection lost, attempting to reconnect...');
+        db.connect();
+    } else {
+        throw err;
+    }
+});
+
 app.post("/osner_db", (req, res) => {
     const { username, email, password } = req.body || {};
 
@@ -77,6 +97,8 @@ app.post("/osner_db", (req, res) => {
 
 // Save booking data
 app.post("/api/bookings", (req, res) => {
+    console.log('Received booking request:', req.body);
+    
     const {
         bookingId,
         roomId,
@@ -103,6 +125,9 @@ app.post("/api/bookings", (req, res) => {
     if (isEmpty(status)) missing.push('status');
     const priceNumber = Number(totalPrice);
     if (Number.isNaN(priceNumber)) missing.push('totalPrice');
+    
+    console.log('Missing fields:', missing);
+    
     if (missing.length > 0) {
         return res.status(400).json({ error: `Missing or invalid fields: ${missing.join(', ')}` });
     }
@@ -117,15 +142,23 @@ app.post("/api/bookings", (req, res) => {
     const sql = `INSERT INTO bookings (bookingId, room_id, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const values = [bookingId, numericRoomId, roomName, guestName, guestContact, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
 
+    console.log('Executing booking query:', sql, values);
+    
     db.query(sql, values, (err, result) => {
         if (err) {
+            console.error('Database error during booking:', err);
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
+        
+        console.log('Booking inserted successfully:', result);
+        
         // After booking, also mark the room as booked
         const updateSql = "UPDATE rooms SET status = ? WHERE id = ?";
         db.query(updateSql, ['booked', roomId], (uErr) => {
             if (uErr) {
                 console.warn('Failed to update room status after booking:', uErr);
+            } else {
+                console.log('Room status updated to booked for room:', roomId);
             }
             // Return the saved booking
             return res.status(201).json({
@@ -178,12 +211,48 @@ app.patch("/api/bookings/:bookingId", (req, res) => {
     if (!bookingId || !status) {
         return res.status(400).json({ error: "Missing bookingId or status." });
     }
-    const sql = "UPDATE bookings SET status = ? WHERE bookingId = ?";
-    db.query(sql, [status, bookingId], (err, result) => {
+    
+    // First get the room_id for this booking
+    const getRoomSql = "SELECT room_id FROM bookings WHERE bookingId = ?";
+    db.query(getRoomSql, [bookingId], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
-        return res.status(200).json({ success: true });
+        if (!rows || rows.length === 0) {
+            return res.status(404).json({ error: "Booking not found" });
+        }
+        
+        const roomId = rows[0].room_id;
+        
+        // Update booking status
+        const updateBookingSql = "UPDATE bookings SET status = ? WHERE bookingId = ?";
+        db.query(updateBookingSql, [status, bookingId], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+            
+            // If booking is approved/confirmed, mark room as booked
+            if (status === 'confirmed' || status === 'approved') {
+                const updateRoomSql = "UPDATE rooms SET status = 'booked' WHERE id = ?";
+                db.query(updateRoomSql, [roomId], (roomErr) => {
+                    if (roomErr) {
+                        console.warn('Failed to update room status after booking approval:', roomErr);
+                    }
+                    return res.status(200).json({ success: true });
+                });
+            } else if (status === 'declined' || status === 'cancelled') {
+                // If booking is declined/cancelled, mark room as available
+                const updateRoomSql = "UPDATE rooms SET status = 'available' WHERE id = ?";
+                db.query(updateRoomSql, [roomId], (roomErr) => {
+                    if (roomErr) {
+                        console.warn('Failed to update room status after booking decline/cancel:', roomErr);
+                    }
+                    return res.status(200).json({ success: true });
+                });
+            } else {
+                return res.status(200).json({ success: true });
+            }
+        });
     });
 });
 
@@ -224,9 +293,11 @@ app.get("/api/rooms", (req, res) => {
     const sql = `
         SELECT 
             r.*,
+            rt.type_name,
             GROUP_CONCAT(DISTINCT a.name) as amenity_names,
             GROUP_CONCAT(DISTINCT ri.image_url) as room_images
         FROM rooms r
+        LEFT JOIN room_type rt ON r.room_type_id = rt.id
         LEFT JOIN room_amenities ra ON r.id = ra.room_id
         LEFT JOIN amenities a ON ra.amenity_id = a.id
         LEFT JOIN room_images ri ON r.id = ri.room_id
@@ -243,10 +314,11 @@ app.get("/api/rooms", (req, res) => {
         const rooms = (results || []).map((row) => {
             const id = row.id;
             const room_number = row.room_number;
-            const name = row.name;
+            const room_type_id = row.room_type_id;
+            const type_name = row.type_name;
             const description = row.description;
             const rating = Number(row.rating) || 0;
-            const status = row.status || "Available";
+            const status = row.status || "available";
             const beds = Number(row.beds) || 0;
             const bathrooms = Number(row.bathrooms) || 0;
             const price = Number(row.price) || 0;
@@ -283,7 +355,8 @@ app.get("/api/rooms", (req, res) => {
             return {
                 id,
                 room_number,
-                name,
+                room_type_id,
+                type_name,
                 category,
                 image,
                 price,
@@ -314,9 +387,11 @@ app.get("/api/rooms/:id", (req, res) => {
     const sql = `
         SELECT 
             r.*,
+            rt.type_name,
             GROUP_CONCAT(DISTINCT a.name) as amenity_names,
             GROUP_CONCAT(DISTINCT ri.image_url) as room_images
         FROM rooms r
+        LEFT JOIN room_type rt ON r.room_type_id = rt.id
         LEFT JOIN room_amenities ra ON r.id = ra.room_id
         LEFT JOIN amenities a ON ra.amenity_id = a.id
         LEFT JOIN room_images ri ON r.id = ri.room_id
@@ -353,12 +428,13 @@ app.get("/api/rooms/:id", (req, res) => {
         const room = {
             id: row.id,
             room_number: row.room_number,
-            name: row.name,
+            room_type_id: row.room_type_id,
+            type_name: row.type_name,
             category: row.category,
             image: row.image,
             price: Number(row.price) || 0,
             original_price: row.original_price,
-            status: row.status || "Available",
+            status: row.status || "available",
             rating: Number(row.rating) || 0,
             guests: Number(row.guests) || 0,
             size: row.size || "",
@@ -383,16 +459,17 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
     
     console.log('Received room creation request:', {
         room_number: body.room_number,
-        name: body.name,
+        room_type_id: body.room_type_id,
         uploadedFilesCount: uploadedFiles.length,
-        amenitiesCount: body.amenities?.length || 0
+        amenitiesCount: body.amenities?.length || 0,
+        allFields: Object.keys(body)
     });
 
     const room_number = body.room_number ?? null;
-    const name = body.name;
+    const room_type_id = body.room_type_id ?? null;
     const description = body.description ?? "";
     const rating = Number(body.rating ?? 0);
-    const status = body.status ?? "Available";
+    const status = body.status ?? "available";
     const beds = Number(body.beds ?? 1);
     const bathrooms = Number(body.bathrooms ?? 1);
     const reviews = Number(body.reviews ?? 0);
@@ -411,116 +488,112 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
         (Array.isArray(body.amenities) ? body.amenities : [body.amenities]) : 
         [];
 
-    if (!name) {
-        return res.status(400).json({ error: "Missing required field: name" });
+    if (!room_type_id) {
+        return res.status(400).json({ error: "Missing required field: room_type_id" });
     }
 
     // Start transaction
-    db.beginTransaction(async (err) => {
+    db.beginTransaction((err) => {
         if (err) {
             return res.status(500).json({ error: "Failed to start transaction" });
         }
 
-        try {
+        // Get room type name for the name field
+        const getRoomTypeSql = "SELECT type_name FROM room_type WHERE id = ?";
+        db.query(getRoomTypeSql, [room_type_id], (err, typeResults) => {
+            if (err) {
+                return db.rollback(() => {
+                    res.status(500).json({ error: err.code || err.message || "Database error" });
+                });
+            }
+
+            const roomTypeName = typeResults && typeResults.length > 0 ? typeResults[0].type_name : 'Room';
+            
             // Insert room
             const roomSql = `INSERT INTO rooms (
-                room_number, name, category, image, price, original_price,
+                name, room_number, room_type_id, category, image, price, original_price,
                 status, rating, guests, size, description,
                 beds, bathrooms, reviews, created_at, updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`;
 
             const roomValues = [
-                room_number, name, category, image, price, original_price,
+                roomTypeName, room_number, room_type_id, category, image, price, original_price,
                 status, rating, guests, size, description,
                 beds, bathrooms, reviews
             ];
 
             db.query(roomSql, roomValues, (err, result) => {
-                if (err) {
-                    return db.rollback(() => {
-                        res.status(500).json({ error: err.code || err.message || "Database error" });
-                    });
-                }
+            if (err) {
+                return db.rollback(() => {
+                    res.status(500).json({ error: err.code || err.message || "Database error" });
+                });
+            }
 
-                const roomId = result.insertId;
+            const roomId = result.insertId;
 
-                // Insert amenities
-                if (amenities.length > 0) {
-                    const amenityPromises = amenities.map(amenityName => {
-                        return new Promise((resolve, reject) => {
-                            // First, get or create amenity
-                            const getAmenitySql = "SELECT id FROM amenities WHERE name = ?";
-                            db.query(getAmenitySql, [amenityName], (err, results) => {
-                                if (err) {
-                                    reject(err);
-                                    return;
-                                }
+            // Insert amenities
+            if (amenities.length > 0) {
+                const amenityPromises = amenities.map(amenityName => {
+                    return new Promise((resolve, reject) => {
+                        // First, get or create amenity
+                        const getAmenitySql = "SELECT id FROM amenities WHERE name = ?";
+                        db.query(getAmenitySql, [amenityName], (err, results) => {
+                            if (err) {
+                                reject(err);
+                                return;
+                            }
 
-                                let amenityId;
-                                if (results.length > 0) {
-                                    amenityId = results[0].id;
-                                    resolve(amenityId);
-                                } else {
-                                    // Create new amenity
-                                    const createAmenitySql = "INSERT INTO amenities (name) VALUES (?)";
-                                    db.query(createAmenitySql, [amenityName], (err, result) => {
-                                        if (err) {
-                                            reject(err);
-                                            return;
-                                        }
-                                        resolve(result.insertId);
-                                    });
-                                }
-                            });
-                        });
-                    });
-
-                    Promise.all(amenityPromises).then(amenityIds => {
-                        // Insert room-amenity relationships
-                        const roomAmenityPromises = amenityIds.map(amenityId => {
-                            return new Promise((resolve, reject) => {
-                                const roomAmenitySql = "INSERT INTO room_amenities (room_id, amenity_id) VALUES (?, ?)";
-                                db.query(roomAmenitySql, [roomId, amenityId], (err) => {
+                            let amenityId;
+                            if (results.length > 0) {
+                                amenityId = results[0].id;
+                                resolve(amenityId);
+                            } else {
+                                // Create new amenity
+                                const createAmenitySql = "INSERT INTO amenities (name) VALUES (?)";
+                                db.query(createAmenitySql, [amenityName], (err, result) => {
                                     if (err) {
                                         reject(err);
-                                    } else {
-                                        resolve();
+                                        return;
                                     }
+                                    resolve(result.insertId);
                                 });
+                            }
+                        });
+                    });
+                });
+
+                Promise.all(amenityPromises).then(amenityIds => {
+                    // Insert room-amenity relationships
+                    const roomAmenityPromises = amenityIds.map(amenityId => {
+                        return new Promise((resolve, reject) => {
+                            const roomAmenitySql = "INSERT INTO room_amenities (room_id, amenity_id) VALUES (?, ?)";
+                            db.query(roomAmenitySql, [roomId, amenityId], (err) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve();
+                                }
                             });
                         });
+                    });
 
-                        Promise.all(roomAmenityPromises).then(() => {
-                            // Insert room images
-                            if (imageUrls.length > 0) {
-                                const imagePromises = imageUrls.map((imageUrl) => {
-                                    return new Promise((resolve, reject) => {
-                                        const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
-                                        db.query(imageSql, [roomId, imageUrl], (err) => {
-                                            if (err) {
-                                                reject(err);
-                                            } else {
-                                                resolve();
-                                            }
-                                        });
-                                    });
-                                });
-
-                                Promise.all(imagePromises).then(() => {
-                                    db.commit((err) => {
+                    Promise.all(roomAmenityPromises).then(() => {
+                        // Insert room images
+                        if (imageUrls.length > 0) {
+                            const imagePromises = imageUrls.map((imageUrl) => {
+                                return new Promise((resolve, reject) => {
+                                    const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
+                                    db.query(imageSql, [roomId, imageUrl], (err) => {
                                         if (err) {
-                                            return db.rollback(() => {
-                                                res.status(500).json({ error: "Failed to commit transaction" });
-                                            });
+                                            reject(err);
+                                        } else {
+                                            resolve();
                                         }
-                                        res.status(201).json({ id: roomId });
-                                    });
-                                }).catch(err => {
-                                    db.rollback(() => {
-                                        res.status(500).json({ error: err.message });
                                     });
                                 });
-                            } else {
+                            });
+
+                            Promise.all(imagePromises).then(() => {
                                 db.commit((err) => {
                                     if (err) {
                                         return db.rollback(() => {
@@ -529,34 +602,12 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
                                     }
                                     res.status(201).json({ id: roomId });
                                 });
-                            }
-                        }).catch(err => {
-                            db.rollback(() => {
-                                res.status(500).json({ error: err.message });
-                            });
-                        });
-                    }).catch(err => {
-                        db.rollback(() => {
-                            res.status(500).json({ error: err.message });
-                        });
-                    });
-                } else {
-                    // No amenities, just insert images
-                    if (imageUrls.length > 0) {
-                        const imagePromises = imageUrls.map((imageUrl) => {
-                            return new Promise((resolve, reject) => {
-                                const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
-                                db.query(imageSql, [roomId, imageUrl], (err) => {
-                                    if (err) {
-                                        reject(err);
-                                    } else {
-                                        resolve();
-                                    }
+                            }).catch(err => {
+                                db.rollback(() => {
+                                    res.status(500).json({ error: err.message });
                                 });
                             });
-                        });
-
-                        Promise.all(imagePromises).then(() => {
+                        } else {
                             db.commit((err) => {
                                 if (err) {
                                     return db.rollback(() => {
@@ -565,12 +616,34 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
                                 }
                                 res.status(201).json({ id: roomId });
                             });
-                        }).catch(err => {
-                            db.rollback(() => {
-                                res.status(500).json({ error: err.message });
+                        }
+                    }).catch(err => {
+                        db.rollback(() => {
+                            res.status(500).json({ error: err.message });
+                        });
+                    });
+                }).catch(err => {
+                    db.rollback(() => {
+                        res.status(500).json({ error: err.message });
+                    });
+                });
+            } else {
+                // No amenities, just insert images
+                if (imageUrls.length > 0) {
+                    const imagePromises = imageUrls.map((imageUrl) => {
+                        return new Promise((resolve, reject) => {
+                            const imageSql = "INSERT INTO room_images (room_id, image_url) VALUES (?, ?)";
+                            db.query(imageSql, [roomId, imageUrl], (err) => {
+                                if (err) {
+                                    reject(err);
+                                } else {
+                                    resolve();
+                                }
                             });
                         });
-                    } else {
+                    });
+
+                    Promise.all(imagePromises).then(() => {
                         db.commit((err) => {
                             if (err) {
                                 return db.rollback(() => {
@@ -579,14 +652,24 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
                             }
                             res.status(201).json({ id: roomId });
                         });
-                    }
+                    }).catch(err => {
+                        db.rollback(() => {
+                            res.status(500).json({ error: err.message });
+                        });
+                    });
+                } else {
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+                        res.status(201).json({ id: roomId });
+                    });
                 }
-            });
-        } catch (error) {
-            db.rollback(() => {
-                res.status(500).json({ error: error.message });
-            });
-        }
+            }
+        });
+        });
     });
 });
 
@@ -597,8 +680,22 @@ app.patch("/api/rooms/:id", (req, res) => {
 
     if (!id) return res.status(400).json({ error: "Room ID is required" });
 
+    // Validate status if provided
+    const validStatuses = ['available', 'booked', 'maintenance', 'unavailable'];
+    
+    if (body.status && !validStatuses.includes(body.status.toLowerCase())) {
+        return res.status(400).json({ 
+            error: `Invalid status. Must be one of: ${validStatuses.join(', ')}` 
+        });
+    }
+    
+    // Normalize status to lowercase
+    if (body.status) {
+        body.status = body.status.toLowerCase();
+    }
+
     const allowed = [
-        'room_number','name','category','description','rating','status','beds','bathrooms','price','original_price','guests','size'
+        'room_number','room_type_id','category','description','rating','status','beds','bathrooms','price','original_price','guests','size'
     ];
     const fields = [];
     const values = [];
@@ -630,6 +727,109 @@ app.patch("/api/rooms/:id", (req, res) => {
             return res.status(404).json({ error: "Room not found" });
         }
         return res.status(200).json({ success: true });
+    });
+});
+
+// Room Types API endpoints
+// Get all room types
+app.get("/api/room-types", (req, res) => {
+    const sql = "SELECT * FROM room_type ORDER BY type_name";
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Add new room type
+app.post("/api/room-types", (req, res) => {
+    const { type_name } = req.body;
+    
+    if (!type_name || !type_name.trim()) {
+        return res.status(400).json({ error: "Room type name is required" });
+    }
+    
+    const sql = "INSERT INTO room_type (type_name) VALUES (?)";
+    db.query(sql, [type_name.trim()], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({ error: "Room type already exists" });
+            }
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(201).json({ 
+            id: result.insertId, 
+            type_name: type_name.trim(),
+            message: "Room type created successfully" 
+        });
+    });
+});
+
+// Delete room type
+app.delete("/api/room-types/:id", (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+        return res.status(400).json({ error: "Room type ID is required" });
+    }
+    
+    // Check if any rooms are using this room type
+    const checkSql = "SELECT COUNT(*) as count FROM rooms WHERE room_type_id = ?";
+    db.query(checkSql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        
+        if (results[0].count > 0) {
+            return res.status(400).json({ 
+                error: "Cannot delete room type. There are rooms using this type." 
+            });
+        }
+        
+        // Delete the room type
+        const deleteSql = "DELETE FROM room_type WHERE id = ?";
+        db.query(deleteSql, [id], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Room type not found" });
+            }
+            return res.status(200).json({ message: "Room type deleted successfully" });
+        });
+    });
+});
+
+// Migration endpoint to update all room statuses to the correct format
+app.patch("/api/rooms/migrate-status", (req, res) => {
+    const statusUpdates = [
+        { from: 'Available', to: 'available' },
+        { from: 'Occupied', to: 'booked' },
+        { from: 'Maintenance', to: 'maintenance' },
+        { from: 'Cleaning', to: 'unavailable' }
+    ];
+    
+    let completed = 0;
+    let total = statusUpdates.length;
+    
+    statusUpdates.forEach(({ from, to }) => {
+        const sql = "UPDATE rooms SET status = ? WHERE status = ?";
+        db.query(sql, [to, from], (err, result) => {
+            if (err) {
+                console.error(`Failed to update status from ${from} to ${to}:`, err);
+            } else {
+                console.log(`Updated ${result.affectedRows} rooms from ${from} to ${to}`);
+            }
+            
+            completed++;
+            if (completed === total) {
+                return res.status(200).json({ 
+                    success: true, 
+                    message: "Room status migration completed" 
+                });
+            }
+        });
     });
 });
 
@@ -771,7 +971,7 @@ app.get("/api/availability", (req, res) => {
         SELECT r.*
         FROM rooms r
         WHERE (r.guests IS NULL OR r.guests >= ?)
-          AND (LOWER(r.status) IS NULL OR LOWER(r.status) <> 'maintenance')
+          AND (r.status IS NULL OR r.status <> 'maintenance')
           AND r.id NOT IN (
             SELECT b.room_id
             FROM bookings b

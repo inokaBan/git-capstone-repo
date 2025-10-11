@@ -17,6 +17,26 @@ const RoomCard = ({ room, onClick }) => {
     setShowFullDescription(!showFullDescription);
   };
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available': return 'bg-green-500 text-white';
+      case 'booked': return 'bg-red-500 text-white';
+      case 'maintenance': return 'bg-yellow-500 text-white';
+      case 'cleaning': return 'bg-blue-500 text-white';
+      default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'available': return 'Available';
+      case 'booked': return 'Booked';
+      case 'maintenance': return 'Maintenance';
+      case 'cleaning': return 'Cleaning';
+      default: return 'Unknown';
+    }
+  };
+
   return (
     <div 
       onClick={onClick}
@@ -37,14 +57,17 @@ const RoomCard = ({ room, onClick }) => {
         <div className="absolute top-4 left-4 bg-blue-600 text-white rounded-full px-3 py-1">
           <span className="text-sm font-semibold">{room.category}</span>
         </div>
+        <div className={`absolute top-16 left-4 ${getStatusColor(room.status)} rounded-full px-3 py-1`}>
+          <span className="text-sm font-semibold">{getStatusText(room.status)}</span>
+        </div>
       </div>
 
       <div className="p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-xl font-bold text-gray-900">{room.room_number ? `#${room.room_number}` : room.name}</h3>
-            {room.room_number && (
-              <p className="text-sm text-gray-500">{room.name}</p>
+            {room.type_name && (
+              <p className="text-sm text-gray-600 font-medium mt-1">{room.type_name}</p>
             )}
           </div>
           <div className="flex items-center space-x-1 text-gray-500">
