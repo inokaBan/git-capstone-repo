@@ -117,6 +117,10 @@ const WalkinReservationPage = () => {
       setNotification({ type: 'error', message: 'Please select a room to proceed' });
       return;
     }
+    if (!selectedRoom.id) {
+      setNotification({ type: 'error', message: 'Selected room is invalid. Please refresh and try again.' });
+      return;
+    }
     if (!guestName.trim() || !guestContact.trim()) {
       setNotification({ type: 'error', message: 'Please enter guest name and contact information' });
       return;
@@ -125,21 +129,30 @@ const WalkinReservationPage = () => {
       setNotification({ type: 'error', message: 'Check-out date must be after check-in date' });
       return;
     }
+    if (guests > selectedRoom.guests) {
+      setNotification({ type: 'error', message: `Maximum ${selectedRoom.guests} guests allowed for this room` });
+      return;
+    }
 
+    const bookingId = 'OSNHTL-' + Date.now().toString().slice(-6);
     const payload = {
+      bookingId,
       roomId: Number(selectedRoom.id),
-      roomName: selectedRoom.name,
+      roomName: selectedRoom.type_name || selectedRoom.name || `Room #${selectedRoom.room_number}`,
       guestName,
       guestContact,
       checkIn,
       checkOut,
       guests: Number(guests),
+      totalPrice: totalPrice,
       status: 'checked_in'
     };
 
     try {
-      const { data } = await axios.post('http://localhost:8081/api/walkin-bookings', payload);
+      console.log('Sending walkin booking data:', payload);
+      const { data } = await axios.post('http://localhost:8081/api/bookings', payload);
       
+      console.log('Walkin booking successful:', data);
       setNotification({ 
         type: 'success', 
         message: `Walk-in created successfully! Booking ID: ${data?.bookingId}` 
@@ -148,8 +161,15 @@ const WalkinReservationPage = () => {
       setGuestContact('');
       await loadAvailable();
     } catch (e) {
-      setNotification({ type: 'error', message: 'Failed to create booking' });
-      console.error('Error creating booking:', e);
+      console.error('Error creating walkin booking:', e);
+      console.error('Error response:', e.response);
+      console.error('Error data:', e.response?.data);
+      
+      const errorMessage = e.response?.data?.error || e.message || 'Unknown error occurred';
+      setNotification({ 
+        type: 'error', 
+        message: `Failed to create booking: ${errorMessage}` 
+      });
     }
   };
 

@@ -65,7 +65,7 @@ const RoomCard = ({ room, onClick }) => {
       <div className="p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-xl font-bold text-gray-900">{room.room_number ? `#${room.room_number}` : room.name}</h3>
+            <h3 className="text-xl font-bold text-gray-900">{room.room_number ? `Room #${room.room_number}` : room.name}</h3>
             {room.type_name && (
               <p className="text-sm text-gray-600 font-medium mt-1">{room.type_name}</p>
             )}
