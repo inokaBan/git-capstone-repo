@@ -14,10 +14,12 @@ const RoomsPage = () => {
   const checkIn = queryParams.get('checkIn');
   const checkOut = queryParams.get('checkOut');
   const guestCount = queryParams.get('guests');
-  const roomType = queryParams.get('type');
+  const categoryFromUrl = queryParams.get('type'); // This is actually a category from Hero
 
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedRoomType, setSelectedRoomType] = useState(roomType ? capitalize(roomType) : 'All');
+  const [selectedCategory, setSelectedCategory] = useState(
+    categoryFromUrl ? capitalize(categoryFromUrl) : 'All'
+  );
+  const [selectedRoomType, setSelectedRoomType] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState('All');
   const [sortBy, setSortBy] = useState('name');

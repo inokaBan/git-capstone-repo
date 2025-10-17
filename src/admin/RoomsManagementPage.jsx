@@ -11,10 +11,13 @@ const RoomsManagementPage = () => {
   const [error, setError] = useState('');
   const [amenities, setAmenities] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
+  const [roomCategories, setRoomCategories] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newRoomType, setNewRoomType] = useState('');
+  const [newCategory, setNewCategory] = useState('');
   const [newRoom, setNewRoom] = useState({
     room_number: '',
     room_type_id: '',
@@ -33,7 +36,6 @@ const RoomsManagementPage = () => {
   });
 
   const statusOptions = ['available', 'booked', 'maintenance', 'unavailable'];
-  const categoryOptions = ['Standard', 'Deluxe', 'Suite', 'Presidential'];
 
   const handleAddRoom = async () => {
     try {
@@ -267,6 +269,15 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const res = await axios.get('http://localhost:8081/api/room-categories');
+      setRoomCategories(res.data || []);
+    } catch (e) {
+      console.error('Failed to load room categories', e);
+    }
+  };
+
   const handleAddRoomType = async () => {
     if (!newRoomType.trim()) {
       setError('Room type name is required');
@@ -298,10 +309,42 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const handleAddCategory = async () => {
+    if (!newCategory.trim()) {
+      setError('Room category name is required');
+      return;
+    }
+    
+    try {
+      await axios.post('http://localhost:8081/api/room-categories', {
+        category_name: newCategory.trim()
+      });
+      setNewCategory('');
+      setShowCategoryModal(false);
+      await loadCategories();
+    } catch (e) {
+      console.error('Failed to add room category', e);
+      setError(e?.response?.data?.error || 'Failed to add room category');
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    if (confirm('Are you sure you want to delete this room category?')) {
+      try {
+        await axios.delete(`http://localhost:8081/api/room-categories/${id}`);
+        await loadCategories();
+      } catch (e) {
+        console.error('Failed to delete room category', e);
+        setError(e?.response?.data?.error || 'Failed to delete room category');
+      }
+    }
+  };
+
   useEffect(() => {
     loadRooms();
     loadAmenities();
     loadRoomTypes();
+    loadCategories();
   }, []);
 
   return (
@@ -597,16 +640,27 @@ const RoomsManagementPage = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                      <select
-                        id="category"
-                        value={newRoom.category}
-                        onChange={(e) => setNewRoom({...newRoom, category: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      >
-                        {categoryOptions.map(category => (
-                          <option key={category} value={category}>{category}</option>
-                        ))}
-                      </select>
+                      <div className="flex gap-2">
+                        <select
+                          id="category"
+                          value={newRoom.category}
+                          onChange={(e) => setNewRoom({...newRoom, category: e.target.value})}
+                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        >
+                          <option value="">Select Category</option>
+                          {roomCategories.map(category => (
+                            <option key={category.id} value={category.category_name}>{category.category_name}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setShowCategoryModal(true)}
+                          className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                          title="Add new room category"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -887,6 +941,70 @@ const RoomsManagementPage = () => {
                 onClick={() => {
                   setShowRoomTypeModal(false);
                   setNewRoomType('');
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Management Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Manage Room Categories</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Add New Room Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Add New Room Category</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="Enter category name"
+                  />
+                  <button
+                    onClick={handleAddCategory}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Existing Room Categories */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Existing Room Categories</label>
+                <div className="space-y-2 max-h-40 overflow-y-auto">
+                  {roomCategories.map(category => (
+                    <div key={category.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-900">{category.category_name}</span>
+                      <button
+                        onClick={() => handleDeleteCategory(category.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete room category"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  setNewCategory('');
                 }}
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >

@@ -173,7 +173,7 @@ const RoomDetailPage = () => {
           <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">{room.room_number ? `#${room.room_number}` : room.name}</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{room.room_number ? `Room #${room.room_number}` : room.name}</h1>
                 {room.room_number && (
                   <p className="text-sm text-gray-500">{room.name}</p>
                 )}
@@ -281,10 +281,15 @@ const RoomDetailPage = () => {
               />
             </div>
 
+            {room.status === 'booked' && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                <strong>Room Unavailable:</strong> This room is currently booked and cannot be reserved at this time.
+              </div>
+            )}
+
             <button 
               onClick={handleBooking} 
-              // TEMPORARILY DISABLED VALIDATION FOR TESTING - Uncomment line below to re-enable
-              //  disabled={!checkIn || !checkOut || !guestName || !guestContact}
+              disabled={room.status === 'booked' || !checkIn || !checkOut || !guestName || !guestContact}
               className="w-full bg-blue-600 text-white py-3 rounded-lg mt-12 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               Book Now

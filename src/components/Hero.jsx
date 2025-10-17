@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBooking } from '../context/BookingContext';
+import axios from 'axios';
 
 
 
@@ -8,12 +9,30 @@ const Hero = () => {
   const { checkIn, setCheckIn, checkOut, setCheckOut, guests, setGuests } = useBooking();
   
   const [roomType, setRoomType] = useState('');
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
 
 
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    const loadRooms = async () => {
+      try {
+        setLoading(true);
+        const res = await axios.get('http://localhost:8081/api/rooms');
+        setRooms(Array.isArray(res.data) ? res.data : []);
+      } catch (e) {
+        console.error('Failed to load rooms for categories', e);
+        setRooms([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadRooms();
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -30,6 +49,14 @@ const Hero = () => {
     
     navigate(`/rooms?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}&type=${roomType}`)
   };
+
+  // Extract unique categories from rooms
+  const categories = rooms.reduce((acc, room) => {
+    if (room?.category && !acc.includes(room.category)) {
+      acc.push(room.category);
+    }
+    return acc;
+  }, []).sort();
 
   return (
     <div className="min-h-screen flex items-center justify-center p-5 bg-cover bg-center bg-no-repeat"
@@ -120,12 +147,16 @@ const Hero = () => {
                 onChange={(e) => setRoomType(e.target.value)}
                 className="w-full px-5 py-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 text-base"
                 required
+                disabled={loading}
               >
-                <option value="">Select Room Type</option>
-                <option value="standard">Standard Room</option>
-                <option value="deluxe">Deluxe Room</option>
-                <option value="suite">Suite</option>
-                <option value="presidential">Presidential Suite</option>
+                <option value="">
+                  {loading ? 'Loading room types...' : 'Select Room Type'}
+                </option>
+                {categories.map((category) => (
+                  <option key={category} value={category.toLowerCase()}>
+                    {category}
+                  </option>
+                ))}
               </select>
             </div>
           </div>

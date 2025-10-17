@@ -13,6 +13,7 @@ import ContactsPage from "./pages/ContactsPage";
 import RoomDetailsPage from "./pages/RoomDetailsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
+import MyBookingsPage from "./pages/MyBookingsPage";
 
 import AdminLogin from "./admin/AdminLogin";
 import AdminOverview from "./admin/AdminOverview";
@@ -51,6 +52,7 @@ const router = createBrowserRouter(
         <Route path="/" element={<HomePage />} />
         <Route path="/rooms" element={<RoomsPage />} />
         <Route path="/rooms/:id" element={<RoomDetailsPage />} />
+        <Route path="/my-bookings" element={<MyBookingsPage />} />
         <Route path="/contacts" element={<ContactsPage />} />
         <Route path="/aboutus" element={<AboutUsPage />} />
       </Route>

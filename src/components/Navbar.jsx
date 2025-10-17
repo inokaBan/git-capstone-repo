@@ -17,6 +17,7 @@ const Navbar = () => {
   const navItems = [
     { name: 'Home', to: '/' },
     { name: 'Rooms', to: '/rooms' },
+    { name: 'My Bookings', to: '/my-bookings' },
     { name: 'Contacts', to: '/contacts' },
     { name: 'About us', to: '/aboutus' },
     { name: 'Log in', to: '/login', className: 'login-btn' },

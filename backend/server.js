@@ -801,6 +801,77 @@ app.delete("/api/room-types/:id", (req, res) => {
     });
 });
 
+// Room Categories API endpoints
+// Get all room categories
+app.get("/api/room-categories", (req, res) => {
+    const sql = "SELECT * FROM room_category ORDER BY category_name";
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Add new room category
+app.post("/api/room-categories", (req, res) => {
+    const { category_name } = req.body;
+    
+    if (!category_name || !category_name.trim()) {
+        return res.status(400).json({ error: "Room category name is required" });
+    }
+    
+    const sql = "INSERT INTO room_category (category_name) VALUES (?)";
+    db.query(sql, [category_name.trim()], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({ error: "Room category already exists" });
+            }
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(201).json({ 
+            id: result.insertId, 
+            category_name: category_name.trim(),
+            message: "Room category created successfully" 
+        });
+    });
+});
+
+// Delete room category
+app.delete("/api/room-categories/:id", (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+        return res.status(400).json({ error: "Room category ID is required" });
+    }
+    
+    // Check if any rooms are using this room category
+    const checkSql = "SELECT COUNT(*) as count FROM rooms WHERE category = (SELECT category_name FROM room_category WHERE id = ?)";
+    db.query(checkSql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        
+        if (results[0].count > 0) {
+            return res.status(400).json({ 
+                error: "Cannot delete room category. There are rooms using this category." 
+            });
+        }
+        
+        // Delete the room category
+        const deleteSql = "DELETE FROM room_category WHERE id = ?";
+        db.query(deleteSql, [id], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Room category not found" });
+            }
+            return res.status(200).json({ message: "Room category deleted successfully" });
+        });
+    });
+});
+
 // Migration endpoint to update all room statuses to the correct format
 app.patch("/api/rooms/migrate-status", (req, res) => {
     const statusUpdates = [
@@ -1048,6 +1119,53 @@ app.patch("/api/bookings/:bookingId/check-out", (req, res) => {
                         return res.json({ success: true });
                     });
                 });
+            });
+        });
+    });
+});
+
+// Delete booking (admin only)
+app.delete("/api/bookings/:bookingId", (req, res) => {
+    const { bookingId } = req.params;
+    if (!bookingId) return res.status(400).json({ error: "bookingId required" });
+
+    // First get the booking details to know which room to update
+    const getSql = "SELECT room_id, status FROM bookings WHERE bookingId = ? LIMIT 1";
+    db.query(getSql, [bookingId], (gErr, rows) => {
+        if (gErr) return res.status(500).json({ error: gErr.message });
+        if (!rows?.length) return res.status(404).json({ error: "Booking not found" });
+        
+        const roomId = rows[0].room_id;
+        const bookingStatus = rows[0].status;
+        
+        // Start transaction
+        db.beginTransaction(err => {
+            if (err) return res.status(500).json({ error: "Failed to start transaction" });
+            
+            // Delete the booking
+            const deleteSql = "DELETE FROM bookings WHERE bookingId = ?";
+            db.query(deleteSql, [bookingId], (dErr, result) => {
+                if (dErr) return db.rollback(() => res.status(500).json({ error: dErr.message }));
+                
+                // If booking was in a state that occupied the room, mark room as available
+                const occupyingStatuses = ['pending', 'confirmed', 'checked_in'];
+                if (occupyingStatuses.includes(bookingStatus)) {
+                    const updateRoomSql = "UPDATE rooms SET status = 'available' WHERE id = ?";
+                    db.query(updateRoomSql, [roomId], (rErr) => {
+                        if (rErr) return db.rollback(() => res.status(500).json({ error: rErr.message }));
+                        
+                        db.commit(cErr => {
+                            if (cErr) return db.rollback(() => res.status(500).json({ error: "Failed to commit" }));
+                            return res.json({ success: true, message: "Booking deleted successfully" });
+                        });
+                    });
+                } else {
+                    // Booking didn't occupy room, just commit the deletion
+                    db.commit(cErr => {
+                        if (cErr) return db.rollback(() => res.status(500).json({ error: "Failed to commit" }));
+                        return res.json({ success: true, message: "Booking deleted successfully" });
+                    });
+                }
             });
         });
     });

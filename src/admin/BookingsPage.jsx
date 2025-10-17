@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, Home, Clock, Check, X, Loader2, Eye } from 'lucide-react';
+import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2 } from 'lucide-react';
 import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 
@@ -41,6 +41,26 @@ const BookingsPage = () => {
       );
     } catch (error) {
       console.error('Error updating booking:', error);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleDeleteBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+      return;
+    }
+    
+    setProcessingId(bookingId);
+    try {
+      await axios.delete(`http://localhost:8081/api/bookings/${bookingId}`);
+      setBookings(prevBookings => 
+        prevBookings.filter(booking => booking.bookingId !== bookingId)
+      );
+      alert('Booking deleted successfully');
+    } catch (error) {
+      console.error('Error deleting booking:', error);
+      alert(error.response?.data?.error || 'Failed to delete booking');
     } finally {
       setProcessingId(null);
     }
@@ -291,6 +311,21 @@ const BookingsPage = () => {
                                 </button>
                               </>
                             )}
+                            <button
+                              onClick={() => handleDeleteBooking(booking.bookingId)}
+                              disabled={processingId === booking.bookingId}
+                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              aria-label={`Delete booking ${booking.bookingId}`}
+                            >
+                              {processingId === booking.bookingId ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <>
+                                  <Trash2 className="w-4 h-4 mr-1" />
+                                  Delete
+                                </>
+                              )}
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -406,6 +441,21 @@ const BookingsPage = () => {
                           </>
                         )}
                       </div>
+                      <button
+                        onClick={() => handleDeleteBooking(booking.bookingId)}
+                        disabled={processingId === booking.bookingId}
+                        className="w-full mt-2 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                        aria-label={`Delete booking ${booking.bookingId}`}
+                      >
+                        {processingId === booking.bookingId ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Delete
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 ))}
