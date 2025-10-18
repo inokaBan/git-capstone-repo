@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Wifi, Car, Coffee, Waves, Users, Star, Filter, Search } from 'lucide-react';
+import { Wifi, Car, Coffee, Waves, Users, Star, Filter, Search, X } from 'lucide-react';
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RoomCard from '../components/RoomCard'
@@ -14,7 +14,7 @@ const RoomsPage = () => {
   const checkIn = queryParams.get('checkIn');
   const checkOut = queryParams.get('checkOut');
   const guestCount = queryParams.get('guests');
-  const categoryFromUrl = queryParams.get('type'); // This is actually a category from Hero
+  const categoryFromUrl = queryParams.get('type');
 
   const [selectedCategory, setSelectedCategory] = useState(
     categoryFromUrl ? capitalize(categoryFromUrl) : 'All'
@@ -27,19 +27,18 @@ const RoomsPage = () => {
   const [roomTypes, setRoomTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Load rooms and room types from backend
   useEffect(() => {
     const loadData = async () => {
       try {
         setLoading(true);
         setError('');
         
-        // Load rooms
         const roomsRes = await axios.get('http://localhost:8081/api/rooms');
         setRooms(Array.isArray(roomsRes.data) ? roomsRes.data : []);
         
-        // Load room types
         const typesRes = await axios.get('http://localhost:8081/api/room-types');
         const types = Array.isArray(typesRes.data) ? typesRes.data : [];
         setRoomTypes(types);
@@ -54,7 +53,6 @@ const RoomsPage = () => {
     loadData();
   }, []);
 
-  // Derive categories from rooms, include 'All'
   const categories = useMemo(() => {
     const set = new Set(['All']);
     rooms.forEach(r => {
@@ -63,7 +61,6 @@ const RoomsPage = () => {
     return Array.from(set);
   }, [rooms]);
 
-  // Static price ranges used by UI
   const priceRanges = ['All', 'Under ₱2000', '₱2000-₱4000', 'Above ₱4000'];
 
   const filteredRooms = rooms.filter(room => {
@@ -95,198 +92,253 @@ const RoomsPage = () => {
     }
   });
 
-  // Filter rooms by availability
   const availableRooms = filteredRooms.filter(room => (room.status || '').toLowerCase() === 'available');
   const otherRooms = filteredRooms.filter(room => (room.status || '').toLowerCase() !== 'available');
 
   return (
-    <div className="min-h-screen bg-gray-50 mt-24">
-      {/* Header */}
-      <div className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+    <div className="min-h-screen bg-white">
+      {/* Header with Background Image */}
+      <div className="relative h-80 bg-black overflow-hidden">
+        <div 
+          className="absolute inset-0 opacity-50"
+          style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+        <div className="relative max-w-7xl mx-auto px-4 h-full flex flex-col justify-center">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 drop-shadow-lg">
             Our Rooms & Suites
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl">
-            Discover the perfect accommodation for your stay.
+          <p className="text-xl md:text-2xl text-white/90 max-w-3xl drop-shadow-md">
+            Discover the perfect accommodation for your stay
           </p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-10 px-4 py-4">
+      {/* Sticky Navigation Bar - Twitter Style */}
+      <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200">
         <div className="max-w-7xl mx-auto">
-          {/* Room Types Navigation */}
-          <div className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Filter by Room Type</h3>
-            <div className="flex-1 overflow-x-auto flex space-x-3 scrollbar-hide">
+          <div className="flex items-center">
+            {/* Category Tabs - Twitter Style */}
+            <div className="flex-1 flex overflow-x-auto scrollbar-hide">
               <button
-                onClick={() => setSelectedRoomType('All')}
-                className={`px-6 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                  selectedRoomType === 'All'
-                    ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
+                onClick={() => setSelectedCategory('All')}
+                className={`relative px-6 py-4 text-sm font-semibold transition-colors hover:bg-gray-50 flex-shrink-0 ${
+                  selectedCategory === 'All'
+                    ? 'text-gray-900'
+                    : 'text-gray-500'
                 }`}
               >
-                All Types
-                <span className="ml-2 text-xs opacity-75">
-                  ({rooms.length})
-                </span>
+                All Rooms
+                {selectedCategory === 'All' && (
+                  <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />
+                )}
               </button>
-              {loading ? (
-                <div className="flex items-center space-x-2 text-gray-500">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                  <span className="text-sm">Loading room types...</span>
-                </div>
-              ) : roomTypes.length > 0 ? (
-                roomTypes.map((type) => {
-                  const typeCount = rooms.filter(room => room.type_name === type.type_name).length;
-                  return (
-                    <button
-                      key={type.id}
-                      onClick={() => setSelectedRoomType(type.type_name)}
-                      className={`px-6 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 ${
-                        selectedRoomType === type.type_name
-                          ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
-                      }`}
-                    >
-                      {type.type_name}
-                      <span className="ml-2 text-xs opacity-75">
-                        ({typeCount})
-                      </span>
-                    </button>
-                  );
-                })
-              ) : (
-                <div className="text-sm text-gray-500">
-                  No room types available
-                </div>
-              )}
+              {categories.filter(cat => cat !== 'All').map((category) => {
+                const categoryCount = rooms.filter(room => room.category === category).length;
+                return (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`relative px-6 py-4 text-sm font-semibold transition-colors hover:bg-gray-50 flex-shrink-0 ${
+                      selectedCategory === category
+                        ? 'text-gray-900'
+                        : 'text-gray-500'
+                    }`}
+                  >
+                    {category}
+                    <span className="ml-1.5 text-xs opacity-60">({categoryCount})</span>
+                    {selectedCategory === category && (
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Filter Button */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-4 py-4 text-gray-600 hover:bg-gray-50 transition-colors border-l border-gray-200"
+            >
+              <Filter className="h-5 w-5" />
+            </button>
           </div>
-          
-          {/* Filters Row */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            {/* Search */}
-            <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search rooms..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-            </div>
-            
-            {/* Filter Dropdowns */}
-            <div className="flex items-center space-x-2">
-              <Filter className="h-5 w-5 text-gray-400" />
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Compact Filters Section - Only shown when filter button clicked */}
+        {showFilters && (
+          <div className="sticky top-24 z-30 mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="flex flex-wrap items-center gap-3">
               <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                value={selectedRoomType}
+                onChange={(e) => setSelectedRoomType(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
               >
-                <option value="All">All Categories</option>
-                {categories.filter(cat => cat !== 'All').map((category) => (
-                  <option key={category} value={category}>{category}</option>
+                <option value="All">All Types</option>
+                {roomTypes.map((type) => (
+                  <option key={type.id} value={type.type_name}>{type.type_name}</option>
                 ))}
               </select>
+
               <select
                 value={priceRange}
                 onChange={(e) => setPriceRange(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
               >
                 {priceRanges.map((range) => (
                   <option key={range} value={range}>{range}</option>
                 ))}
               </select>
-            </div>
-            
-            {/* Sorting Buttons */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600 font-medium">Sort by:</span>
-              <div className="flex space-x-1">
-                <button
-                  onClick={() => setSortBy('name')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    sortBy === 'name' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  Name
-                </button>
-                <button
-                  onClick={() => setSortBy('price-low')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    sortBy === 'price-low' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  Price ↑
-                </button>
-                <button
-                  onClick={() => setSortBy('price-high')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    sortBy === 'price-high' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  Price ↓
-                </button>
-                <button
-                  onClick={() => setSortBy('rating')}
-                  className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                    sortBy === 'rating' ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'text-gray-600 hover:bg-gray-100'
-                  }`}
-                >
-                  Rating
-                </button>
-              </div>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+              >
+                <option value="name">Name</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="rating">Rating</option>
+              </select>
+
+              <button
+                onClick={() => setShowFilters(false)}
+                className="ml-auto text-sm text-gray-600 hover:text-gray-900 font-medium"
+              >
+                Close
+              </button>
             </div>
           </div>
+        )}
+
+        {/* Results Count */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Available Rooms
+          </h2>
+          <p className="text-gray-600">
+            Showing {availableRooms.length} of {filteredRooms.length} rooms
+          </p>
         </div>
+
+        {/* Loading/Error States */}
+        {loading && (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+        {error && !loading && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Available Rooms Grid */}
+        {!loading && !error && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {availableRooms.length > 0 ? (
+                availableRooms.map(room => (
+                  <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500 text-lg">No available rooms match your criteria.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Other Rooms Section */}
+            {otherRooms.length > 0 && (
+              <>
+                <div className="border-t border-gray-200 pt-8 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                    Other Rooms
+                  </h2>
+                  <p className="text-gray-600">
+                    Currently unavailable rooms
+                  </p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {otherRooms.map(room => (
+                    <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Available Rooms */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {selectedRoomType === 'All' ? 'All Rooms' : `${selectedRoomType} Rooms`}
-          </h2>
-          <div className="text-sm text-gray-600">
-            Showing {availableRooms.length} of {filteredRooms.length} rooms
-            {selectedRoomType !== 'All' && (
-              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs">
-                Filtered by {selectedRoomType}
-              </span>
+      {/* Floating Search Button - Twitter Style */}
+      <button
+        onClick={() => setShowSearch(true)}
+        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 hover:scale-110 z-40"
+      >
+        <Search className="h-6 w-6" />
+      </button>
+
+      {/* Search Modal - Twitter Style */}
+      {showSearch && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center pt-20">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="flex items-center p-4 border-b border-gray-200">
+              <Search className="h-5 w-5 text-gray-400 mr-3" />
+              <input
+                type="text"
+                placeholder="Search rooms..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                autoFocus
+                className="flex-1 text-lg outline-none"
+              />
+              <button
+                onClick={() => {
+                  setShowSearch(false);
+                  setSearchTerm('');
+                }}
+                className="ml-3 p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
+            {searchTerm && (
+              <div className="max-h-96 overflow-y-auto p-4">
+                {filteredRooms.length > 0 ? (
+                  <div className="space-y-2">
+                    {filteredRooms.slice(0, 5).map(room => (
+                      <button
+                        key={room.id}
+                        onClick={() => {
+                          navigate(`/rooms/${room.id}`);
+                          setShowSearch(false);
+                          setSearchTerm('');
+                        }}
+                        className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                      >
+                        <div className="font-semibold text-gray-900">{room.type_name || room.name}</div>
+                        <div className="text-sm text-gray-600 truncate">{room.description}</div>
+                        <div className="text-sm font-semibold text-blue-600 mt-1">₱{Number(room.price).toLocaleString()}</div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No rooms found matching "{searchTerm}"
+                  </div>
+                )}
+              </div>
             )}
           </div>
         </div>
-        {loading && <p className="text-gray-500">Loading rooms...</p>}
-        {error && !loading && <p className="text-red-600">{error}</p>}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          {availableRooms.length > 0 ? (
-            availableRooms.map(room => (
-              <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
-            ))
-          ) : (
-            !loading && !error && <p className="text-gray-500">No available rooms for the selected criteria.</p>
-          )}
-        </div>
-
-        {/* Other Rooms */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Other Rooms</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-8">
-          {otherRooms.length > 0 ? (
-            otherRooms.map(room => (
-              <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
-            ))
-          ) : (
-            <p className="text-gray-500">No other rooms found.</p>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 };
