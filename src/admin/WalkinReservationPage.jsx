@@ -336,7 +336,7 @@ const WalkinReservationPage = () => {
             </div>
             <button 
               onClick={() => navigate('/rooms')}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors duration-200"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
             >
               <Eye className="w-4 h-4" />
               View All Rooms
@@ -428,7 +428,7 @@ const WalkinReservationPage = () => {
 
               <button 
                 onClick={createWalkIn}
-                className="w-full mt-6 bg-green-600 hover:bg-green-700 text-white font-semibold px-6 py-3 rounded-lg transition text-lg"
+                className="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-lg transition text-lg"
               >
                 Complete Check-in
               </button>

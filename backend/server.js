@@ -138,9 +138,10 @@ app.post("/api/bookings", (req, res) => {
     const numericRoomId = Number(roomId);
     const numericGuests = Number(guests);
 
+    // For guest bookings (no login), set user_id to NULL since there's no authenticated user
     // Let MySQL default fill bookingDate
-    const sql = `INSERT INTO bookings (bookingId, room_id, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const values = [bookingId, numericRoomId, roomName, guestName, guestContact, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
+    const sql = `INSERT INTO bookings (bookingId, user_id, room_id, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [bookingId, null, numericRoomId, roomName, guestName, guestContact, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
 
     console.log('Executing booking query:', sql, values);
     
@@ -285,6 +286,65 @@ app.get("/api/amenities", (req, res) => {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
         return res.status(200).json(results);
+    });
+});
+
+// Add new amenity
+app.post("/api/amenities", (req, res) => {
+    const { name } = req.body;
+    
+    if (!name || !name.trim()) {
+        return res.status(400).json({ error: "Amenity name is required" });
+    }
+    
+    const sql = "INSERT INTO amenities (name) VALUES (?)";
+    db.query(sql, [name.trim()], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({ error: "Amenity already exists" });
+            }
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(201).json({ 
+            id: result.insertId, 
+            name: name.trim(),
+            message: "Amenity created successfully" 
+        });
+    });
+});
+
+// Delete amenity
+app.delete("/api/amenities/:id", (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+        return res.status(400).json({ error: "Amenity ID is required" });
+    }
+    
+    // Check if any rooms are using this amenity
+    const checkSql = "SELECT COUNT(*) as count FROM room_amenities WHERE amenity_id = ?";
+    db.query(checkSql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        
+        if (results[0].count > 0) {
+            return res.status(400).json({ 
+                error: "Cannot delete amenity. There are rooms using this amenity." 
+            });
+        }
+        
+        // Delete the amenity
+        const deleteSql = "DELETE FROM amenities WHERE id = ?";
+        db.query(deleteSql, [id], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Amenity not found" });
+            }
+            return res.status(200).json({ message: "Amenity deleted successfully" });
+        });
     });
 });
 
@@ -673,7 +733,7 @@ app.post("/api/rooms", upload.array('images', 5), (req, res) => {
     });
 });
 
-// Update room (metadata only; images/amenities not handled here)
+// Update room (metadata and amenities)
 app.patch("/api/rooms/:id", (req, res) => {
     const { id } = req.params;
     const body = req.body || {};
@@ -712,21 +772,140 @@ app.patch("/api/rooms/:id", (req, res) => {
         }
     });
 
-    if (fields.length === 0) {
+    if (fields.length === 0 && !body.amenities) {
         return res.status(400).json({ error: "No updatable fields provided" });
     }
 
-    const sql = `UPDATE rooms SET ${fields.join(', ')}, updated_at = NOW() WHERE id = ?`;
-    values.push(Number(id));
-
-    db.query(sql, values, (err, result) => {
+    // Start transaction to handle both room updates and amenity updates
+    db.beginTransaction((err) => {
         if (err) {
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
+            return res.status(500).json({ error: "Failed to start transaction" });
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Room not found" });
-        }
-        return res.status(200).json({ success: true });
+
+        // Update basic room fields if any
+        const updateRoomFields = () => {
+            return new Promise((resolve, reject) => {
+                if (fields.length === 0) {
+                    resolve();
+                    return;
+                }
+                
+                const sql = `UPDATE rooms SET ${fields.join(', ')}, updated_at = NOW() WHERE id = ?`;
+                const updateValues = [...values, Number(id)];
+                
+                db.query(sql, updateValues, (err, result) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+                    if (result.affectedRows === 0) {
+                        reject(new Error("Room not found"));
+                        return;
+                    }
+                    resolve();
+                });
+            });
+        };
+
+        // Update amenities if provided
+        const updateAmenities = () => {
+            return new Promise((resolve, reject) => {
+                if (!body.amenities || !Array.isArray(body.amenities)) {
+                    resolve();
+                    return;
+                }
+
+                const amenities = body.amenities;
+
+                // First, delete existing room-amenity relationships
+                const deleteRoomAmenitiesSql = "DELETE FROM room_amenities WHERE room_id = ?";
+                db.query(deleteRoomAmenitiesSql, [id], (err) => {
+                    if (err) {
+                        reject(err);
+                        return;
+                    }
+
+                    // If no amenities to add, we're done
+                    if (amenities.length === 0) {
+                        resolve();
+                        return;
+                    }
+
+                    // Get or create amenity IDs
+                    const amenityPromises = amenities.map(amenityName => {
+                        return new Promise((resolveAmenity, rejectAmenity) => {
+                            const getAmenitySql = "SELECT id FROM amenities WHERE name = ?";
+                            db.query(getAmenitySql, [amenityName], (err, results) => {
+                                if (err) {
+                                    rejectAmenity(err);
+                                    return;
+                                }
+
+                                if (results.length > 0) {
+                                    resolveAmenity(results[0].id);
+                                } else {
+                                    // Create new amenity
+                                    const createAmenitySql = "INSERT INTO amenities (name) VALUES (?)";
+                                    db.query(createAmenitySql, [amenityName], (err, result) => {
+                                        if (err) {
+                                            rejectAmenity(err);
+                                            return;
+                                        }
+                                        resolveAmenity(result.insertId);
+                                    });
+                                }
+                            });
+                        });
+                    });
+
+                    Promise.all(amenityPromises).then(amenityIds => {
+                        // Insert new room-amenity relationships
+                        const roomAmenityPromises = amenityIds.map(amenityId => {
+                            return new Promise((resolveRA, rejectRA) => {
+                                const roomAmenitySql = "INSERT INTO room_amenities (room_id, amenity_id) VALUES (?, ?)";
+                                db.query(roomAmenitySql, [id, amenityId], (err) => {
+                                    if (err) {
+                                        rejectRA(err);
+                                    } else {
+                                        resolveRA();
+                                    }
+                                });
+                            });
+                        });
+
+                        Promise.all(roomAmenityPromises).then(() => {
+                            resolve();
+                        }).catch(err => {
+                            reject(err);
+                        });
+                    }).catch(err => {
+                        reject(err);
+                    });
+                });
+            });
+        };
+
+        // Execute updates
+        Promise.all([updateRoomFields(), updateAmenities()])
+            .then(() => {
+                db.commit((err) => {
+                    if (err) {
+                        return db.rollback(() => {
+                            res.status(500).json({ error: "Failed to commit transaction" });
+                        });
+                    }
+                    res.status(200).json({ success: true });
+                });
+            })
+            .catch(err => {
+                db.rollback(() => {
+                    if (err.message === "Room not found") {
+                        res.status(404).json({ error: "Room not found" });
+                    } else {
+                        res.status(500).json({ error: err.code || err.message || "Database error" });
+                    }
+                });
+            });
     });
 });
 

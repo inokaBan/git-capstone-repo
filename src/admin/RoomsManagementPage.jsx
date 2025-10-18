@@ -18,6 +18,8 @@ const RoomsManagementPage = () => {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [newRoomType, setNewRoomType] = useState('');
   const [newCategory, setNewCategory] = useState('');
+  const [showAmenityModal, setShowAmenityModal] = useState(false);
+  const [newAmenity, setNewAmenity] = useState('');
   const [newRoom, setNewRoom] = useState({
     room_number: '',
     room_type_id: '',
@@ -55,9 +57,11 @@ const RoomsManagementPage = () => {
           price: newRoom.price,
           original_price: newRoom.original_price,
           guests: newRoom.guests,
-          size: newRoom.size
+          size: newRoom.size,
+          amenities: newRoom.amenities
         });
         await loadRooms();
+        alert('Room updated successfully!');
         setEditingRoom(null);
       } else {
         const formData = new FormData();
@@ -101,6 +105,8 @@ const RoomsManagementPage = () => {
         } else {
           await loadRooms();
         }
+        
+        alert('Room created successfully!');
       }
       setNewRoom({
         room_number: '',
@@ -142,6 +148,7 @@ const RoomsManagementPage = () => {
         
         if (response.data.success) {
           setRooms(rooms.filter(room => room.id !== id));
+          alert('Room deleted successfully!');
           console.log(`Room deleted successfully. Removed ${response.data.deletedFiles} image files.`);
         } else {
           setError('Failed to delete room');
@@ -340,6 +347,37 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const handleAddAmenity = async () => {
+    if (!newAmenity.trim()) {
+      setError('Amenity name is required');
+      return;
+    }
+    
+    try {
+      await axios.post('http://localhost:8081/api/amenities', {
+        name: newAmenity.trim()
+      });
+      setNewAmenity('');
+      setShowAmenityModal(false);
+      await loadAmenities();
+    } catch (e) {
+      console.error('Failed to add amenity', e);
+      setError(e?.response?.data?.error || 'Failed to add amenity');
+    }
+  };
+
+  const handleDeleteAmenity = async (id) => {
+    if (confirm('Are you sure you want to delete this amenity?')) {
+      try {
+        await axios.delete(`http://localhost:8081/api/amenities/${id}`);
+        await loadAmenities();
+      } catch (e) {
+        console.error('Failed to delete amenity', e);
+        setError(e?.response?.data?.error || 'Failed to delete amenity');
+      }
+    }
+  };
+
   useEffect(() => {
     loadRooms();
     loadAmenities();
@@ -358,7 +396,7 @@ const RoomsManagementPage = () => {
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             aria-label="Add new room"
           >
             <Plus className="w-5 h-5 mr-2" />
@@ -405,7 +443,11 @@ const RoomsManagementPage = () => {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {rooms.map((room) => (
-                <tr key={room.id} className="hover:bg-gray-50 transition-colors duration-150">
+                <tr 
+                  key={room.id} 
+                  onClick={() => handleEditRoom(room)}
+                  className="hover:bg-gray-50 transition-colors duration-150 cursor-pointer"
+                >
                   <td className="px-4 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center gap-3 sm:gap-4">
                       {room.images[0] && (
@@ -433,7 +475,7 @@ const RoomsManagementPage = () => {
                     </div>
                   </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4">
-                    <span className="inline-flex px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium">
+                    <span className="inline-flex px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
                       {room.category}
                     </span>
                   </td>
@@ -475,15 +517,21 @@ const RoomsManagementPage = () => {
                   <td className="px-4 sm:px-6 py-3 sm:py-4">
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => handleEditRoom(room)}
-                        className="text-indigo-600 hover:text-indigo-800 p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditRoom(room);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                         title="Edit room"
                         aria-label={`Edit ${room.name}`}
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleDeleteRoom(room.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteRoom(room.id);
+                        }}
                         className="text-red-600 hover:text-red-800 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                         title="Delete room"
                         aria-label={`Delete ${room.name}`}
@@ -501,7 +549,11 @@ const RoomsManagementPage = () => {
         {/* Card Layout (below sm) */}
         <div className="sm:hidden grid gap-4 p-4">
           {rooms.map((room) => (
-            <div key={room.id} className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+            <div 
+              key={room.id} 
+              onClick={() => handleEditRoom(room)}
+              className="bg-white rounded-lg shadow-sm p-4 border border-gray-100 cursor-pointer hover:shadow-md transition-shadow duration-150"
+            >
               <div className="flex flex-col gap-3">
                 <div className="flex items-start gap-3">
                   {room.images[0] && (
@@ -513,7 +565,7 @@ const RoomsManagementPage = () => {
                   )}
                   <div className="flex-1">
                     <h3 className="text-sm font-medium text-gray-900">{room.type_name}</h3>
-                    <span className="inline-flex px-2.5 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-medium mt-1">
+                    <span className="inline-flex px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium mt-1">
                       {room.category}
                     </span>
                   </div>
@@ -563,15 +615,21 @@ const RoomsManagementPage = () => {
                 </div>
                 <div className="flex items-center gap-3 justify-end">
                   <button
-                    onClick={() => handleEditRoom(room)}
-                    className="text-indigo-600 hover:text-indigo-800 p-1 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditRoom(room);
+                    }}
+                    className="text-blue-600 hover:text-blue-800 p-1 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded"
                     title="Edit room"
                     aria-label={`Edit ${room.name}`}
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDeleteRoom(room.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteRoom(room.id);
+                    }}
                     className="text-red-600 hover:text-red-800 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                     title="Delete room"
                     aria-label={`Delete ${room.name}`}
@@ -607,7 +665,7 @@ const RoomsManagementPage = () => {
                       type="text"
                       value={newRoom.room_number}
                       onChange={(e) => setNewRoom({...newRoom, room_number: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="e.g., 201-A"
                     />
                   </div>
@@ -618,7 +676,7 @@ const RoomsManagementPage = () => {
                         id="room-type"
                         value={newRoom.room_type_id}
                         onChange={(e) => setNewRoom({...newRoom, room_type_id: e.target.value})}
-                        className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         required
                         aria-required="true"
                       >
@@ -630,7 +688,7 @@ const RoomsManagementPage = () => {
                       <button
                         type="button"
                         onClick={() => setShowRoomTypeModal(true)}
-                        className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                        className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                         title="Add new room type"
                       >
                         <Plus className="w-4 h-4" />
@@ -645,7 +703,7 @@ const RoomsManagementPage = () => {
                           id="category"
                           value={newRoom.category}
                           onChange={(e) => setNewRoom({...newRoom, category: e.target.value})}
-                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="">Select Category</option>
                           {roomCategories.map(category => (
@@ -655,7 +713,7 @@ const RoomsManagementPage = () => {
                         <button
                           type="button"
                           onClick={() => setShowCategoryModal(true)}
-                          className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                          className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                           title="Add new room category"
                         >
                           <Plus className="w-4 h-4" />
@@ -668,7 +726,7 @@ const RoomsManagementPage = () => {
                         id="status"
                         value={newRoom.status}
                         onChange={(e) => setNewRoom({...newRoom, status: e.target.value})}
-                        className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       >
                         {statusOptions.map(status => (
                           <option key={status} value={status}>{status}</option>
@@ -686,7 +744,7 @@ const RoomsManagementPage = () => {
                       step="0.1"
                       value={newRoom.rating || ''}
                       onChange={(e) => setNewRoom({...newRoom, rating: parseFloat(e.target.value) || 5})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       aria-describedby="rating-help"
                     />
                     <p id="rating-help" className="text-xs text-gray-500 mt-1">Enter a value between 1 and 5</p>
@@ -698,7 +756,7 @@ const RoomsManagementPage = () => {
                       value={newRoom.description}
                       onChange={(e) => setNewRoom({...newRoom, description: e.target.value})}
                       rows={4}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="Enter room description"
                       required
                       aria-required="true"
@@ -719,7 +777,7 @@ const RoomsManagementPage = () => {
                       min="1"
                       value={newRoom.beds || ''}
                       onChange={(e) => setNewRoom({...newRoom, beds: parseInt(e.target.value) || 1})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -730,7 +788,7 @@ const RoomsManagementPage = () => {
                       min="1"
                       value={newRoom.bathrooms || ''}
                       onChange={(e) => setNewRoom({...newRoom, bathrooms: parseInt(e.target.value) || 1})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -741,7 +799,7 @@ const RoomsManagementPage = () => {
                       min="1"
                       value={newRoom.guests || ''}
                       onChange={(e) => setNewRoom({...newRoom, guests: parseInt(e.target.value) || 1})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -751,7 +809,7 @@ const RoomsManagementPage = () => {
                       type="text"
                       value={newRoom.size}
                       onChange={(e) => setNewRoom({...newRoom, size: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="e.g., 45 sqm"
                     />
                   </div>
@@ -763,7 +821,7 @@ const RoomsManagementPage = () => {
                       min="0"
                       value={newRoom.price || ''}
                       onChange={(e) => setNewRoom({...newRoom, price: parseInt(e.target.value) || 0})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
@@ -773,7 +831,7 @@ const RoomsManagementPage = () => {
                       type="text"
                       value={newRoom.original_price}
                       onChange={(e) => setNewRoom({...newRoom, original_price: e.target.value})}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder="e.g., ₱150"
                     />
                   </div>
@@ -782,7 +840,18 @@ const RoomsManagementPage = () => {
 
               {/* Amenities */}
               <section aria-labelledby="amenities-heading">
-                <h3 id="amenities-heading" className="text-base sm:text-lg font-medium text-gray-900 mb-3">Amenities</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 id="amenities-heading" className="text-base sm:text-lg font-medium text-gray-900">Amenities</h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowAmenityModal(true)}
+                    className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    title="Manage amenities"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    Manage
+                  </button>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {amenities.map(amenity => (
                     <label key={amenity.id} className="flex items-center gap-2 cursor-pointer">
@@ -790,7 +859,7 @@ const RoomsManagementPage = () => {
                         type="checkbox"
                         checked={newRoom.amenities.includes(amenity.name)}
                         onChange={() => toggleAmenity(amenity.name)}
-                        className="w-4 h-4 text-indigo-600 border-gray-200 rounded focus:ring-indigo-500"
+                        className="w-4 h-4 text-blue-600 border-gray-200 rounded focus:ring-blue-500"
                         aria-label={`Toggle ${amenity.name} amenity`}
                       />
                       <div className="flex items-center gap-1.5">
@@ -815,7 +884,7 @@ const RoomsManagementPage = () => {
                   accept="image/*"
                   onChange={handleImageUpload}
                   disabled={newRoom.images.length >= MAX_IMAGES}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   aria-label="Upload room images"
                   onError={(e) => {
                     console.error('File input error:', e);
@@ -877,7 +946,7 @@ const RoomsManagementPage = () => {
               <button
                 onClick={handleAddRoom}
                 disabled={!newRoom.room_type_id || !newRoom.description}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 aria-label={editingRoom ? 'Update room' : 'Add room'}
               >
                 {editingRoom ? 'Update Room' : 'Add Room'}
@@ -904,12 +973,12 @@ const RoomsManagementPage = () => {
                     type="text"
                     value={newRoomType}
                     onChange={(e) => setNewRoomType(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter room type name"
                   />
                   <button
                     onClick={handleAddRoomType}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Add
                   </button>
@@ -968,12 +1037,12 @@ const RoomsManagementPage = () => {
                     type="text"
                     value={newCategory}
                     onChange={(e) => setNewCategory(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Enter category name"
                   />
                   <button
                     onClick={handleAddCategory}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                   >
                     Add
                   </button>
@@ -1005,6 +1074,73 @@ const RoomsManagementPage = () => {
                 onClick={() => {
                   setShowCategoryModal(false);
                   setNewCategory('');
+                }}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Amenity Management Modal */}
+      {showAmenityModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+          <div className="bg-white rounded-xl w-full max-w-md">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-900">Manage Amenities</h2>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Add New Amenity */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Add New Amenity</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newAmenity}
+                    onChange={(e) => setNewAmenity(e.target.value)}
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter amenity name"
+                  />
+                  <button
+                    onClick={handleAddAmenity}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Existing Amenities */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Existing Amenities</label>
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {amenities.map(amenity => (
+                    <div key={amenity.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <AmenityIcon name={amenity.name} className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm text-gray-900">{amenity.name}</span>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteAmenity(amenity.id)}
+                        className="text-red-600 hover:text-red-800 p-1"
+                        title="Delete amenity"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex justify-end">
+              <button
+                onClick={() => {
+                  setShowAmenityModal(false);
+                  setNewAmenity('');
                 }}
                 className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
