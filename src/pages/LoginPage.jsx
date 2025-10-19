@@ -37,8 +37,8 @@ const LoginPage = () => {
           login(data.user, data.role);
           
           // Redirect based on role
-          if (data.role === 'admin') {
-            alert('Admin login successful!');
+          if (data.role === 'admin' || data.role === 'staff') {
+            alert(`${data.role === 'admin' ? 'Admin' : 'Staff'} login successful!`);
             navigate('/admin/overview');
           } else {
             alert('Login successful!');

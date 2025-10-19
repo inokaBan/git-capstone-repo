@@ -1,8 +1,8 @@
+import { validatePasswordStrength } from './PasswordStrength';
+
 const SignUpValidation = (values) => {
     let errors = {};
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const passwordPattern = /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$/;
-
 
     if(values.username === "") {
         errors.username = "Name is required";
@@ -14,18 +14,22 @@ const SignUpValidation = (values) => {
         errors.email = "Email is required";
     } else if (!emailPattern.test(values.email)) {
         errors.email = "Invalid email format";
-    }else {
+    } else {
         errors.email = "";
     }
 
     if(values.password === "") {
         errors.password = "Password is required";
-    } else if (!passwordPattern.test(values.password)) {
-        errors.password = "Password didn't match the required format.";
     } else {
-        errors.password = "";
+        const passwordValidation = validatePasswordStrength(values.password);
+        if (!passwordValidation.isValid) {
+            errors.password = passwordValidation.message;
+        } else {
+            errors.password = "";
+        }
     }
+    
     return errors;
 }
 
-export default SignUpValidation
+export default SignUpValidation;

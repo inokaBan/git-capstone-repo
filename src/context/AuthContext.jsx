@@ -62,6 +62,7 @@ export const AuthProvider = ({ children }) => {
 
   const isAdmin = () => role === 'admin';
   const isGuest = () => role === 'guest';
+  const isStaff = () => role === 'staff';
 
   const getAuthHeader = () => {
     return token ? { Authorization: token } : {};
@@ -77,6 +78,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     isAdmin,
     isGuest,
+    isStaff,
     getAuthHeader
   };
 

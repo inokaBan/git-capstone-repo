@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import logo from '../assets/logo.jpg'
 import SignUpValidation from "../context/SignUpValidation";
 import axios from "axios";
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const RegisterPage = () => {
   const [values, setValues] = useState({
@@ -128,7 +129,10 @@ const RegisterPage = () => {
                 className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
-              <span className="text-red-500 text-sm mt-2">{errors.password}</span>
+              <PasswordStrengthMeter password={values.password} />
+              {errors.password && (
+                <span className="text-red-500 text-sm mt-2 block">{errors.password}</span>
+              )}
             </div>
   
             {/* Confirm Password Field */}

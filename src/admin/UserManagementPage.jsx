@@ -3,9 +3,10 @@ import axios from 'axios';
 import { Plus, Trash2, User, Mail, Shield } from 'lucide-react';
 import SignUpValidation from '../context/SignUpValidation';
 import { useAuth } from '../context/AuthContext';
+import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const UserManagementPage = () => {
-  const { getAuthHeader } = useAuth();
+  const { getAuthHeader, role: currentUserRole } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,13 +22,20 @@ const UserManagementPage = () => {
 
   const roleOptions = [
     { value: 'guest', label: 'Guest', color: 'bg-blue-100 text-blue-800' },
-    { value: 'staff', label: 'Staff', color: 'bg-purple-100 text-purple-800' }
+    { value: 'staff', label: 'Staff', color: 'bg-purple-100 text-purple-800' },
+    { value: 'admin', label: 'Admin', color: 'bg-green-100 text-green-800' }
   ];
 
   const getRoleColor = (role) => {
     const roleOption = roleOptions.find(r => r.value === role);
     return roleOption ? roleOption.color : 'bg-gray-100 text-gray-800';
   };
+
+  // Filter role options based on current user's role
+  // Staff users can only create guest accounts
+  const availableRoleOptions = currentUserRole === 'staff' 
+    ? roleOptions.filter(option => option.value === 'guest')
+    : roleOptions;
 
   const loadUsers = async () => {
     try {
@@ -36,7 +44,17 @@ const UserManagementPage = () => {
       const res = await axios.get('http://localhost:8081/api/admin/users', {
         headers: getAuthHeader()
       });
-      setUsers(res.data || []);
+      
+      // Backend already filters admin accounts for staff users,
+      // but we add frontend filtering as an additional security layer
+      let filteredUsers = res.data || [];
+      
+      // If current user is staff, filter out any admin accounts
+      if (currentUserRole === 'staff') {
+        filteredUsers = filteredUsers.filter(user => user.role !== 'admin');
+      }
+      
+      setUsers(filteredUsers);
     } catch (e) {
       console.error('Failed to load users', e);
       setError(e?.response?.data?.error || 'Failed to load users');
@@ -48,6 +66,12 @@ const UserManagementPage = () => {
   const handleAddUser = async () => {
     try {
       setError('');
+      
+      // Prevent staff from creating admin or staff accounts
+      if (currentUserRole === 'staff' && (newUser.role === 'admin' || newUser.role === 'staff')) {
+        setError('Staff members can only create guest accounts');
+        return;
+      }
       
       // Validate form
       const errors = SignUpValidation(newUser);
@@ -97,14 +121,24 @@ const UserManagementPage = () => {
     }
   };
 
-  const handleDeleteUser = async (id, username) => {
+  const handleDeleteUser = async (userId, username, userRole) => {
+    // Prevent staff from deleting admin accounts
+    if (currentUserRole === 'staff' && userRole === 'admin') {
+      setError('Staff members cannot delete admin accounts');
+      return;
+    }
+
     if (confirm(`Are you sure you want to delete the account for ${username}?`)) {
       try {
         setError('');
-        await axios.delete(`http://localhost:8081/api/admin/users/${id}`, {
+        // Use the userId which will be either numeric id or email
+        await axios.delete(`http://localhost:8081/api/admin/users/${userId}`, {
           headers: getAuthHeader()
         });
-        setUsers(users.filter(user => user.id !== id));
+        setUsers(users.filter(user => {
+          // For admin accounts, id is the email; for user accounts, it's numeric
+          return user.id !== userId;
+        }));
         alert('User account deleted successfully!');
       } catch (error) {
         console.error('Delete user error:', error);
@@ -215,7 +249,7 @@ const UserManagementPage = () => {
                   </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4">
                     <button
-                      onClick={() => handleDeleteUser(user.id, user.username)}
+                      onClick={() => handleDeleteUser(user.id, user.username, user.role)}
                       className="text-red-600 hover:text-red-800 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                       title="Delete user"
                       aria-label={`Delete ${user.username}`}
@@ -262,7 +296,7 @@ const UserManagementPage = () => {
               </div>
               <div className="flex justify-end">
                 <button
-                  onClick={() => handleDeleteUser(user.id, user.username)}
+                  onClick={() => handleDeleteUser(user.id, user.username, user.role)}
                   className="text-red-600 hover:text-red-800 p-2 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                   title="Delete user"
                   aria-label={`Delete ${user.username}`}
@@ -313,7 +347,7 @@ const UserManagementPage = () => {
                   onChange={handleInputChange}
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {roleOptions.map(option => (
+                  {availableRoleOptions.map(option => (
                     <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
                 </select>
@@ -368,10 +402,10 @@ const UserManagementPage = () => {
                   placeholder="Enter password"
                   required
                 />
+                <PasswordStrengthMeter password={newUser.password} />
                 {validationErrors.password && (
                   <span className="text-red-500 text-xs mt-1 block">{validationErrors.password}</span>
                 )}
-                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters with letters and numbers</p>
               </div>
 
               {/* Confirm Password Field */}

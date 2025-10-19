@@ -4,6 +4,7 @@ const cors = require("cors")
 const path = require("path")
 const fs = require("fs")
 const multer = require("multer")
+const bcrypt = require("bcrypt")
 
 const app = express()
 app.use(cors())
@@ -48,7 +49,44 @@ const upload = multer({
 // Serve static files from uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 
+// Password strength validation
+const COMMON_WEAK_PASSWORDS = [
+  'password', 'password123', '12345678', 'qwerty', 'abc123',
+  'monkey', '1234567890', 'letmein', 'trustno1', 'dragon',
+  'baseball', 'iloveyou', 'master', 'sunshine', 'ashley',
+  'bailey', 'passw0rd', 'shadow', '123123', '654321',
+  'superman', 'qazwsx', 'michael', 'football'
+];
 
+const validatePasswordStrength = (password) => {
+    if (!password || password.length < 8) {
+        return { isValid: false, message: "Password must be at least 8 characters long" };
+    }
+
+    const checks = {
+        uppercase: /[A-Z]/.test(password),
+        lowercase: /[a-z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+        notCommon: !COMMON_WEAK_PASSWORDS.includes(password.toLowerCase())
+    };
+
+    const missing = [];
+    if (!checks.uppercase) missing.push("one uppercase letter");
+    if (!checks.lowercase) missing.push("one lowercase letter");
+    if (!checks.number) missing.push("one number");
+    if (!checks.special) missing.push("one special character");
+    if (!checks.notCommon) missing.push("avoid common passwords");
+
+    if (missing.length > 0) {
+        return { 
+            isValid: false, 
+            message: `Password is too weak. Must include: ${missing.join(", ")}` 
+        };
+    }
+
+    return { isValid: true, message: "" };
+};
 
 const db = mysql.createConnection({
     host: "localhost",
@@ -107,26 +145,40 @@ const requireAdmin = (req, res, next) => {
     next();
 };
 
-app.post("/osner_db", (req, res) => {
+app.post("/osner_db", async (req, res) => {
     const { username, email, password } = req.body || {};
 
     if (!username || !email || !password) {
         return res.status(400).json({ error: "Missing required fields: username, email, and password are required." });
     }
 
-    const sql = "INSERT INTO user_account (username, email, password) VALUES (?)";
-    const values = [username, email, password];
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({ error: passwordValidation.message });
+    }
 
-    db.query(sql, [values], (err, data) => {
-        if (err) {
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
-        }
-        return res.status(201).json({ insertId: data.insertId, affectedRows: data.affectedRows });
-    })
+    try {
+        // Hash the password before storing
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        const sql = "INSERT INTO user_account (username, email, password) VALUES (?)";
+        const values = [username, email, hashedPassword];
+
+        db.query(sql, [values], (err, data) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+            return res.status(201).json({ insertId: data.insertId, affectedRows: data.affectedRows });
+        })
+    } catch (error) {
+        return res.status(500).json({ error: "Failed to hash password" });
+    }
 })
 
 // Unified login route: checks both admin and user accounts
-app.post("/api/auth/login", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
     const { email, password } = req.body || {};
 
     if (!email || !password) {
@@ -134,60 +186,74 @@ app.post("/api/auth/login", (req, res) => {
     }
 
     // First, check admin_account table
-    const adminSql = "SELECT admin_username as username, admin_email as email FROM admin_account WHERE admin_email = ? AND admin_password = ? LIMIT 1";
-    db.query(adminSql, [email, password], (err, adminResults) => {
+    const adminSql = "SELECT admin_username as username, admin_email as email, admin_password as password FROM admin_account WHERE admin_email = ? LIMIT 1";
+    db.query(adminSql, [email], async (err, adminResults) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
 
-        // If admin found, return admin data with role
+        // If admin found, compare password
         if (adminResults && adminResults.length > 0) {
             const admin = adminResults[0];
-            return res.status(200).json({ 
-                user: {
-                    username: admin.username,
-                    email: admin.email
-                },
-                role: 'admin'
-            });
+            try {
+                const passwordMatch = await bcrypt.compare(password, admin.password);
+                if (passwordMatch) {
+                    return res.status(200).json({ 
+                        user: {
+                            username: admin.username,
+                            email: admin.email
+                        },
+                        role: 'admin'
+                    });
+                }
+            } catch (compareError) {
+                return res.status(500).json({ error: "Password comparison failed" });
+            }
         }
 
-        // If not admin, check user_account table
-        const userSql = "SELECT id, username, email FROM user_account WHERE email = ? AND password = ? LIMIT 1";
-        db.query(userSql, [email, password], (err, userResults) => {
+        // If not admin or password didn't match, check user_account table
+        const userSql = "SELECT id, username, email, password, role FROM user_account WHERE email = ? LIMIT 1";
+        db.query(userSql, [email], async (err, userResults) => {
             if (err) {
                 return res.status(500).json({ error: err.code || err.message || "Database error" });
             }
 
-            // If user found, return user data with role
+            // If user found, compare password
             if (userResults && userResults.length > 0) {
                 const user = userResults[0];
-                return res.status(200).json({ 
-                    user: {
-                        id: user.id,
-                        username: user.username,
-                        email: user.email
-                    },
-                    role: 'guest'
-                });
+                try {
+                    const passwordMatch = await bcrypt.compare(password, user.password);
+                    if (passwordMatch) {
+                        return res.status(200).json({ 
+                            user: {
+                                id: user.id,
+                                username: user.username,
+                                email: user.email
+                            },
+                            role: user.role || 'guest'
+                        });
+                    }
+                } catch (compareError) {
+                    return res.status(500).json({ error: "Password comparison failed" });
+                }
             }
 
-            // If neither admin nor user found, return error
+            // If neither admin nor user found, or password didn't match, return error
             return res.status(401).json({ error: "Invalid email or password" });
         });
     });
 });
 
 // Keep old endpoints for backward compatibility (deprecated)
-app.post("/login", (req, res) => {
+app.post("/login", async (req, res) => {
     const { email, password } = req.body || {};
 
     if (!email || !password) {
         return res.status(400).json({ error: "Missing required fields: email and password are required." });
     }
 
-    const sql = "SELECT id, username, email FROM user_account WHERE email = ? AND password = ? LIMIT 1";
-    db.query(sql, [email, password], (err, results) => {
+    const sql = "SELECT id, username, email, password FROM user_account WHERE email = ? LIMIT 1";
+    db.query(sql, [email], async (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
@@ -196,20 +262,31 @@ app.post("/login", (req, res) => {
         }
 
         const user = results[0];
-        return res.status(200).json({ user, role: 'guest' });
+        try {
+            const passwordMatch = await bcrypt.compare(password, user.password);
+            if (passwordMatch) {
+                // Don't send password back to client
+                const { password: _, ...userWithoutPassword } = user;
+                return res.status(200).json({ user: userWithoutPassword, role: 'guest' });
+            } else {
+                return res.status(401).json({ error: "Invalid email or password" });
+            }
+        } catch (compareError) {
+            return res.status(500).json({ error: "Password comparison failed" });
+        }
     })
 })
 
 // Admin login route: verify admin credentials (deprecated - use /api/auth/login instead)
-app.post("/admin/login", (req, res) => {
+app.post("/admin/login", async (req, res) => {
     const { email, password } = req.body || {};
 
     if (!email || !password) {
         return res.status(400).json({ error: "Missing required fields: email and password are required." });
     }
 
-    const sql = "SELECT admin_username, admin_email FROM admin_account WHERE admin_email = ? AND admin_password = ? LIMIT 1";
-    db.query(sql, [email, password], (err, results) => {
+    const sql = "SELECT admin_username, admin_email, admin_password FROM admin_account WHERE admin_email = ? LIMIT 1";
+    db.query(sql, [email], async (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
@@ -218,12 +295,27 @@ app.post("/admin/login", (req, res) => {
         }
 
         const admin = results[0];
-        return res.status(200).json({ admin, role: 'admin' });
+        try {
+            const passwordMatch = await bcrypt.compare(password, admin.admin_password);
+            if (passwordMatch) {
+                return res.status(200).json({ 
+                    admin: {
+                        admin_username: admin.admin_username,
+                        admin_email: admin.admin_email
+                    }, 
+                    role: 'admin' 
+                });
+            } else {
+                return res.status(401).json({ error: "Invalid email or password" });
+            }
+        } catch (compareError) {
+            return res.status(500).json({ error: "Password comparison failed" });
+        }
     })
 })
 
 // Admin endpoint to create new user accounts (guests and staff)
-app.post("/api/admin/users", requireAdmin, (req, res) => {
+app.post("/api/admin/users", requireAdmin, async (req, res) => {
     const { username, email, password, role } = req.body || {};
 
     if (!username || !email || !password) {
@@ -232,104 +324,261 @@ app.post("/api/admin/users", requireAdmin, (req, res) => {
 
     // Validate role if provided (defaults to 'guest')
     const userRole = role || 'guest';
-    if (!['guest', 'staff'].includes(userRole)) {
-        return res.status(400).json({ error: "Invalid role. Must be 'guest' or 'staff'." });
+    if (!['guest', 'staff', 'admin'].includes(userRole)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'guest', 'staff', or 'admin'." });
     }
 
-    const sql = "INSERT INTO user_account (username, email, password, role) VALUES (?, ?, ?, ?)";
-    const values = [username, email, password, userRole];
-
-    db.query(sql, values, (err, data) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
-                return res.status(400).json({ error: "Email already exists" });
+    // In production, extract the requesting user's role from JWT token
+    // For now, we'll check the Authorization header format
+    // Format: "Bearer email" where email can be looked up to get role
+    const authHeader = req.headers.authorization;
+    if (authHeader && (userRole === 'admin' || userRole === 'staff')) {
+        // Extract email from auth header (in production, this would be from JWT)
+        const requestingUserEmail = authHeader.replace('Bearer ', '');
+        
+        try {
+            // Check if the requesting user is staff
+            const checkRoleSql = "SELECT role FROM user_account WHERE email = ? LIMIT 1";
+            const roleCheckResult = await new Promise((resolve, reject) => {
+                db.query(checkRoleSql, [requestingUserEmail], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            // If requesting user is staff, prevent them from creating admin or staff accounts
+            if (roleCheckResult && roleCheckResult.length > 0 && roleCheckResult[0].role === 'staff') {
+                if (userRole === 'admin') {
+                    return res.status(403).json({ error: "Staff members cannot create admin accounts" });
+                }
+                if (userRole === 'staff') {
+                    return res.status(403).json({ error: "Staff members cannot create staff accounts" });
+                }
             }
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        } catch (error) {
+            return res.status(500).json({ error: "Failed to verify user permissions" });
         }
-        return res.status(201).json({ 
-            id: data.insertId, 
-            username, 
-            email, 
-            role: userRole,
-            message: "User account created successfully" 
-        });
-    });
+    }
+
+    // Validate password strength
+    const passwordValidation = validatePasswordStrength(password);
+    if (!passwordValidation.isValid) {
+        return res.status(400).json({ error: passwordValidation.message });
+    }
+
+    try {
+        // Hash the password before storing
+        const saltRounds = 10;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+        // If role is admin, insert into admin_account table
+        if (userRole === 'admin') {
+            const sql = "INSERT INTO admin_account (admin_username, admin_email, admin_password) VALUES (?, ?, ?)";
+            const values = [username, email, hashedPassword];
+
+            db.query(sql, values, (err, data) => {
+                if (err) {
+                    if (err.code === 'ER_DUP_ENTRY') {
+                        return res.status(400).json({ error: "Email already exists" });
+                    }
+                    return res.status(500).json({ error: err.code || err.message || "Database error" });
+                }
+                return res.status(201).json({ 
+                    username, 
+                    email, 
+                    role: userRole,
+                    message: "Admin account created successfully" 
+                });
+            });
+        } else {
+            // For guest and staff, insert into user_account table
+            const sql = "INSERT INTO user_account (username, email, password, role) VALUES (?, ?, ?, ?)";
+            const values = [username, email, hashedPassword, userRole];
+
+            db.query(sql, values, (err, data) => {
+                if (err) {
+                    if (err.code === 'ER_DUP_ENTRY') {
+                        return res.status(400).json({ error: "Email already exists" });
+                    }
+                    return res.status(500).json({ error: err.code || err.message || "Database error" });
+                }
+                return res.status(201).json({ 
+                    id: data.insertId, 
+                    username, 
+                    email, 
+                    role: userRole,
+                    message: "User account created successfully" 
+                });
+            });
+        }
+    } catch (error) {
+        return res.status(500).json({ error: "Failed to hash password" });
+    }
 });
 
 // Admin endpoint to get all user accounts
-app.get("/api/admin/users", requireAdmin, (req, res) => {
-    // Try to query with role and created_at columns first (for newer schemas)
-    const sqlWithBoth = "SELECT id, username, email, IFNULL(role, 'guest') as role, created_at FROM user_account ORDER BY created_at DESC";
-    
-    db.query(sqlWithBoth, [], (err, results) => {
-        if (err) {
-            // If the error is due to unknown column, try fallback queries
-            if (err.code === 'ER_BAD_FIELD_ERROR') {
-                console.log('Column not found in user_account table, trying fallback query');
-                
-                // Try without created_at but with role
-                const sqlWithRoleOnly = "SELECT id, username, email, IFNULL(role, 'guest') as role FROM user_account ORDER BY id DESC";
-                
-                db.query(sqlWithRoleOnly, [], (fallbackErr, fallbackResults) => {
-                    if (fallbackErr) {
-                        // If role column also doesn't exist, try without both
-                        if (fallbackErr.code === 'ER_BAD_FIELD_ERROR' && fallbackErr.message.includes('role')) {
-                            console.log('Role column not found, falling back to query without role or created_at');
-                            const sqlBasic = "SELECT id, username, email FROM user_account ORDER BY id DESC";
-                            
-                            db.query(sqlBasic, [], (basicErr, basicResults) => {
-                                if (basicErr) {
-                                    return res.status(500).json({ error: basicErr.code || basicErr.message || "Database error" });
-                                }
-                                // Add default values for missing columns
-                                const usersWithDefaults = (basicResults || []).map(user => ({
+app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    try {
+        // Extract email from auth header to determine requesting user's role
+        const authHeader = req.headers.authorization;
+        const requestingUserEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+        
+        if (!requestingUserEmail) {
+            return res.status(401).json({ error: "Authentication required" });
+        }
+
+        // Determine if the requesting user is an admin or staff
+        let requestingUserRole = null;
+        
+        // Check if requesting user is admin
+        const checkAdminSql = "SELECT admin_email FROM admin_account WHERE admin_email = ? LIMIT 1";
+        const adminCheck = await new Promise((resolve, reject) => {
+            db.query(checkAdminSql, [requestingUserEmail], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        
+        if (adminCheck && adminCheck.length > 0) {
+            requestingUserRole = 'admin';
+        } else {
+            // Check if requesting user is staff
+            const checkStaffSql = "SELECT role FROM user_account WHERE email = ? LIMIT 1";
+            const staffCheck = await new Promise((resolve, reject) => {
+                db.query(checkStaffSql, [requestingUserEmail], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            if (staffCheck && staffCheck.length > 0) {
+                requestingUserRole = staffCheck[0].role;
+            }
+        }
+
+        if (!requestingUserRole) {
+            return res.status(403).json({ error: "Access denied" });
+        }
+
+        // Query user_account table
+        const userSql = "SELECT id, username, email, IFNULL(role, 'guest') as role, created_at FROM user_account ORDER BY created_at DESC";
+        const userResults = await new Promise((resolve, reject) => {
+            db.query(userSql, [], (err, results) => {
+                if (err) {
+                    // Fallback for tables without created_at or role columns
+                    if (err.code === 'ER_BAD_FIELD_ERROR') {
+                        const fallbackSql = "SELECT id, username, email FROM user_account ORDER BY id DESC";
+                        db.query(fallbackSql, [], (fallbackErr, fallbackResults) => {
+                            if (fallbackErr) reject(fallbackErr);
+                            else {
+                                const withDefaults = (fallbackResults || []).map(user => ({
                                     ...user,
                                     role: 'guest',
                                     created_at: null
                                 }));
-                                return res.status(200).json(usersWithDefaults);
-                            });
-                        } else {
-                            return res.status(500).json({ error: fallbackErr.code || fallbackErr.message || "Database error" });
-                        }
+                                resolve(withDefaults);
+                            }
+                        });
                     } else {
-                        // Success with role but without created_at, add null for created_at
-                        const usersWithCreatedAt = (fallbackResults || []).map(user => ({
-                            ...user,
-                            created_at: null
-                        }));
-                        return res.status(200).json(usersWithCreatedAt);
+                        reject(err);
                     }
+                } else {
+                    resolve(results || []);
+                }
+            });
+        });
+
+        // Only query admin_account table if requesting user is admin
+        let adminResults = [];
+        if (requestingUserRole === 'admin') {
+            const adminSql = "SELECT admin_username as username, admin_email as email, 'admin' as role, NULL as created_at, admin_email as id FROM admin_account ORDER BY admin_email";
+            adminResults = await new Promise((resolve, reject) => {
+                db.query(adminSql, [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results || []);
                 });
-            } else {
-                // Other database error
-                return res.status(500).json({ error: err.code || err.message || "Database error" });
-            }
-        } else {
-            // Success with both role and created_at columns
-            return res.status(200).json(results || []);
+            });
         }
-    });
+
+        // Combine results
+        const allUsers = [...userResults, ...adminResults];
+        
+        return res.status(200).json(allUsers);
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        return res.status(500).json({ error: error.message || "Database error" });
+    }
 });
 
 // Admin endpoint to delete user account
-app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
+app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     const { id } = req.params;
     
     if (!id) {
         return res.status(400).json({ error: "User ID is required" });
     }
-    
-    const sql = "DELETE FROM user_account WHERE id = ?";
-    db.query(sql, [id], (err, result) => {
-        if (err) {
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
+
+    try {
+        // Extract email from auth header to verify requesting user's role
+        const authHeader = req.headers.authorization;
+        const requestingUserEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+        
+        if (!requestingUserEmail) {
+            return res.status(401).json({ error: "Authentication required" });
         }
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "User not found" });
+
+        // Check if requesting user is admin
+        const checkAdminSql = "SELECT admin_email FROM admin_account WHERE admin_email = ? LIMIT 1";
+        const adminCheck = await new Promise((resolve, reject) => {
+            db.query(checkAdminSql, [requestingUserEmail], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+
+        const isRequestingUserAdmin = adminCheck && adminCheck.length > 0;
+
+        // Determine if id is numeric (user_account) or email (admin_account)
+        const isNumericId = !isNaN(id);
+
+        if (isNumericId) {
+            // Try to delete from user_account table
+            const sql = "DELETE FROM user_account WHERE id = ?";
+            const result = await new Promise((resolve, reject) => {
+                db.query(sql, [id], (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "User not found" });
+            }
+            return res.status(200).json({ success: true, message: "User deleted successfully" });
+        } else {
+            // ID is an email, so it's an admin account
+            // Only admins can delete admin accounts
+            if (!isRequestingUserAdmin) {
+                return res.status(403).json({ error: "Only administrators can delete admin accounts" });
+            }
+
+            const sql = "DELETE FROM admin_account WHERE admin_email = ?";
+            const result = await new Promise((resolve, reject) => {
+                db.query(sql, [id], (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Admin account not found" });
+            }
+            return res.status(200).json({ success: true, message: "Admin account deleted successfully" });
         }
-        return res.status(200).json({ success: true, message: "User deleted successfully" });
-    });
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        return res.status(500).json({ error: error.message || "Database error" });
+    }
 });
 
 // Save booking data
@@ -1295,6 +1544,82 @@ app.patch("/api/rooms/migrate-status", (req, res) => {
             }
         });
     });
+});
+
+// Migration endpoint to hash all existing plaintext passwords
+// This should be called once after deploying the password hashing changes
+app.post("/api/migrate-passwords", async (req, res) => {
+    try {
+        // Get all user accounts
+        const getUsersSql = "SELECT id, password FROM user_account";
+        db.query(getUsersSql, [], async (err, users) => {
+            if (err) {
+                return res.status(500).json({ error: "Failed to fetch user accounts" });
+            }
+
+            // Get all admin accounts
+            const getAdminsSql = "SELECT admin_email, admin_password FROM admin_account";
+            db.query(getAdminsSql, [], async (err, admins) => {
+                if (err) {
+                    return res.status(500).json({ error: "Failed to fetch admin accounts" });
+                }
+
+                let usersUpdated = 0;
+                let adminsUpdated = 0;
+                let errors = [];
+
+                // Hash user passwords
+                for (const user of users || []) {
+                    try {
+                        // Check if password is already hashed (bcrypt hashes start with $2a$, $2b$, or $2y$)
+                        if (user.password && !user.password.startsWith('$2')) {
+                            const hashedPassword = await bcrypt.hash(user.password, 10);
+                            const updateSql = "UPDATE user_account SET password = ? WHERE id = ?";
+                            await new Promise((resolve, reject) => {
+                                db.query(updateSql, [hashedPassword, user.id], (err) => {
+                                    if (err) reject(err);
+                                    else resolve();
+                                });
+                            });
+                            usersUpdated++;
+                        }
+                    } catch (error) {
+                        errors.push(`Failed to hash password for user ID ${user.id}: ${error.message}`);
+                    }
+                }
+
+                // Hash admin passwords
+                for (const admin of admins || []) {
+                    try {
+                        // Check if password is already hashed
+                        if (admin.admin_password && !admin.admin_password.startsWith('$2')) {
+                            const hashedPassword = await bcrypt.hash(admin.admin_password, 10);
+                            const updateSql = "UPDATE admin_account SET admin_password = ? WHERE admin_email = ?";
+                            await new Promise((resolve, reject) => {
+                                db.query(updateSql, [hashedPassword, admin.admin_email], (err) => {
+                                    if (err) reject(err);
+                                    else resolve();
+                                });
+                            });
+                            adminsUpdated++;
+                        }
+                    } catch (error) {
+                        errors.push(`Failed to hash password for admin ${admin.admin_email}: ${error.message}`);
+                    }
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Password migration completed",
+                    usersUpdated,
+                    adminsUpdated,
+                    errors: errors.length > 0 ? errors : undefined
+                });
+            });
+        });
+    } catch (error) {
+        return res.status(500).json({ error: "Migration failed: " + error.message });
+    }
 });
 
 // Delete room and its associated data
