@@ -77,6 +77,36 @@ db.on('error', (err) => {
     }
 });
 
+// Simple authentication middleware (checks for user data in request)
+// In production, this should verify JWT tokens or sessions
+const requireAuth = (req, res, next) => {
+    // For now, we'll add a basic check
+    // In a real app, you'd verify a JWT token from the Authorization header
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+        return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // In production, verify the token here
+    // For now, we'll just pass through
+    next();
+};
+
+const requireAdmin = (req, res, next) => {
+    // For now, we'll add a basic check
+    // In a real app, you'd verify the user's role from the JWT token
+    const authHeader = req.headers.authorization;
+    
+    if (!authHeader) {
+        return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // In production, verify the token and check role here
+    // For now, we'll just pass through
+    next();
+};
+
 app.post("/osner_db", (req, res) => {
     const { username, email, password } = req.body || {};
 
@@ -94,6 +124,213 @@ app.post("/osner_db", (req, res) => {
         return res.status(201).json({ insertId: data.insertId, affectedRows: data.affectedRows });
     })
 })
+
+// Unified login route: checks both admin and user accounts
+app.post("/api/auth/login", (req, res) => {
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Missing required fields: email and password are required." });
+    }
+
+    // First, check admin_account table
+    const adminSql = "SELECT admin_username as username, admin_email as email FROM admin_account WHERE admin_email = ? AND admin_password = ? LIMIT 1";
+    db.query(adminSql, [email, password], (err, adminResults) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+
+        // If admin found, return admin data with role
+        if (adminResults && adminResults.length > 0) {
+            const admin = adminResults[0];
+            return res.status(200).json({ 
+                user: {
+                    username: admin.username,
+                    email: admin.email
+                },
+                role: 'admin'
+            });
+        }
+
+        // If not admin, check user_account table
+        const userSql = "SELECT id, username, email FROM user_account WHERE email = ? AND password = ? LIMIT 1";
+        db.query(userSql, [email, password], (err, userResults) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+
+            // If user found, return user data with role
+            if (userResults && userResults.length > 0) {
+                const user = userResults[0];
+                return res.status(200).json({ 
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        email: user.email
+                    },
+                    role: 'guest'
+                });
+            }
+
+            // If neither admin nor user found, return error
+            return res.status(401).json({ error: "Invalid email or password" });
+        });
+    });
+});
+
+// Keep old endpoints for backward compatibility (deprecated)
+app.post("/login", (req, res) => {
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Missing required fields: email and password are required." });
+    }
+
+    const sql = "SELECT id, username, email FROM user_account WHERE email = ? AND password = ? LIMIT 1";
+    db.query(sql, [email, password], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        if (!results || results.length === 0) {
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+
+        const user = results[0];
+        return res.status(200).json({ user, role: 'guest' });
+    })
+})
+
+// Admin login route: verify admin credentials (deprecated - use /api/auth/login instead)
+app.post("/admin/login", (req, res) => {
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+        return res.status(400).json({ error: "Missing required fields: email and password are required." });
+    }
+
+    const sql = "SELECT admin_username, admin_email FROM admin_account WHERE admin_email = ? AND admin_password = ? LIMIT 1";
+    db.query(sql, [email, password], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        if (!results || results.length === 0) {
+            return res.status(401).json({ error: "Invalid email or password" });
+        }
+
+        const admin = results[0];
+        return res.status(200).json({ admin, role: 'admin' });
+    })
+})
+
+// Admin endpoint to create new user accounts (guests and staff)
+app.post("/api/admin/users", requireAdmin, (req, res) => {
+    const { username, email, password, role } = req.body || {};
+
+    if (!username || !email || !password) {
+        return res.status(400).json({ error: "Missing required fields: username, email, and password are required." });
+    }
+
+    // Validate role if provided (defaults to 'guest')
+    const userRole = role || 'guest';
+    if (!['guest', 'staff'].includes(userRole)) {
+        return res.status(400).json({ error: "Invalid role. Must be 'guest' or 'staff'." });
+    }
+
+    const sql = "INSERT INTO user_account (username, email, password, role) VALUES (?, ?, ?, ?)";
+    const values = [username, email, password, userRole];
+
+    db.query(sql, values, (err, data) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(400).json({ error: "Email already exists" });
+            }
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(201).json({ 
+            id: data.insertId, 
+            username, 
+            email, 
+            role: userRole,
+            message: "User account created successfully" 
+        });
+    });
+});
+
+// Admin endpoint to get all user accounts
+app.get("/api/admin/users", requireAdmin, (req, res) => {
+    // Try to query with role and created_at columns first (for newer schemas)
+    const sqlWithBoth = "SELECT id, username, email, IFNULL(role, 'guest') as role, created_at FROM user_account ORDER BY created_at DESC";
+    
+    db.query(sqlWithBoth, [], (err, results) => {
+        if (err) {
+            // If the error is due to unknown column, try fallback queries
+            if (err.code === 'ER_BAD_FIELD_ERROR') {
+                console.log('Column not found in user_account table, trying fallback query');
+                
+                // Try without created_at but with role
+                const sqlWithRoleOnly = "SELECT id, username, email, IFNULL(role, 'guest') as role FROM user_account ORDER BY id DESC";
+                
+                db.query(sqlWithRoleOnly, [], (fallbackErr, fallbackResults) => {
+                    if (fallbackErr) {
+                        // If role column also doesn't exist, try without both
+                        if (fallbackErr.code === 'ER_BAD_FIELD_ERROR' && fallbackErr.message.includes('role')) {
+                            console.log('Role column not found, falling back to query without role or created_at');
+                            const sqlBasic = "SELECT id, username, email FROM user_account ORDER BY id DESC";
+                            
+                            db.query(sqlBasic, [], (basicErr, basicResults) => {
+                                if (basicErr) {
+                                    return res.status(500).json({ error: basicErr.code || basicErr.message || "Database error" });
+                                }
+                                // Add default values for missing columns
+                                const usersWithDefaults = (basicResults || []).map(user => ({
+                                    ...user,
+                                    role: 'guest',
+                                    created_at: null
+                                }));
+                                return res.status(200).json(usersWithDefaults);
+                            });
+                        } else {
+                            return res.status(500).json({ error: fallbackErr.code || fallbackErr.message || "Database error" });
+                        }
+                    } else {
+                        // Success with role but without created_at, add null for created_at
+                        const usersWithCreatedAt = (fallbackResults || []).map(user => ({
+                            ...user,
+                            created_at: null
+                        }));
+                        return res.status(200).json(usersWithCreatedAt);
+                    }
+                });
+            } else {
+                // Other database error
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+        } else {
+            // Success with both role and created_at columns
+            return res.status(200).json(results || []);
+        }
+    });
+});
+
+// Admin endpoint to delete user account
+app.delete("/api/admin/users/:id", requireAdmin, (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+        return res.status(400).json({ error: "User ID is required" });
+    }
+    
+    const sql = "DELETE FROM user_account WHERE id = ?";
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+        return res.status(200).json({ success: true, message: "User deleted successfully" });
+    });
+});
 
 // Save booking data
 app.post("/api/bookings", (req, res) => {
@@ -182,8 +419,6 @@ app.listen(8081, () => {
     console.log("Server is running on port 8081")
 })
 
-// Login route: verify user credentials
-
 // Get all bookings for admin panel
 app.get("/api/bookings", (req, res) => {
     const status = req.query.status;
@@ -256,27 +491,6 @@ app.patch("/api/bookings/:bookingId", (req, res) => {
         });
     });
 });
-
-app.post("/login", (req, res) => {
-    const { email, password } = req.body || {};
-
-    if (!email || !password) {
-        return res.status(400).json({ error: "Missing required fields: email and password are required." });
-    }
-
-    const sql = "SELECT id, username, email FROM user_account WHERE email = ? AND password = ? LIMIT 1";
-    db.query(sql, [email, password], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
-        }
-        if (!results || results.length === 0) {
-            return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        const user = results[0];
-        return res.status(200).json({ user });
-    })
-})
 
 // Get all amenities
 app.get("/api/amenities", (req, res) => {
@@ -1181,29 +1395,6 @@ app.delete("/api/rooms/:id", (req, res) => {
         }
     });
 });
-
-// Admin login route: verify admin credentials
-app.post("/admin/login", (req, res) => {
-    const { email, password } = req.body || {};
-
-    if (!email || !password) {
-        return res.status(400).json({ error: "Missing required fields: email and password are required." });
-    }
-
-    // Table: admin_account, columns: admin_username, admin_email, admin_password
-    const sql = "SELECT admin_username, admin_email FROM admin_account WHERE admin_email = ? AND admin_password = ? LIMIT 1";
-    db.query(sql, [email, password], (err, results) => {
-        if (err) {
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
-        }
-        if (!results || results.length === 0) {
-            return res.status(401).json({ error: "Invalid email or password" });
-        }
-
-        const admin = results[0];
-        return res.status(200).json({ admin });
-    })
-})
 
 // List available rooms for a given date range and guest count
 // GET /api/availability?checkIn=YYYY-MM-DD&checkOut=YYYY-MM-DD&guests=1

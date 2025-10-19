@@ -1,9 +1,19 @@
 import React from 'react'
-import { NavLink } from 'react-router-dom'
-import { Bed, Calendar, Package, X, Settings, BarChart3, Home } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom'
+import { Bed, Calendar, Package, X, Settings, BarChart3, Home, LogOut, Users } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import logo from "../assets/logo.jpg"
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+      logout();
+      navigate('/login');
+      setSidebarOpen(false);
+    };
+
     const navigationItems = [
         { to: '/admin/overview', label: 'Overview', icon: Home },
         { to: '/admin/rooms', label: 'Rooms', icon: Bed },
@@ -12,6 +22,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
         { to: '/admin/walkin', label: 'Walk-in', icon: Home },
         { to: '/admin/inventory', label: 'Inventory', icon: Package },
         { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+        { to: '/admin/users', label: 'Users', icon: Users },
         { to: '/admin/settings', label: 'Settings', icon: Settings },
       ];
   return (
@@ -64,15 +75,28 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-slate-200">
-            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg mb-3">
               <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-semibold">A</span>
+                <span className="text-white text-sm font-semibold">
+                  {user?.username ? user.username.charAt(0).toUpperCase() : 'A'}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">Admin User</p>
-                <p className="text-xs text-gray-500 truncate">admin@grandplaza.com</p>
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {user?.username || 'Admin User'}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {user?.email || 'admin@osner.com'}
+                </p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Logout</span>
+            </button>
           </div>
         </div>
       </div>

@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
 import { Menu, X } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.jpg'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, role, logout, user } = useAuth();
+  const navigate = useNavigate();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -14,15 +17,50 @@ const Navbar = () => {
     setIsOpen(false);
   };
 
-  const navItems = [
-    { name: 'Home', to: '/' },
-    { name: 'Rooms', to: '/rooms' },
-    { name: 'My Bookings', to: '/my-bookings' },
-    { name: 'Contacts', to: '/contacts' },
-    { name: 'About us', to: '/aboutus' },
-    { name: 'Log in', to: '/login', className: 'login-btn' },
-    { name: 'Sign up', to: '/register', className: 'signup-btn' }
-  ];
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+    closeMenu();
+  };
+
+  const navItems = React.useMemo(() => {
+    const items = [
+      { name: 'Home', to: '/' },
+      { name: 'Rooms', to: '/rooms' },
+    ];
+
+    // Add role-specific items
+    if (isAuthenticated) {
+      if (role === 'guest') {
+        items.push({ name: 'My Bookings', to: '/my-bookings' });
+      } else if (role === 'admin') {
+        items.push({ name: 'Admin Dashboard', to: '/admin/overview' });
+      }
+    }
+
+    // Add common items
+    items.push(
+      { name: 'Contacts', to: '/contacts' },
+      { name: 'About us', to: '/aboutus' }
+    );
+
+    // Add auth buttons
+    if (isAuthenticated) {
+      items.push({ 
+        name: 'Logout', 
+        to: '#', 
+        onClick: handleLogout,
+        className: 'logout-btn' 
+      });
+    } else {
+      items.push(
+        { name: 'Log in', to: '/login', className: 'login-btn' },
+        { name: 'Sign up', to: '/register', className: 'signup-btn' }
+      );
+    }
+
+    return items;
+  }, [isAuthenticated, role]);
 
   return (
     <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
@@ -48,7 +86,22 @@ const Navbar = () => {
                   customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-2 px-6 rounded-lg text-sm transition-all duration-300 transform hover:scale-105";
                 } else if (item.className === "signup-btn") {
                   customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-transform duration-300 ease-in-out hover:scale-105";
+                } else if (item.className === "logout-btn") {
+                  customClass = "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-transform duration-300 ease-in-out hover:scale-105";
                 }
+                
+                if (item.onClick) {
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={item.onClick}
+                      className={customClass}
+                    >
+                      {item.name}
+                    </button>
+                  );
+                }
+                
                 return (
                   <NavLink
                     key={item.name}
@@ -103,7 +156,22 @@ const Navbar = () => {
                   customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center mt-56";
                 } else if (item.className === "signup-btn") {
                   customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
+                } else if (item.className === "logout-btn") {
+                  customClass = "bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
                 }
+                
+                if (item.onClick) {
+                  return (
+                    <button
+                      key={item.name}
+                      onClick={item.onClick}
+                      className={customClass}
+                    >
+                      {item.name}
+                    </button>
+                  );
+                }
+                
                 return (
                   <NavLink
                     key={item.name}
