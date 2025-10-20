@@ -12,6 +12,7 @@ const RoomsManagementPage = () => {
   const [amenities, setAmenities] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [roomCategories, setRoomCategories] = useState([]);
+  const [itemCategories, setItemCategories] = useState([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingRoom, setEditingRoom] = useState(null);
   const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
@@ -285,6 +286,41 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const loadItemCategories = async () => {
+    try {
+      const res = await axios.get('http://localhost:8081/api/inventory/categories', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('userEmail') || ''}`
+        }
+      });
+      setItemCategories(res.data || []);
+    } catch (e) {
+      console.error('Failed to load item categories', e);
+    }
+  };
+
+  const handleSyncCategoriesToAmenities = async () => {
+    if (!confirm('This will add all inventory item categories as amenities. Continue?')) {
+      return;
+    }
+    
+    try {
+      const res = await axios.post('http://localhost:8081/api/inventory/categories/sync-to-amenities', {}, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('userEmail') || ''}`
+        }
+      });
+      
+      if (res.data.success) {
+        alert(res.data.message);
+        await loadAmenities(); // Reload amenities to show newly added ones
+      }
+    } catch (e) {
+      console.error('Failed to sync categories', e);
+      setError(e?.response?.data?.error || 'Failed to sync categories to amenities');
+    }
+  };
+
   const handleAddRoomType = async () => {
     if (!newRoomType.trim()) {
       setError('Room type name is required');
@@ -383,6 +419,7 @@ const RoomsManagementPage = () => {
     loadAmenities();
     loadRoomTypes();
     loadCategories();
+    loadItemCategories();
   }, []);
 
   return (
@@ -842,16 +879,45 @@ const RoomsManagementPage = () => {
               <section aria-labelledby="amenities-heading">
                 <div className="flex items-center justify-between mb-3">
                   <h3 id="amenities-heading" className="text-base sm:text-lg font-medium text-gray-900">Amenities</h3>
-                  <button
-                    type="button"
-                    onClick={() => setShowAmenityModal(true)}
-                    className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    title="Manage amenities"
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    Manage
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSyncCategoriesToAmenities}
+                      className="inline-flex items-center px-3 py-1.5 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition-colors"
+                      title="Sync inventory categories to amenities"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Sync Categories
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowAmenityModal(true)}
+                      className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                      title="Manage amenities"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      Manage
+                    </button>
+                  </div>
                 </div>
+                
+                {/* Show item categories as a separate section */}
+                {itemCategories.length > 0 && (
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-xs font-medium text-blue-900 mb-2">Inventory Categories (auto-detected):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {itemCategories.map((category, idx) => (
+                        <span key={idx} className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-xs">
+                          {category}
+                        </span>
+                      ))}
+                    </div>
+                    <p className="text-xs text-blue-700 mt-2">
+                      Click "Sync Categories" to add these as amenity options
+                    </p>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                   {amenities.map(amenity => (
                     <label key={amenity.id} className="flex items-center gap-2 cursor-pointer">

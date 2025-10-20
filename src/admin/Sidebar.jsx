@@ -1,12 +1,13 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Bed, Calendar, Package, X, Settings, BarChart3, Home, LogOut, Users } from 'lucide-react';
+import { Bed, Calendar, Package, X, Settings, BarChart3, Home, LogOut, Users, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import logo from "../assets/logo.jpg"
 
 const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const [expandedMenus, setExpandedMenus] = useState({});
 
     const handleLogout = () => {
       logout();
@@ -14,17 +15,36 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       setSidebarOpen(false);
     };
 
+    const toggleMenu = (label) => {
+      setExpandedMenus(prev => ({
+        ...prev,
+        [label]: !prev[label]
+      }));
+    };
+
     const navigationItems = [
-        { to: '/admin/overview', label: 'Overview', icon: Home },
-        { to: '/admin/rooms', label: 'Rooms', icon: Bed },
-        { to: '/admin/bookings', label: 'Bookings', icon: Calendar },
-        { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
-        { to: '/admin/walkin', label: 'Walk-in', icon: Home },
-        { to: '/admin/inventory', label: 'Inventory', icon: Package },
-        { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
-        { to: '/admin/users', label: 'Users', icon: Users },
-        { to: '/admin/settings', label: 'Settings', icon: Settings },
-      ];
+      { to: '/admin/overview', label: 'Overview', icon: Home },
+      { to: '/admin/rooms', label: 'Rooms', icon: Bed },
+      { to: '/admin/bookings', label: 'Bookings', icon: Calendar },
+      { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
+      { to: '/admin/walkin', label: 'Walkin Reservation', icon: UserPlus },
+      { 
+        label: 'Manage Inventory', 
+        icon: Package,
+        subItems: [
+          { to: '/admin/inventory/items', label: 'Items' },
+          { to: '/admin/inventory/room-stock', label: 'Room Stock' },
+          { to: '/admin/inventory/warehouse', label: 'Warehouse' },
+          { to: '/admin/inventory/tasks', label: 'Tasks' },
+          { to: '/admin/inventory/alerts', label: 'Alerts' },
+          { to: '/admin/inventory/reports', label: 'Reports' },
+        ]
+      },
+      { to: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+      { to: '/admin/users', label: 'Users', icon: Users },
+      { to: '/admin/settings', label: 'Settings', icon: Settings },
+    ];
+
   return (
     <>
     {/* Mobile Sidebar Overlay */}
@@ -56,21 +76,68 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
-            {navigationItems.map(({ to, label, icon: Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                onClick={() => setSidebarOpen(false)}
-                className={({ isActive }) =>
-                  `w-full flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
-                  }`
-                }
-              >
-                <Icon className="h-5 w-5" />
-                <span>{label}</span>
-              </NavLink>
-            ))}
+            {navigationItems.map((item) => {
+              const { to, label, icon: Icon, subItems } = item;
+              const isExpanded = expandedMenus[label];
+              
+              // If item has subItems, render collapsible menu
+              if (subItems) {
+                return (
+                  <div key={label}>
+                    <button
+                      onClick={() => toggleMenu(label)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Icon className="h-5 w-5" />
+                        <span>{label}</span>
+                      </div>
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4" />
+                      )}
+                    </button>
+                    
+                    {isExpanded && (
+                      <div className="ml-8 mt-1 space-y-1">
+                        {subItems.map((subItem) => (
+                          <NavLink
+                            key={subItem.to}
+                            to={subItem.to}
+                            onClick={() => setSidebarOpen(false)}
+                            className={({ isActive }) =>
+                              `block px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
+                                isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                              }`
+                            }
+                          >
+                            {subItem.label}
+                          </NavLink>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              
+              // Regular menu item
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  onClick={() => setSidebarOpen(false)}
+                  className={({ isActive }) =>
+                    `w-full flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                      isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                    }`
+                  }
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{label}</span>
+                </NavLink>
+              );
+            })}
           </nav>
 
           {/* Sidebar Footer */}

@@ -7,7 +7,7 @@ const TopHeader = ({activeTab, setSidebarOpen}) => {
   
   return (
     <>
-        <header className="bg-white border-b border-slate-200 z-10">
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
               <div className="flex items-center space-x-3">

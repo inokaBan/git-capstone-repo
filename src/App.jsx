@@ -26,6 +26,13 @@ import BookingsCalendar from "./admin/BookingsCalendar";
 import WalkinReservationPage from "./admin/WalkinReservationPage";
 import UserManagementPage from "./admin/UserManagementPage";
 
+import InventoryItemsPage from "./admin/inventory/InventoryItemsPage";
+import RoomInventoryPage from "./admin/inventory/RoomInventoryPage";
+import WarehouseInventoryPage from "./admin/inventory/WarehouseInventoryPage";
+import HousekeepingTasksPage from "./admin/inventory/HousekeepingTasksPage";
+import InventoryAlertsPage from "./admin/inventory/InventoryAlertsPage";
+import InventoryReportsPage from "./admin/inventory/InventoryReportsPage";
+
 import ProtectedRoute from "./components/ProtectedRoute";
 
 const router = createBrowserRouter(
@@ -45,6 +52,12 @@ const router = createBrowserRouter(
         <Route path="rooms" element={<RoomsManagementPage />} />
         <Route path="bookings" element={<BookingsPage />} />
         <Route path="inventory" element={<InventoryPage />} />
+        <Route path="inventory/items" element={<InventoryItemsPage />} />
+        <Route path="inventory/room-stock" element={<RoomInventoryPage />} />
+        <Route path="inventory/warehouse" element={<WarehouseInventoryPage />} />
+        <Route path="inventory/tasks" element={<HousekeepingTasksPage />} />
+        <Route path="inventory/alerts" element={<InventoryAlertsPage />} />
+        <Route path="inventory/reports" element={<InventoryReportsPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="calendar" element={<BookingsCalendar />} />

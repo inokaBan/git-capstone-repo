@@ -10,6 +10,21 @@ const AdminLayout = () => {
   const title = useMemo(() => {
     const path = location.pathname.replace(/^\/admin\/?/, '')
     if (!path) return 'Overview'
+    
+    // Handle inventory sub-routes
+    if (path.startsWith('inventory/')) {
+      const subPath = path.replace('inventory/', '')
+      const inventoryTitles = {
+        'items': 'Inventory Items',
+        'room-stock': 'Room Inventory',
+        'warehouse': 'Warehouse Stock',
+        'tasks': 'Housekeeping Tasks',
+        'alerts': 'Inventory Alerts',
+        'reports': 'Inventory Reports'
+      }
+      return inventoryTitles[subPath] || 'Inventory'
+    }
+    
     const segment = path.split('/')[0]
     const map = {
       overview: 'Overview',
@@ -19,16 +34,18 @@ const AdminLayout = () => {
       analytics: 'Analytics',
       settings: 'Settings',
       calendar: 'Calendar',
+      walkin: 'Walk-in Reservation',
+      users: 'User Management',
     }
     if (map[segment]) return map[segment]
     return segment.charAt(0).toUpperCase() + segment.slice(1)
   }, [location.pathname])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex">
+    <div className="h-screen bg-gradient-to-br from-slate-50 to-slate-100 flex overflow-hidden">
       <Sidebar sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         <TopHeader setSidebarOpen={setSidebarOpen} title={title} />
 
         <main className="flex-1 overflow-y-auto">
@@ -42,5 +59,3 @@ const AdminLayout = () => {
 }
 
 export default AdminLayout
-
-

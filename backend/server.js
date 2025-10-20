@@ -664,10 +664,6 @@ app.post("/api/bookings", (req, res) => {
     });
 });
 
-app.listen(8081, () => {
-    console.log("Server is running on port 8081")
-})
-
 // Get all bookings for admin panel
 app.get("/api/bookings", (req, res) => {
     const status = req.query.status;
@@ -1865,3 +1861,1263 @@ app.delete("/api/bookings/:bookingId", (req, res) => {
         });
     });
 });
+
+// ============================================
+// INVENTORY MANAGEMENT ENDPOINTS
+// ============================================
+
+// Get all inventory items
+app.get("/api/inventory/items", requireAuth, (req, res) => {
+    const sql = "SELECT * FROM inventory_items WHERE is_active = 1 ORDER BY name";
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Create new inventory item
+app.post("/api/inventory/items", requireAdmin, (req, res) => {
+    const { name, description, category, unit, unit_cost, supplier, low_stock_threshold, reorder_quantity, location, initial_quantity } = req.body;
+    
+    if (!name || !unit) {
+        return res.status(400).json({ error: "Name and unit are required" });
+    }
+    
+    // Default values
+    const warehouseLocation = location || 'Main Storage Room';
+    const initialQty = parseInt(initial_quantity) || 0;
+    
+    // Start transaction to create both item and warehouse record
+    db.beginTransaction((err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        // Insert into inventory_items
+        const itemSql = `INSERT INTO inventory_items (name, description, category, unit, unit_cost, supplier, low_stock_threshold, reorder_quantity) 
+                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
+        const itemValues = [
+            name,
+            description || null,
+            category || null,
+            unit,
+            unit_cost || 0,
+            supplier || null,
+            low_stock_threshold || 10,
+            reorder_quantity || 20
+        ];
+        
+        db.query(itemSql, itemValues, (err, itemResult) => {
+            if (err) {
+                return db.rollback(() => {
+                    res.status(500).json({ error: err.message });
+                });
+            }
+            
+            const newItemId = itemResult.insertId;
+            
+            // Insert into warehouse_inventory
+            const warehouseSql = `INSERT INTO warehouse_inventory (item_id, quantity, location, last_updated) 
+                                  VALUES (?, ?, ?, NOW())`;
+            
+            db.query(warehouseSql, [newItemId, initialQty, warehouseLocation], (err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: err.message });
+                    });
+                }
+                
+                // If initial quantity > 0, log it
+                if (initialQty > 0) {
+                    // Get admin ID from auth header
+                    const authHeader = req.headers.authorization;
+                    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+                    
+                    const getAdminSql = "SELECT id FROM admin_account WHERE admin_email = ? LIMIT 1";
+                    db.query(getAdminSql, [userEmail], (err, adminResult) => {
+                        const adminId = (adminResult && adminResult.length > 0) ? adminResult[0].id : 1;
+                        
+                        // Log the initial stock
+                        const logSql = `INSERT INTO inventory_log (item_id, change_quantity, new_stock_level, reason, notes, logged_by) 
+                                       VALUES (?, ?, ?, ?, ?, ?)`;
+                        const logValues = [
+                            newItemId,
+                            initialQty,
+                            initialQty,
+                            'Initial stock - new item created',
+                            `Item created with initial stock at ${warehouseLocation}`,
+                            adminId
+                        ];
+                        
+                        db.query(logSql, logValues, (err) => {
+                            if (err) {
+                                console.error('Failed to log initial stock:', err);
+                            }
+                            
+                            // Commit transaction
+                            db.commit((err) => {
+                                if (err) {
+                                    return db.rollback(() => {
+                                        res.status(500).json({ error: "Failed to commit transaction" });
+                                    });
+                                }
+                                return res.status(201).json({ 
+                                    id: newItemId, 
+                                    message: "Item created successfully and added to warehouse" 
+                                });
+                            });
+                        });
+                    });
+                } else {
+                    // Commit transaction without logging
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+                        return res.status(201).json({ 
+                            id: newItemId, 
+                            message: "Item created successfully and added to warehouse" 
+                        });
+                    });
+                }
+            });
+        });
+    });
+});
+
+// Update inventory item
+app.patch("/api/inventory/items/:id", requireAdmin, (req, res) => {
+    const { id } = req.params;
+    const allowed = ['name', 'description', 'category', 'unit', 'unit_cost', 'supplier', 'low_stock_threshold', 'reorder_quantity'];
+    const fields = [];
+    const values = [];
+    
+    allowed.forEach(key => {
+        if (req.body.hasOwnProperty(key)) {
+            fields.push(`${key} = ?`);
+            values.push(req.body[key]);
+        }
+    });
+    
+    if (fields.length === 0) {
+        return res.status(400).json({ error: "No fields to update" });
+    }
+    
+    values.push(id);
+    const sql = `UPDATE inventory_items SET ${fields.join(', ')} WHERE id = ?`;
+    
+    db.query(sql, values, (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+        return res.status(200).json({ success: true });
+    });
+});
+
+// Delete inventory item
+app.delete("/api/inventory/items/:id", requireAdmin, (req, res) => {
+    const { id } = req.params;
+    
+    // Soft delete - set is_active to 0
+    const sql = "UPDATE inventory_items SET is_active = 0 WHERE id = ?";
+    
+    db.query(sql, [id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Item not found" });
+        }
+        return res.status(200).json({ success: true });
+    });
+});
+
+// Get warehouse inventory
+app.get("/api/inventory/warehouse", requireAuth, (req, res) => {
+    const sql = `
+        SELECT w.*, i.name as item_name, i.unit, i.low_stock_threshold
+        FROM warehouse_inventory w
+        JOIN inventory_items i ON w.item_id = i.id
+        WHERE i.is_active = 1
+        ORDER BY i.name
+    `;
+    
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Add or remove warehouse stock (transaction)
+app.post("/api/inventory/warehouse/transaction", requireAuth, async (req, res) => {
+    const { item_id, change_quantity, reason, notes } = req.body;
+    
+    if (!item_id || !change_quantity || !reason) {
+        return res.status(400).json({ error: "item_id, change_quantity, and reason are required" });
+    }
+    
+    // Get admin ID from auth header
+    const authHeader = req.headers.authorization;
+    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+    
+    db.beginTransaction(async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        try {
+            // Get current stock and admin ID
+            const getStockSql = "SELECT quantity FROM warehouse_inventory WHERE item_id = ?";
+            const stockResult = await new Promise((resolve, reject) => {
+                db.query(getStockSql, [item_id], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            let currentStock = 0;
+            if (stockResult && stockResult.length > 0) {
+                currentStock = stockResult[0].quantity;
+            }
+            
+            const newStock = currentStock + parseInt(change_quantity);
+            
+            if (newStock < 0) {
+                return db.rollback(() => {
+                    res.status(400).json({ error: "Insufficient stock" });
+                });
+            }
+            
+            // Update or insert warehouse stock
+            if (stockResult && stockResult.length > 0) {
+                const updateSql = "UPDATE warehouse_inventory SET quantity = ?, last_updated = NOW() WHERE item_id = ?";
+                await new Promise((resolve, reject) => {
+                    db.query(updateSql, [newStock, item_id], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            } else {
+                const insertSql = "INSERT INTO warehouse_inventory (item_id, quantity, location) VALUES (?, ?, 'Main Storage Room')";
+                await new Promise((resolve, reject) => {
+                    db.query(insertSql, [item_id, newStock], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            }
+            
+            // Get admin ID
+            const getAdminSql = "SELECT id FROM admin_account WHERE admin_email = ? LIMIT 1";
+            const adminResult = await new Promise((resolve, reject) => {
+                db.query(getAdminSql, [userEmail], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            const adminId = adminResult && adminResult.length > 0 ? adminResult[0].id : 1;
+            
+            // Log transaction
+            const logSql = `INSERT INTO inventory_log (item_id, change_quantity, new_stock_level, reason, notes, logged_by) 
+                           VALUES (?, ?, ?, ?, ?, ?)`;
+            await new Promise((resolve, reject) => {
+                db.query(logSql, [item_id, change_quantity, newStock, reason, notes || null, adminId], (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                });
+            });
+            
+            // Check if we need to create an alert
+            const getItemSql = "SELECT low_stock_threshold FROM inventory_items WHERE id = ?";
+            const itemResult = await new Promise((resolve, reject) => {
+                db.query(getItemSql, [item_id], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            if (itemResult && itemResult.length > 0) {
+                const threshold = itemResult[0].low_stock_threshold;
+                if (newStock <= threshold && newStock > 0) {
+                    // Create low stock alert
+                    const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
+                                     VALUES ('low_stock', ?, ?, 'warning', NOW())`;
+                    const alertMessage = `Stock level is low (${newStock} remaining, threshold: ${threshold})`;
+                    await new Promise((resolve, reject) => {
+                        db.query(alertSql, [item_id, alertMessage], (err) => {
+                            if (err) console.error('Failed to create alert:', err);
+                            resolve();
+                        });
+                    });
+                } else if (newStock === 0) {
+                    // Create out of stock alert
+                    const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
+                                     VALUES ('out_of_stock', ?, 'Item is out of stock', 'critical', NOW())`;
+                    await new Promise((resolve, reject) => {
+                        db.query(alertSql, [item_id], (err) => {
+                            if (err) console.error('Failed to create alert:', err);
+                            resolve();
+                        });
+                    });
+                }
+            }
+            
+            db.commit((err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: "Failed to commit transaction" });
+                    });
+                }
+                return res.status(200).json({ success: true, new_stock: newStock });
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
+    });
+});
+
+// Get room inventory
+app.get("/api/inventory/room-inventory", requireAuth, (req, res) => {
+    const sql = `
+        SELECT ri.*, i.name as item_name, i.unit, r.name as room_name, r.room_number
+        FROM room_inventory ri
+        JOIN inventory_items i ON ri.item_id = i.id
+        JOIN rooms r ON ri.room_id = r.id
+        WHERE i.is_active = 1
+        ORDER BY r.room_number, i.name
+    `;
+    
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Update or add room inventory item
+app.post("/api/inventory/room-inventory", requireAuth, async (req, res) => {
+    const { room_id, item_id, quantity, action } = req.body;
+    
+    if (!room_id || !item_id || quantity === undefined) {
+        return res.status(400).json({ error: "room_id, item_id, and quantity are required" });
+    }
+    
+    // Get admin ID from auth header
+    const authHeader = req.headers.authorization;
+    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+    
+    db.beginTransaction(async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        try {
+            // Check if room inventory record exists
+            const checkSql = "SELECT * FROM room_inventory WHERE room_id = ? AND item_id = ?";
+            const existing = await new Promise((resolve, reject) => {
+                db.query(checkSql, [room_id, item_id], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            let newQuantity = parseInt(quantity);
+            let quantityToDeduct = parseInt(quantity); // Amount to deduct from warehouse
+            
+            if (existing && existing.length > 0) {
+                // Update existing record
+                if (action === 'add') {
+                    newQuantity = existing[0].current_quantity + parseInt(quantity);
+                    quantityToDeduct = parseInt(quantity); // Only deduct the added amount
+                } else if (action === 'subtract') {
+                    newQuantity = existing[0].current_quantity - parseInt(quantity);
+                    if (newQuantity < 0) newQuantity = 0;
+                    quantityToDeduct = 0; // Don't deduct from warehouse when subtracting from room
+                } else {
+                    // action === 'set' or default
+                    quantityToDeduct = newQuantity - existing[0].current_quantity;
+                    if (quantityToDeduct < 0) quantityToDeduct = 0; // Don't deduct if we're reducing room inventory
+                }
+            } else {
+                // New record - deduct the full quantity
+                quantityToDeduct = newQuantity;
+            }
+            
+            // Only deduct from warehouse if we're adding items to the room
+            if (quantityToDeduct > 0) {
+                // Check warehouse stock
+                const warehouseSql = "SELECT quantity FROM warehouse_inventory WHERE item_id = ?";
+                const warehouseResult = await new Promise((resolve, reject) => {
+                    db.query(warehouseSql, [item_id], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+                
+                if (!warehouseResult || warehouseResult.length === 0) {
+                    return db.rollback(() => {
+                        res.status(400).json({ error: "Item not found in warehouse inventory" });
+                    });
+                }
+                
+                const currentWarehouseStock = warehouseResult[0].quantity;
+                
+                if (currentWarehouseStock < quantityToDeduct) {
+                    return db.rollback(() => {
+                        res.status(400).json({ 
+                            error: `Insufficient warehouse stock. Available: ${currentWarehouseStock}, Required: ${quantityToDeduct}` 
+                        });
+                    });
+                }
+                
+                // Deduct from warehouse
+                const newWarehouseStock = currentWarehouseStock - quantityToDeduct;
+                const updateWarehouseSql = "UPDATE warehouse_inventory SET quantity = ?, last_updated = NOW() WHERE item_id = ?";
+                await new Promise((resolve, reject) => {
+                    db.query(updateWarehouseSql, [newWarehouseStock, item_id], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+                
+                // Get admin ID for logging
+                const getAdminSql = "SELECT id FROM admin_account WHERE admin_email = ? LIMIT 1";
+                const adminResult = await new Promise((resolve, reject) => {
+                    db.query(getAdminSql, [userEmail], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+                
+                const adminId = adminResult && adminResult.length > 0 ? adminResult[0].id : 1;
+                
+                // Get room name for logging
+                const getRoomSql = "SELECT name, room_number FROM rooms WHERE id = ?";
+                const roomResult = await new Promise((resolve, reject) => {
+                    db.query(getRoomSql, [room_id], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+                
+                const roomName = roomResult && roomResult.length > 0 
+                    ? `${roomResult[0].name} (${roomResult[0].room_number})` 
+                    : `Room ${room_id}`;
+                
+                // Log warehouse transaction
+                const logSql = `INSERT INTO inventory_log (item_id, change_quantity, new_stock_level, reason, notes, logged_by) 
+                               VALUES (?, ?, ?, ?, ?, ?)`;
+                const reason = "Room restock - transferred to room inventory";
+                const notes = `Transferred ${quantityToDeduct} units to ${roomName}`;
+                await new Promise((resolve, reject) => {
+                    db.query(logSql, [item_id, -quantityToDeduct, newWarehouseStock, reason, notes, adminId], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+                
+                // Check if we need to create low stock alert for warehouse
+                const getItemSql = "SELECT low_stock_threshold FROM inventory_items WHERE id = ?";
+                const itemResult = await new Promise((resolve, reject) => {
+                    db.query(getItemSql, [item_id], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+                
+                if (itemResult && itemResult.length > 0) {
+                    const threshold = itemResult[0].low_stock_threshold;
+                    if (newWarehouseStock <= threshold && newWarehouseStock > 0) {
+                        // Create low stock alert
+                        const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
+                                         VALUES ('low_stock', ?, ?, 'warning', NOW())`;
+                        const alertMessage = `Warehouse stock is low (${newWarehouseStock} remaining, threshold: ${threshold})`;
+                        await new Promise((resolve, reject) => {
+                            db.query(alertSql, [item_id, alertMessage], (err) => {
+                                if (err) console.error('Failed to create alert:', err);
+                                resolve();
+                            });
+                        });
+                    } else if (newWarehouseStock === 0) {
+                        // Create out of stock alert
+                        const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
+                                         VALUES ('out_of_stock', ?, 'Warehouse is out of stock', 'critical', NOW())`;
+                        await new Promise((resolve, reject) => {
+                            db.query(alertSql, [item_id], (err) => {
+                                if (err) console.error('Failed to create alert:', err);
+                                resolve();
+                            });
+                        });
+                    }
+                }
+            }
+            
+            // Determine status based on quantity
+            const getItemSql = "SELECT i.*, rti.standard_quantity FROM inventory_items i LEFT JOIN room_type_inventory rti ON i.id = rti.item_id LEFT JOIN rooms r ON rti.room_type_id = r.room_type_id WHERE i.id = ? AND r.id = ? LIMIT 1";
+            const itemInfo = await new Promise((resolve, reject) => {
+                db.query(getItemSql, [item_id, room_id], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            let status = 'sufficient';
+            if (itemInfo && itemInfo.length > 0 && itemInfo[0].standard_quantity) {
+                const standardQty = itemInfo[0].standard_quantity;
+                if (newQuantity === 0) {
+                    status = 'out_of_stock';
+                } else if (newQuantity < standardQty * 0.5) {
+                    status = 'low';
+                }
+            }
+            
+            // Update or insert room inventory
+            if (existing && existing.length > 0) {
+                const updateSql = "UPDATE room_inventory SET current_quantity = ?, last_restocked = NOW(), last_checked = NOW(), status = ? WHERE room_id = ? AND item_id = ?";
+                await new Promise((resolve, reject) => {
+                    db.query(updateSql, [newQuantity, status, room_id, item_id], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            } else {
+                // Insert new record
+                if (newQuantity === 0) {
+                    status = 'out_of_stock';
+                }
+                
+                const insertSql = "INSERT INTO room_inventory (room_id, item_id, current_quantity, last_restocked, last_checked, status) VALUES (?, ?, ?, NOW(), NOW(), ?)";
+                await new Promise((resolve, reject) => {
+                    db.query(insertSql, [room_id, item_id, newQuantity, status], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            }
+            
+            db.commit((err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: "Failed to commit transaction" });
+                    });
+                }
+                return res.status(200).json({ 
+                    success: true, 
+                    new_quantity: newQuantity,
+                    warehouse_deducted: quantityToDeduct
+                });
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
+    });
+});
+
+// Get inventory for a specific room
+app.get("/api/inventory/room-inventory/:roomId", requireAuth, (req, res) => {
+    const { roomId } = req.params;
+    
+    const sql = `
+        SELECT ri.*, i.name as item_name, i.unit, i.category,
+               rti.standard_quantity, rti.replenish_quantity
+        FROM room_inventory ri
+        JOIN inventory_items i ON ri.item_id = i.id
+        LEFT JOIN rooms r ON ri.room_id = r.id
+        LEFT JOIN room_type_inventory rti ON rti.room_type_id = r.room_type_id AND rti.item_id = i.item_id
+        WHERE ri.room_id = ? AND i.is_active = 1
+        ORDER BY i.category, i.name
+    `;
+    
+    db.query(sql, [roomId], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Restock room to standard levels based on room type
+app.post("/api/inventory/room-inventory/restock", requireAuth, async (req, res) => {
+    const { room_id } = req.body;
+    
+    if (!room_id) {
+        return res.status(400).json({ error: "room_id is required" });
+    }
+    
+    db.beginTransaction(async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        try {
+            // Get room type
+            const getRoomSql = "SELECT room_type_id FROM rooms WHERE id = ?";
+            const roomResult = await new Promise((resolve, reject) => {
+                db.query(getRoomSql, [room_id], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            if (!roomResult || roomResult.length === 0) {
+                return db.rollback(() => {
+                    res.status(404).json({ error: "Room not found" });
+                });
+            }
+            
+            const roomTypeId = roomResult[0].room_type_id;
+            
+            // Get standard inventory for this room type
+            const getStandardSql = `
+                SELECT rti.*, i.name as item_name
+                FROM room_type_inventory rti
+                JOIN inventory_items i ON rti.item_id = i.id
+                WHERE rti.room_type_id = ? AND i.is_active = 1
+            `;
+            const standardItems = await new Promise((resolve, reject) => {
+                db.query(getStandardSql, [roomTypeId], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            if (!standardItems || standardItems.length === 0) {
+                return db.rollback(() => {
+                    res.status(400).json({ error: "No standard inventory defined for this room type" });
+                });
+            }
+            
+            // Update or insert each item
+            for (const standardItem of standardItems) {
+                const checkSql = "SELECT * FROM room_inventory WHERE room_id = ? AND item_id = ?";
+                const existing = await new Promise((resolve, reject) => {
+                    db.query(checkSql, [room_id, standardItem.item_id], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+                
+                const targetQuantity = standardItem.replenish_quantity || standardItem.standard_quantity;
+                
+                if (existing && existing.length > 0) {
+                    // Update existing
+                    const updateSql = "UPDATE room_inventory SET current_quantity = ?, last_restocked = NOW(), last_checked = NOW(), status = 'sufficient' WHERE room_id = ? AND item_id = ?";
+                    await new Promise((resolve, reject) => {
+                        db.query(updateSql, [targetQuantity, room_id, standardItem.item_id], (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        });
+                    });
+                } else {
+                    // Insert new
+                    const insertSql = "INSERT INTO room_inventory (room_id, item_id, current_quantity, last_restocked, last_checked, status) VALUES (?, ?, ?, NOW(), NOW(), 'sufficient')";
+                    await new Promise((resolve, reject) => {
+                        db.query(insertSql, [room_id, standardItem.item_id, targetQuantity], (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        });
+                    });
+                }
+            }
+            
+            db.commit((err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: "Failed to commit transaction" });
+                    });
+                }
+                return res.status(200).json({ 
+                    success: true, 
+                    message: `Restocked ${standardItems.length} items to standard levels`,
+                    items_restocked: standardItems.length
+                });
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
+    });
+});
+
+// Remove item from room inventory
+app.delete("/api/inventory/room-inventory/:roomId/:itemId", requireAuth, (req, res) => {
+    const { roomId, itemId } = req.params;
+    
+    const sql = "DELETE FROM room_inventory WHERE room_id = ? AND item_id = ?";
+    
+    db.query(sql, [roomId, itemId], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Room inventory item not found" });
+        }
+        return res.status(200).json({ success: true });
+    });
+});
+
+// Get housekeeping tasks
+app.get("/api/inventory/tasks", requireAuth, (req, res) => {
+    const sql = `
+        SELECT t.*, r.name as room_name, r.room_number, u.username as assigned_to_name
+        FROM housekeeping_tasks t
+        JOIN rooms r ON t.room_id = r.id
+        LEFT JOIN user_account u ON t.assigned_to = u.id
+        ORDER BY 
+            CASE t.priority
+                WHEN 'urgent' THEN 1
+                WHEN 'high' THEN 2
+                WHEN 'medium' THEN 3
+                WHEN 'low' THEN 4
+            END,
+            t.created_at DESC
+    `;
+    
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Create housekeeping task
+app.post("/api/inventory/tasks", requireAuth, async (req, res) => {
+    const { room_id, task_type, priority, description, assigned_to } = req.body;
+    
+    if (!room_id || !task_type) {
+        return res.status(400).json({ error: "room_id and task_type are required" });
+    }
+    
+    // Get user ID from auth header
+    const authHeader = req.headers.authorization;
+    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+    
+    db.beginTransaction(async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        try {
+            // Try to get creator ID from admin_account first
+            const getAdminSql = "SELECT id FROM admin_account WHERE admin_email = ? LIMIT 1";
+            const adminResult = await new Promise((resolve, reject) => {
+                db.query(getAdminSql, [userEmail], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            let createdBy = null;
+            
+            if (adminResult && adminResult.length > 0) {
+                createdBy = adminResult[0].id;
+            } else {
+                // Try user_account table for staff users
+                const getUserSql = "SELECT id FROM user_account WHERE email = ? AND role IN ('staff', 'admin') LIMIT 1";
+                const userResult = await new Promise((resolve, reject) => {
+                    db.query(getUserSql, [userEmail], (err, results) => {
+                        if (err) reject(err);
+                        else resolve(results);
+                    });
+                });
+                
+                if (userResult && userResult.length > 0) {
+                    createdBy = userResult[0].id;
+                } else {
+                    // Default to 1 if no valid user found
+                    createdBy = 1;
+                }
+            }
+            
+            // Insert the task
+            const sql = `INSERT INTO housekeeping_tasks (room_id, task_type, priority, status, assigned_to, created_by, description, created_at) 
+                         VALUES (?, ?, ?, 'pending', ?, ?, ?, NOW())`;
+            const values = [
+                room_id,
+                task_type,
+                priority || 'medium',
+                assigned_to || null,
+                createdBy,
+                description || null
+            ];
+            
+            const taskResult = await new Promise((resolve, reject) => {
+                db.query(sql, values, (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+            
+            // If task type is maintenance, update room status to 'maintenance'
+            if (task_type === 'maintenance') {
+                const updateRoomSql = "UPDATE rooms SET status = 'maintenance' WHERE id = ?";
+                await new Promise((resolve, reject) => {
+                    db.query(updateRoomSql, [room_id], (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    });
+                });
+            }
+            
+            db.commit((err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: "Failed to commit transaction" });
+                    });
+                }
+                return res.status(201).json({ id: taskResult.insertId, message: "Task created successfully" });
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
+    });
+});
+
+// Update housekeeping task
+app.patch("/api/inventory/tasks/:id", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const { status, assigned_to, priority, description } = req.body;
+    
+    db.beginTransaction(async (err) => {
+        if (err) {
+            return res.status(500).json({ error: "Failed to start transaction" });
+        }
+        
+        try {
+            // Get the task details first to check if it's a maintenance task
+            const getTaskSql = "SELECT room_id, task_type, status as current_status FROM housekeeping_tasks WHERE id = ?";
+            const taskResult = await new Promise((resolve, reject) => {
+                db.query(getTaskSql, [id], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            if (!taskResult || taskResult.length === 0) {
+                return db.rollback(() => {
+                    res.status(404).json({ error: "Task not found" });
+                });
+            }
+            
+            const task = taskResult[0];
+            const isMaintenance = task.task_type === 'maintenance';
+            const roomId = task.room_id;
+            
+            // Build update query for task
+            const fields = [];
+            const values = [];
+            
+            if (status) {
+                fields.push('status = ?');
+                values.push(status);
+                if (status === 'completed') {
+                    fields.push('completed_at = NOW()');
+                }
+            }
+            if (assigned_to !== undefined) {
+                fields.push('assigned_to = ?');
+                values.push(assigned_to);
+            }
+            if (priority) {
+                fields.push('priority = ?');
+                values.push(priority);
+            }
+            if (description !== undefined) {
+                fields.push('description = ?');
+                values.push(description);
+            }
+            
+            if (fields.length === 0) {
+                return db.rollback(() => {
+                    res.status(400).json({ error: "No fields to update" });
+                });
+            }
+            
+            values.push(id);
+            const updateTaskSql = `UPDATE housekeeping_tasks SET ${fields.join(', ')} WHERE id = ?`;
+            
+            await new Promise((resolve, reject) => {
+                db.query(updateTaskSql, values, (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                });
+            });
+            
+            // Update room status if this is a maintenance task and status changed
+            if (isMaintenance && status) {
+                let newRoomStatus = null;
+                
+                if (status === 'completed' || status === 'cancelled') {
+                    // Task is done, set room back to available
+                    newRoomStatus = 'available';
+                } else if (status === 'in_progress' || status === 'pending') {
+                    // Task is active, set room to maintenance
+                    newRoomStatus = 'maintenance';
+                }
+                
+                if (newRoomStatus) {
+                    const updateRoomSql = "UPDATE rooms SET status = ? WHERE id = ?";
+                    await new Promise((resolve, reject) => {
+                        db.query(updateRoomSql, [newRoomStatus, roomId], (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        });
+                    });
+                }
+            }
+            
+            db.commit((err) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: "Failed to commit transaction" });
+                    });
+                }
+                return res.status(200).json({ success: true });
+            });
+        } catch (error) {
+            db.rollback(() => {
+                res.status(500).json({ error: error.message });
+            });
+        }
+    });
+});
+
+// Get inventory alerts
+app.get("/api/inventory/alerts", requireAuth, (req, res) => {
+    const sql = `
+        SELECT a.*, i.name as item_name, r.name as room_name, r.room_number
+        FROM inventory_alerts a
+        LEFT JOIN inventory_items i ON a.item_id = i.id
+        LEFT JOIN rooms r ON a.room_id = r.id
+        ORDER BY 
+            CASE a.severity
+                WHEN 'critical' THEN 1
+                WHEN 'warning' THEN 2
+                WHEN 'info' THEN 3
+            END,
+            a.created_at DESC
+    `;
+    
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Resolve alert
+app.patch("/api/inventory/alerts/:id/resolve", requireAuth, async (req, res) => {
+    const { id } = req.params;
+    
+    // Get admin ID from auth header
+    const authHeader = req.headers.authorization;
+    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+    
+    try {
+        const getAdminSql = "SELECT id FROM admin_account WHERE admin_email = ? LIMIT 1";
+        const adminResult = await new Promise((resolve, reject) => {
+            db.query(getAdminSql, [userEmail], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        
+        const resolvedBy = adminResult && adminResult.length > 0 ? adminResult[0].id : 1;
+        
+        const sql = "UPDATE inventory_alerts SET is_resolved = 1, resolved_by = ?, resolved_at = NOW() WHERE id = ?";
+        
+        db.query(sql, [resolvedBy, id], (err, result) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: "Alert not found" });
+            }
+            return res.status(200).json({ success: true });
+        });
+    } catch (error) {
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get inventory logs
+app.get("/api/inventory/logs", requireAuth, (req, res) => {
+    const limit = req.query.limit || 100;
+    
+    const sql = `
+        SELECT l.*, i.name as item_name, i.unit
+        FROM inventory_log l
+        JOIN inventory_items i ON l.item_id = i.id
+        ORDER BY l.created_at DESC
+        LIMIT ?
+    `;
+    
+    db.query(sql, [parseInt(limit)], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
+// Get unique item categories (for amenity options)
+app.get("/api/inventory/categories", requireAuth, (req, res) => {
+    const sql = `
+        SELECT DISTINCT category 
+        FROM inventory_items 
+        WHERE category IS NOT NULL AND category != '' AND is_active = 1
+        ORDER BY category
+    `;
+    
+    db.query(sql, [], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        // Return just the category names as an array
+        const categories = (results || []).map(row => row.category);
+        return res.status(200).json(categories);
+    });
+});
+
+// Sync item categories to amenities table
+app.post("/api/inventory/categories/sync-to-amenities", requireAdmin, async (req, res) => {
+    try {
+        // Get all unique categories from inventory items
+        const getCategoriesSql = `
+            SELECT DISTINCT category 
+            FROM inventory_items 
+            WHERE category IS NOT NULL AND category != '' AND is_active = 1
+        `;
+        
+        const categories = await new Promise((resolve, reject) => {
+            db.query(getCategoriesSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results || []);
+            });
+        });
+        
+        let addedCount = 0;
+        let skippedCount = 0;
+        
+        // Add each category as an amenity if it doesn't exist
+        for (const row of categories) {
+            const category = row.category;
+            
+            // Check if amenity already exists
+            const checkSql = "SELECT id FROM amenities WHERE name = ?";
+            const existing = await new Promise((resolve, reject) => {
+                db.query(checkSql, [category], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            
+            if (!existing || existing.length === 0) {
+                // Add as amenity
+                const insertSql = "INSERT INTO amenities (name) VALUES (?)";
+                await new Promise((resolve, reject) => {
+                    db.query(insertSql, [category], (err) => {
+                        if (err && err.code !== 'ER_DUP_ENTRY') reject(err);
+                        else resolve();
+                    });
+                });
+                addedCount++;
+            } else {
+                skippedCount++;
+            }
+        }
+        
+        return res.status(200).json({ 
+            success: true,
+            message: `Synced ${addedCount} categories to amenities (${skippedCount} already existed)`,
+            added: addedCount,
+            skipped: skippedCount
+        });
+    } catch (error) {
+        console.error('Error syncing categories to amenities:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get inventory reports
+app.get("/api/inventory/reports", requireAuth, (req, res) => {
+    const days = parseInt(req.query.days) || 30;
+    const dateFrom = new Date();
+    dateFrom.setDate(dateFrom.getDate() - days);
+    
+    // Get summary statistics
+    const summarySql = `
+        SELECT 
+            COUNT(DISTINCT i.id) as total_items,
+            SUM(w.quantity * i.unit_cost) as total_value,
+            COUNT(l.id) as total_transactions,
+            (SELECT COUNT(*) FROM warehouse_inventory w2 
+             JOIN inventory_items i2 ON w2.item_id = i2.id 
+             WHERE w2.quantity <= i2.low_stock_threshold) as low_stock_items
+        FROM inventory_items i
+        LEFT JOIN warehouse_inventory w ON i.id = w.item_id
+        LEFT JOIN inventory_log l ON i.id = l.item_id AND l.created_at >= ?
+        WHERE i.is_active = 1
+    `;
+    
+    db.query(summarySql, [dateFrom], (err, summaryResults) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        // Get most used items
+        const mostUsedSql = `
+            SELECT 
+                i.id, i.name, i.category, i.unit, i.unit_cost,
+                SUM(ABS(l.change_quantity)) as total_used
+            FROM inventory_items i
+            JOIN inventory_log l ON i.id = l.item_id
+            WHERE l.created_at >= ? AND l.change_quantity < 0 AND i.is_active = 1
+            GROUP BY i.id
+            ORDER BY total_used DESC
+            LIMIT 10
+        `;
+        
+        db.query(mostUsedSql, [dateFrom], (err, mostUsedResults) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            // Get category breakdown
+            const categorySql = `
+                SELECT 
+                    i.category,
+                    COUNT(l.id) as transaction_count,
+                    SUM(ABS(l.change_quantity) * i.unit_cost) as total_cost
+                FROM inventory_items i
+                JOIN inventory_log l ON i.id = l.item_id
+                WHERE l.created_at >= ? AND i.is_active = 1
+                GROUP BY i.category
+                ORDER BY transaction_count DESC
+            `;
+            
+            db.query(categorySql, [dateFrom], (err, categoryResults) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                // Get recent activity
+                const activitySql = `
+                    SELECT l.*, i.name as item_name
+                    FROM inventory_log l
+                    JOIN inventory_items i ON l.item_id = i.id
+                    WHERE l.created_at >= ?
+                    ORDER BY l.created_at DESC
+                    LIMIT 50
+                `;
+                
+                db.query(activitySql, [dateFrom], (err, activityResults) => {
+                    if (err) {
+                        return res.status(500).json({ error: err.message });
+                    }
+                    
+                    return res.status(200).json({
+                        summary: summaryResults[0],
+                        most_used_items: mostUsedResults || [],
+                        category_breakdown: categoryResults || [],
+                        recent_activity: activityResults || []
+                    });
+                });
+            });
+        });
+    });
+});
+
+// Get admin dashboard statistics
+app.get("/api/admin/stats", requireAuth, async (req, res) => {
+    try {
+        // Get total rooms count
+        const totalRoomsSql = "SELECT COUNT(*) as count FROM rooms";
+        const totalRoomsResult = await new Promise((resolve, reject) => {
+            db.query(totalRoomsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const totalRooms = totalRoomsResult[0].count;
+
+        // Get active bookings count (pending, confirmed, checked_in)
+        const activeBookingsSql = "SELECT COUNT(*) as count FROM bookings WHERE status IN ('pending', 'confirmed', 'checked_in')";
+        const activeBookingsResult = await new Promise((resolve, reject) => {
+            db.query(activeBookingsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const activeBookings = activeBookingsResult[0].count;
+
+        // Get occupancy rate (rooms with status 'booked' / total rooms * 100)
+        const bookedRoomsSql = "SELECT COUNT(*) as count FROM rooms WHERE status = 'booked'";
+        const bookedRoomsResult = await new Promise((resolve, reject) => {
+            db.query(bookedRoomsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const bookedRooms = bookedRoomsResult[0].count;
+        const occupancyRate = totalRooms > 0 ? ((bookedRooms / totalRooms) * 100).toFixed(1) : 0;
+
+        // Get revenue today (sum of totalPrice for bookings created today)
+        const revenueTodaySql = "SELECT COALESCE(SUM(totalPrice), 0) as revenue FROM bookings WHERE DATE(bookingDate) = CURDATE()";
+        const revenueTodayResult = await new Promise((resolve, reject) => {
+            db.query(revenueTodaySql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const revenueToday = parseFloat(revenueTodayResult[0].revenue) || 0;
+
+        // Calculate percentage changes (for now, return 0% as we don't have historical data)
+        // In a real application, you would compare with previous period
+        return res.status(200).json({
+            totalRooms: {
+                value: totalRooms,
+                change: '+0%' // Placeholder - would need historical data
+            },
+            activeBookings: {
+                value: activeBookings,
+                change: '+0%' // Placeholder - would need historical data
+            },
+            occupancyRate: {
+                value: `${occupancyRate}%`,
+                change: '+0%' // Placeholder - would need historical data
+            },
+            revenueToday: {
+                value: revenueToday,
+                change: '+0%' // Placeholder - would need historical data
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching admin stats:', error);
+        return res.status(500).json({ error: error.message || "Failed to fetch statistics" });
+    }
+});
+
+app.listen(8081, () => {
+    console.log("Server is running on port 8081")
+})

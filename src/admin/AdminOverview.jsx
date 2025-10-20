@@ -2,20 +2,37 @@ import React, { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Bed, Calendar, Users, DollarSign, TrendingUp, User, Clock, Check, X } from 'lucide-react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 
 const AdminOverview = () => {
 
-  // Sample data for overview cards
-  const overviewStats = [
-    { title: 'Total Rooms', value: '124', change: '+2.5%', icon: Bed, color: 'bg-blue-500' },
-    { title: 'Active Bookings', value: '89', change: '+12%', icon: Calendar, color: 'bg-green-500' },
-    { title: 'Occupancy Rate', value: '78%', change: '+5.2%', icon: Users, color: 'bg-purple-500' },
-    { title: 'Revenue Today', value: '$12,450', change: '+8.1%', icon: DollarSign, color: 'bg-orange-500' },
-  ];
+  const { getAuthHeader } = useAuth();
+
+  const [stats, setStats] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState(null);
 
   const [recentBookings, setRecentBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [bookingsError, setBookingsError] = useState(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoadingStats(true);
+        const response = await axios.get('http://localhost:8081/api/admin/stats', {
+          headers: getAuthHeader()
+        });
+        setStats(response.data);
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+        setStatsError('Failed to load statistics');
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
   useEffect(() => {
     const fetchRecent = async () => {
@@ -33,6 +50,38 @@ const AdminOverview = () => {
     };
     fetchRecent();
   }, []);
+
+  // Dynamic stats from database
+  const overviewStats = stats ? [
+    { 
+      title: 'Total Rooms', 
+      value: stats.totalRooms.value.toString(), 
+      change: stats.totalRooms.change, 
+      icon: Bed, 
+      color: 'bg-blue-500' 
+    },
+    { 
+      title: 'Active Bookings', 
+      value: stats.activeBookings.value.toString(), 
+      change: stats.activeBookings.change, 
+      icon: Calendar, 
+      color: 'bg-green-500' 
+    },
+    { 
+      title: 'Occupancy Rate', 
+      value: stats.occupancyRate.value, 
+      change: stats.occupancyRate.change, 
+      icon: Users, 
+      color: 'bg-purple-500' 
+    },
+    { 
+      title: 'Revenue Today', 
+      value: `₱${Number(stats.revenueToday.value).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
+      change: stats.revenueToday.change, 
+      icon: DollarSign, 
+      color: 'bg-orange-500' 
+    },
+  ] : [];
 
   const getStatusColor = (status) => {
     const colors = {
@@ -70,28 +119,44 @@ const AdminOverview = () => {
   return (
     <div className="space-y-8">
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {overviewStats.map((stat, index) => {
-                    const Icon = stat.icon;
-                    return (
-                      <div key={index} className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                            <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                            <div className="flex items-center mt-2">
-                              <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                              <span className="text-sm text-green-600 font-medium">{stat.change}</span>
+                {loadingStats ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {[1, 2, 3, 4].map((i) => (
+                      <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
+                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
+                        <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : statsError ? (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-600">
+                    {statsError}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {overviewStats.map((stat, index) => {
+                      const Icon = stat.icon;
+                      return (
+                        <div key={index} className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
+                              <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                              <div className="flex items-center mt-2">
+                                <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
+                                <span className="text-sm text-green-600 font-medium">{stat.change}</span>
+                              </div>
+                            </div>
+                            <div className={`p-4 rounded-xl ${stat.color} shadow-lg`}>
+                              <Icon className="h-6 w-6 text-white" />
                             </div>
                           </div>
-                          <div className={`p-4 rounded-xl ${stat.color} shadow-lg`}>
-                            <Icon className="h-6 w-6 text-white" />
-                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
 
                 {/* Recent Bookings */}
                 <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">

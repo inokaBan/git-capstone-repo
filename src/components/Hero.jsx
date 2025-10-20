@@ -19,19 +19,19 @@ const Hero = () => {
   const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    const loadRooms = async () => {
+    const loadRoomTypes = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://localhost:8081/api/rooms');
+        const res = await axios.get('http://localhost:8081/api/room-types');
         setRooms(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
-        console.error('Failed to load rooms for categories', e);
+        console.error('Failed to load room types', e);
         setRooms([]);
       } finally {
         setLoading(false);
       }
     };
-    loadRooms();
+    loadRoomTypes();
   }, []);
 
   const handleSubmit = (e) => {
@@ -50,13 +50,11 @@ const Hero = () => {
     navigate(`/rooms?checkIn=${checkIn}&checkOut=${checkOut}&guests=${guests}&type=${roomType}`)
   };
 
-  // Extract unique categories from rooms
-  const categories = rooms.reduce((acc, room) => {
-    if (room?.category && !acc.includes(room.category)) {
-      acc.push(room.category);
-    }
-    return acc;
-  }, []).sort();
+  // Extract room types from the fetched data
+  const roomTypes = rooms.map(rt => ({
+    id: rt.id,
+    name: rt.type_name
+  }));
 
   return (
     <div className="min-h-screen flex items-center justify-center p-5 bg-cover bg-center bg-no-repeat"
@@ -152,9 +150,9 @@ const Hero = () => {
                 <option value="">
                   {loading ? 'Loading room types...' : 'Select Room Type'}
                 </option>
-                {categories.map((category) => (
-                  <option key={category} value={category.toLowerCase()}>
-                    {category}
+                {roomTypes.map((type) => (
+                  <option key={type.id} value={type.name.toLowerCase()}>
+                    {type.name}
                   </option>
                 ))}
               </select>
