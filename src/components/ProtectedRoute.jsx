@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children, requireAdmin = false, requireAdminOrStaff = 
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/" state={{ from: location }} replace />;
   }
 
   // If admin route but user is not admin, redirect to home

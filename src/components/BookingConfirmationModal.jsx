@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 const BookingConfirmationModal = ({ 
   isOpen, 
@@ -7,12 +8,13 @@ const BookingConfirmationModal = ({
   bookingDetails 
 }) => {
   const navigate = useNavigate();
+  const { showSuccess } = useAlertDialog();
 
   if (!isOpen || !bookingDetails) return null;
 
   const handleCopyBookingId = () => {
     navigator.clipboard.writeText(`Booking ID: ${bookingDetails.bookingId}`);
-    alert('Booking ID copied to clipboard!');
+    showSuccess('Booking ID copied to clipboard!');
   };
 
   const handleBrowseMoreRooms = () => {

@@ -4,6 +4,7 @@ import logo from '../assets/logo.jpg'
 import LoginValidation from "../context/LoginValidation"
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext';
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 
 const LoginPage = () => {
@@ -14,6 +15,7 @@ const LoginPage = () => {
     const navigate = useNavigate();
     const [errors, setErrors] = useState({});
     const { login } = useAuth();
+    const { showSuccess } = useAlertDialog();
     
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -38,11 +40,11 @@ const LoginPage = () => {
           
           // Redirect based on role
           if (data.role === 'admin' || data.role === 'staff') {
-            alert(`${data.role === 'admin' ? 'Admin' : 'Staff'} login successful!`);
+            showSuccess(`${data.role === 'admin' ? 'Admin' : 'Staff'} login successful!`);
             navigate('/admin/overview');
           } else {
-            alert('Login successful!');
-            navigate('/');
+            showSuccess('Login successful!');
+            navigate('/home');
           }
         })
         .catch((err) => {
@@ -60,6 +62,10 @@ const LoginPage = () => {
   
     const handleSignUp = () => {
       navigate('/register')
+    };
+
+    const handleContinueAsGuest = () => {
+      navigate('/home');
     };
 
   return (
@@ -129,6 +135,15 @@ const LoginPage = () => {
               Sign up
             </button>
           </p>
+        </div>
+
+        <div className="mt-6 text-center">
+          <button
+            onClick={handleContinueAsGuest}
+            className="w-full bg-gray-100 text-gray-700 py-4 px-4 rounded-xl font-medium hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 transition-all duration-200 text-base"
+          >
+            Continue as Guest
+          </button>
         </div>
       </div>
     </div>

@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.jpg'
 import axios from 'axios'
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 const AdminLogin = () => {
 
   const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
       const navigate = useNavigate();
+      const { showSuccess } = useAlertDialog();
       
       const [apiError, setApiError] = useState("");
 
@@ -33,7 +35,7 @@ const AdminLogin = () => {
               setApiError('Unexpected server response');
               return;
             }
-            alert('Admin login successful!');
+            showSuccess('Admin login successful!');
             navigate('/admin/overview');
           })
           .catch((err) => {

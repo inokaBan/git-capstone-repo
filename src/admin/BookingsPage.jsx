@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2 } from 'lucide-react';
 import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -11,6 +12,7 @@ const BookingsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const { showConfirm, showSuccess, showError } = useAlertDialog();
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -47,7 +49,9 @@ const BookingsPage = () => {
   };
 
   const handleDeleteBooking = async (bookingId) => {
-    if (!window.confirm('Are you sure you want to delete this booking? This action cannot be undone.')) {
+    const confirmed = await showConfirm('Are you sure you want to delete this booking? This action cannot be undone.', 'Delete Booking');
+    
+    if (!confirmed) {
       return;
     }
     
@@ -57,10 +61,10 @@ const BookingsPage = () => {
       setBookings(prevBookings => 
         prevBookings.filter(booking => booking.bookingId !== bookingId)
       );
-      alert('Booking deleted successfully');
+      showSuccess('Booking deleted successfully');
     } catch (error) {
       console.error('Error deleting booking:', error);
-      alert(error.response?.data?.error || 'Failed to delete booking');
+      showError(error.response?.data?.error || 'Failed to delete booking');
     } finally {
       setProcessingId(null);
     }
@@ -397,13 +401,13 @@ const BookingsPage = () => {
                           <p className="mt-1 font-medium text-gray-900">{formatDateTime(booking.bookingDate)}</p>
                         </div>
                       </div>
-                      <div className="flex gap-3 pt-3">
+                      <div className="flex flex-wrap gap-2 pt-3">
                         <button
                           onClick={() => showBookingDetails(booking)}
-                          className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                          className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
                           aria-label={`View details for booking ${booking.bookingId}`}
                         >
-                          <Eye className="w-4 h-4 mr-2" />
+                          <Eye className="w-4 h-4 mr-1.5" />
                           View
                         </button>
                         {booking.status === 'pending' && (
@@ -411,14 +415,14 @@ const BookingsPage = () => {
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                               disabled={processingId === booking.bookingId}
-                              className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                               aria-label={`Approve booking ${booking.bookingId}`}
                             >
                               {processingId === booking.bookingId ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <>
-                                  <Check className="w-4 h-4 mr-2" />
+                                  <Check className="w-4 h-4 mr-1.5" />
                                   Approve
                                 </>
                               )}
@@ -426,14 +430,14 @@ const BookingsPage = () => {
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'decline')}
                               disabled={processingId === booking.bookingId}
-                              className="flex-1 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                               aria-label={`Decline booking ${booking.bookingId}`}
                             >
                               {processingId === booking.bookingId ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <>
-                                  <X className="w-4 h-4 mr-2" />
+                                  <X className="w-4 h-4 mr-1.5" />
                                   Decline
                                 </>
                               )}

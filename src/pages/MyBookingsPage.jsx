@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Search, Calendar, User, Home, Clock, AlertCircle, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import axios from 'axios';
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 const MyBookingsPage = () => {
   const [searchData, setSearchData] = useState({
@@ -11,6 +12,7 @@ const MyBookingsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  const { showConfirm, showSuccess, showError } = useAlertDialog();
 
   const handleInputChange = (e) => {
     setSearchData({
@@ -57,7 +59,9 @@ const MyBookingsPage = () => {
   };
 
   const handleCancelBooking = async () => {
-    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) {
+    const confirmed = await showConfirm('Are you sure you want to cancel this booking? This action cannot be undone.', 'Cancel Booking');
+    
+    if (!confirmed) {
       return;
     }
 
@@ -68,10 +72,10 @@ const MyBookingsPage = () => {
       });
       
       setBooking({ ...booking, status: 'cancelled' });
-      alert('Booking cancelled successfully');
+      showSuccess('Booking cancelled successfully');
     } catch (err) {
       console.error('Error cancelling booking:', err);
-      alert(err.response?.data?.error || 'Failed to cancel booking. Please try again or contact support.');
+      showError(err.response?.data?.error || 'Failed to cancel booking. Please try again or contact support.');
     } finally {
       setCancelling(false);
     }
@@ -126,7 +130,7 @@ const MyBookingsPage = () => {
   const canCancelBooking = booking && ['pending', 'confirmed'].includes(booking.status);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8 mt-16">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">

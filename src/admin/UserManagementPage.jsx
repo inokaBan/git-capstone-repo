@@ -3,10 +3,12 @@ import axios from 'axios';
 import { Plus, Trash2, User, Mail, Shield } from 'lucide-react';
 import SignUpValidation from '../context/SignUpValidation';
 import { useAuth } from '../context/AuthContext';
+import { useAlertDialog } from '../context/AlertDialogContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const UserManagementPage = () => {
   const { getAuthHeader, role: currentUserRole } = useAuth();
+  const { showConfirm, showSuccess, showError } = useAlertDialog();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -103,7 +105,7 @@ const UserManagementPage = () => {
       });
 
       await loadUsers();
-      alert(`${newUser.role === 'staff' ? 'Staff' : 'Guest'} account created successfully!`);
+      showSuccess(`${newUser.role === 'staff' ? 'Staff' : 'Guest'} account created successfully!`);
       
       // Reset form
       setNewUser({
@@ -124,26 +126,30 @@ const UserManagementPage = () => {
   const handleDeleteUser = async (userId, username, userRole) => {
     // Prevent staff from deleting admin accounts
     if (currentUserRole === 'staff' && userRole === 'admin') {
-      setError('Staff members cannot delete admin accounts');
+      showError('Staff members cannot delete admin accounts');
       return;
     }
 
-    if (confirm(`Are you sure you want to delete the account for ${username}?`)) {
-      try {
-        setError('');
-        // Use the userId which will be either numeric id or email
-        await axios.delete(`http://localhost:8081/api/admin/users/${userId}`, {
-          headers: getAuthHeader()
-        });
-        setUsers(users.filter(user => {
-          // For admin accounts, id is the email; for user accounts, it's numeric
-          return user.id !== userId;
-        }));
-        alert('User account deleted successfully!');
-      } catch (error) {
-        console.error('Delete user error:', error);
-        setError(error?.response?.data?.error || 'Failed to delete user account');
-      }
+    const confirmed = await showConfirm(`Are you sure you want to delete the account for ${username}?`, 'Delete User');
+    
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError('');
+      // Use the userId which will be either numeric id or email
+      await axios.delete(`http://localhost:8081/api/admin/users/${userId}`, {
+        headers: getAuthHeader()
+      });
+      setUsers(users.filter(user => {
+        // For admin accounts, id is the email; for user accounts, it's numeric
+        return user.id !== userId;
+      }));
+      showSuccess('User account deleted successfully!');
+    } catch (error) {
+      console.error('Delete user error:', error);
+      showError(error?.response?.data?.error || 'Failed to delete user account');
     }
   };
 

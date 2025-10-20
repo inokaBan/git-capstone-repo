@@ -31,7 +31,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 const router = createBrowserRouter(
   createRoutesFromElements(
     <>
-      <Route path="/login" element={<LoginPage />} />
+      <Route path="/" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage/>} />
       
       {/* Protected Admin Routes */}
@@ -54,7 +54,7 @@ const router = createBrowserRouter(
 
       {/* User pages with MainLayout */}
       <Route element={<MainLayout />}>
-        <Route path="/" element={<HomePage />} />
+        <Route path="/home" element={<HomePage />} />
         <Route path="/rooms" element={<RoomsPage />} />
         <Route path="/rooms/:id" element={<RoomDetailsPage />} />
         <Route path="/contacts" element={<ContactsPage />} />

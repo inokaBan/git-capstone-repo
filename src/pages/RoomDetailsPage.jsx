@@ -8,6 +8,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import BookingConfirmationModal from '../components/BookingConfirmationModal';
 import { useBooking } from '../context/BookingContext'; 
 import AmenityIcon from '../context/AmenityIcon';
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 const RoomDetailPage = () => {
   const { id } = useParams();
@@ -21,6 +22,7 @@ const RoomDetailPage = () => {
   const [guestContact, setGuestContact] = useState('');
 
   const navigate = useNavigate();
+  const { showAlert, showError } = useAlertDialog();
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -60,18 +62,18 @@ const RoomDetailPage = () => {
 
   // Mock booking function - simulates a successful booking
   const handleBooking = async () => {
-    if (!checkIn || !checkOut) return alert('Please select check-in and check-out dates');
-    if (!guestName || !guestContact) return alert('Please enter your name and contact information');
-    if (!room || !room.id) return alert('Room information is missing. Please refresh the page and try again.');
+    if (!checkIn || !checkOut) return showAlert('Please select check-in and check-out dates');
+    if (!guestName || !guestContact) return showAlert('Please enter your name and contact information');
+    if (!room || !room.id) return showAlert('Room information is missing. Please refresh the page and try again.');
     
     // Validate dates
     if (new Date(checkIn) >= new Date(checkOut)) {
-      return alert('Check-out date must be after check-in date');
+      return showAlert('Check-out date must be after check-in date');
     }
 
     // Validate guest count
     if (guests > room.guests) {
-      return alert(`Maximum ${room.guests} guests allowed for this room`);
+      return showAlert(`Maximum ${room.guests} guests allowed for this room`);
     }
 
     try {
@@ -109,7 +111,7 @@ const RoomDetailPage = () => {
       console.error('Error data:', error.response?.data);
       
       const errorMessage = error.response?.data?.error || error.message || 'Unknown error occurred';
-      alert(`❌ Booking failed: ${errorMessage}`);
+      showError(`Booking failed: ${errorMessage}`, 'Booking Error');
     }
   };
 

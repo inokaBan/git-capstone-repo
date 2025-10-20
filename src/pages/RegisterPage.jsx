@@ -4,6 +4,7 @@ import logo from '../assets/logo.jpg'
 import SignUpValidation from "../context/SignUpValidation";
 import axios from "axios";
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
+import { useAlertDialog } from '../context/AlertDialogContext';
 
 const RegisterPage = () => {
   const [values, setValues] = useState({
@@ -13,6 +14,7 @@ const RegisterPage = () => {
         confirmPassword: ""})
 
       const navigate = useNavigate();
+      const { showSuccess } = useAlertDialog();
       const [errors, setErrors] = useState({});
       const handleInput = (e) => {
         setValues(prev => ({
@@ -50,7 +52,7 @@ const RegisterPage = () => {
                 setErrors((prev) => ({ ...prev, api: `Server error: ${message}` }));
                 return;
               }
-              alert("Registration successful!");
+              showSuccess("Registration successful!");
               navigate('/login');
             })
             .catch((err) => {

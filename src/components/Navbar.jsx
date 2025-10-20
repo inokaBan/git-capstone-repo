@@ -1,11 +1,13 @@
-import React, { useState } from 'react'
-import { Menu, X } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Menu, X, User } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.jpg'
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const { isAuthenticated, role, logout, user } = useAuth();
   const navigate = useNavigate();
 
@@ -19,13 +21,31 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
     closeMenu();
+    setIsUserMenuOpen(false);
   };
+
+  // Close user menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isUserMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isUserMenuOpen]);
 
   const navItems = React.useMemo(() => {
     const items = [
-      { name: 'Home', to: '/' },
+      { name: 'Home', to: '/home' },
       { name: 'Rooms', to: '/rooms' },
     ];
 
@@ -50,11 +70,12 @@ const Navbar = () => {
         name: 'Logout', 
         to: '#', 
         onClick: handleLogout,
-        className: 'logout-btn' 
+        className: 'logout-btn',
+        mobileOnly: true // Flag to indicate this should only show on mobile
       });
     } else {
       items.push(
-        { name: 'Log in', to: '/login', className: 'login-btn' },
+        { name: 'Log in', to: '/', className: 'login-btn' },
         { name: 'Sign up', to: '/register', className: 'signup-btn' }
       );
     }
@@ -67,7 +88,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <NavLink to='/'>
+          <NavLink to={isAuthenticated ? '/home' : '/'}>
             <div className="flex items-center flex-shrink-0">
                       <img src={logo} alt="Logo" className="w-10 h-10 rounded-full object-cover"
                       />
@@ -81,13 +102,16 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-2">
               {navItems.map((item) => {
+                // Skip mobile-only items in desktop view
+                if (item.mobileOnly) {
+                  return null;
+                }
+
                 let customClass = "";
                 if (item.className === "login-btn") {
                   customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-2 px-6 rounded-lg text-sm transition-all duration-300 transform hover:scale-105";
                 } else if (item.className === "signup-btn") {
                   customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-transform duration-300 ease-in-out hover:scale-105";
-                } else if (item.className === "logout-btn") {
-                  customClass = "bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-lg text-sm transition-transform duration-300 ease-in-out hover:scale-105";
                 }
                 
                 if (item.onClick) {
@@ -118,6 +142,46 @@ const Navbar = () => {
                   </NavLink>
                 );
               })}
+              
+              {/* User Avatar Dropdown - Only show when authenticated */}
+              {isAuthenticated && (
+                <div className="relative ml-3" ref={userMenuRef}>
+                  <button
+                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                    className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    aria-expanded={isUserMenuOpen}
+                    aria-haspopup="true"
+                  >
+                    <User className="w-4 h-4" />
+                  </button>
+
+                  {/* Dropdown Menu */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50 transform transition-all duration-200 ease-out">
+                      <div className="py-1" role="menu" aria-orientation="vertical">
+                        {/* User Info */}
+                        <div className="px-4 py-3 border-b border-gray-200">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {user?.username || 'User'}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate mt-1">
+                            {user?.email || ''}
+                          </p>
+                        </div>
+                        
+                        {/* Logout Button */}
+                        <button
+                          onClick={handleLogout}
+                          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150 flex items-center space-x-2"
+                          role="menuitem"
+                        >
+                          <span>Logout</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
