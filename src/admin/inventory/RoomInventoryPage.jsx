@@ -361,12 +361,6 @@ const RoomInventoryPage = () => {
                 Restock to Standard
               </button>
               <button
-                onClick={() => setSelectedRoom(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Close
-              </button>
-              <button
                 onClick={() => createRestockTask(selectedRoom.id)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
               >

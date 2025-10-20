@@ -16,10 +16,12 @@ const RoomsPage = () => {
   const guestCount = queryParams.get('guests');
   const categoryFromUrl = queryParams.get('type');
 
-  const [selectedCategory, setSelectedCategory] = useState(
-    categoryFromUrl ? capitalize(categoryFromUrl) : 'All'
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedRoomType, setSelectedRoomType] = useState(
+    categoryFromUrl ? categoryFromUrl.split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ') : 'All'
   );
-  const [selectedRoomType, setSelectedRoomType] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [priceRange, setPriceRange] = useState('All');
   const [sortBy, setSortBy] = useState('name');
