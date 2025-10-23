@@ -4,14 +4,15 @@ import { Plus, Trash2, User, Mail, Shield } from 'lucide-react';
 import SignUpValidation from '../context/SignUpValidation';
 import { useAuth } from '../context/AuthContext';
 import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 
 const UserManagementPage = () => {
   const { getAuthHeader, role: currentUserRole } = useAuth();
-  const { showConfirm, showSuccess, showError } = useAlertDialog();
+  const { showConfirm } = useAlertDialog();
+  const { showSuccess, showError } = useToast();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({
     username: '',
@@ -42,7 +43,6 @@ const UserManagementPage = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      setError('');
       const res = await axios.get('http://localhost:8081/api/admin/users', {
         headers: getAuthHeader()
       });
@@ -59,7 +59,7 @@ const UserManagementPage = () => {
       setUsers(filteredUsers);
     } catch (e) {
       console.error('Failed to load users', e);
-      setError(e?.response?.data?.error || 'Failed to load users');
+      showError(e?.response?.data?.error || 'Failed to load users');
     } finally {
       setLoading(false);
     }
@@ -67,11 +67,9 @@ const UserManagementPage = () => {
 
   const handleAddUser = async () => {
     try {
-      setError('');
-      
       // Prevent staff from creating admin or staff accounts
       if (currentUserRole === 'staff' && (newUser.role === 'admin' || newUser.role === 'staff')) {
-        setError('Staff members can only create guest accounts');
+        showError('Staff members can only create guest accounts');
         return;
       }
       
@@ -119,7 +117,7 @@ const UserManagementPage = () => {
       setShowAddModal(false);
     } catch (e) {
       console.error('Add user error:', e);
-      setError(e?.response?.data?.error || 'Failed to create user account');
+      showError(e?.response?.data?.error || 'Failed to create user account');
     }
   };
 
@@ -137,7 +135,6 @@ const UserManagementPage = () => {
     }
 
     try {
-      setError('');
       // Use the userId which will be either numeric id or email
       await axios.delete(`http://localhost:8081/api/admin/users/${userId}`, {
         headers: getAuthHeader()
@@ -184,19 +181,7 @@ const UserManagementPage = () => {
         </div>
       </div>
 
-      {/* Error and Loading States */}
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 p-4 rounded-lg flex items-center justify-between flex-col sm:flex-row gap-4">
-          <span className="text-sm text-red-700">{error}</span>
-          <button
-            onClick={loadUsers}
-            className="text-sm text-red-700 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-red-500"
-            aria-label="Retry loading users"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {/* Loading State */}
       {loading && (
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-gray-500 text-center">
           <div className="animate-pulse">Loading users...</div>

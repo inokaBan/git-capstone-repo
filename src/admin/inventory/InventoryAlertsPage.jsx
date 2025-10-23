@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, Plus, ClipboardList, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 const InventoryAlertsPage = () => {
   const { getAuthHeader } = useAuth();
+  const { showSuccess, showError, showWarning } = useToast();
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -71,7 +73,7 @@ const InventoryAlertsPage = () => {
 
   const handleCreateTask = async (alert) => {
     if (!alert.room_id) {
-      alert('This alert is not associated with a specific room');
+      showWarning('This alert is not associated with a specific room');
       return;
     }
 
@@ -92,10 +94,11 @@ const InventoryAlertsPage = () => {
 
       if (response.ok) {
         handleResolve(alert.id);
-        alert('Task created successfully!');
+        showSuccess('Task created successfully!');
       }
     } catch (error) {
       console.error('Error creating task:', error);
+      showError('Failed to create task');
     }
   };
 

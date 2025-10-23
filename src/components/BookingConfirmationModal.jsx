@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 const BookingConfirmationModal = ({ 
   isOpen, 
@@ -8,7 +8,7 @@ const BookingConfirmationModal = ({
   bookingDetails 
 }) => {
   const navigate = useNavigate();
-  const { showSuccess } = useAlertDialog();
+  const { showSuccess } = useToast();
 
   if (!isOpen || !bookingDetails) return null;
 

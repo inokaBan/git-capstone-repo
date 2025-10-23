@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Search, Calendar, User, Home, Clock, AlertCircle, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 const MyBookingsPage = () => {
   const [searchData, setSearchData] = useState({
@@ -12,7 +13,8 @@ const MyBookingsPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
-  const { showConfirm, showSuccess, showError } = useAlertDialog();
+  const { showConfirm } = useAlertDialog();
+  const { showSuccess, showError } = useToast();
 
   const handleInputChange = (e) => {
     setSearchData({

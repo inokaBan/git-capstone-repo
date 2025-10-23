@@ -4,7 +4,7 @@ import logo from '../assets/logo.jpg'
 import LoginValidation from "../context/LoginValidation"
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext';
-import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 
 const LoginPage = () => {
@@ -15,7 +15,7 @@ const LoginPage = () => {
     const navigate = useNavigate();
     const [errors, setErrors] = useState({});
     const { login } = useAuth();
-    const { showSuccess } = useAlertDialog();
+    const { showSuccess, showError } = useToast();
     
     const handleSubmit = (e) => {
       e.preventDefault();
@@ -31,7 +31,7 @@ const LoginPage = () => {
         .then((res) => {
           const data = res?.data;
           if (!data || !data.user || !data.role) {
-            setErrors((prev) => ({ ...prev, api: 'Unexpected server response' }));
+            showError('Unexpected server response');
             return;
           }
           
@@ -49,7 +49,7 @@ const LoginPage = () => {
         })
         .catch((err) => {
           const message = err?.response?.data?.error || 'Invalid email or password';
-          setErrors((prev) => ({ ...prev, api: message }));
+          showError(message);
         })
       }
     }
@@ -80,11 +80,6 @@ const LoginPage = () => {
           <p className="text-gray-500 text-base mt-3">Welcome to Osner Hotel, please enter your details</p>
         </div>
         <form onSubmit={handleSubmit}>
-          {errors.api && (
-            <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm mb-4">
-              {errors.api}
-            </div>
-          )}
           <div className="space-y-6">
                       <div>
                         <label className="block text-base font-medium text-gray-700 mb-3">

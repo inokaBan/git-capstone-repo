@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, Users, MapPin, AlertCircle, CheckCircle, Loader, ChevronRight, Eye } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useToast } from '../context/ToastContext';
 
 const todayISO = () => new Date().toISOString().slice(0,10);
 const addDays = (d, n) => {
@@ -33,6 +34,7 @@ const axios = {
 
 const WalkinReservationPage = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [checkIn, setCheckIn] = useState(todayISO());
   const [checkOut, setCheckOut] = useState(addDays(todayISO(), 1));
   const [guests, setGuests] = useState(1);
@@ -44,7 +46,6 @@ const WalkinReservationPage = () => {
   const [priceFilter, setPriceFilter] = useState(priceRanges[0].label);
   const [sortBy, setSortBy] = useState('name');
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState(null);
 
   const categories = useMemo(() => {
     const set = new Set(['All']); 
@@ -64,7 +65,7 @@ const WalkinReservationPage = () => {
       setRooms(availableRooms);
       if (availableRooms?.length) setSelectedRoomId(String(availableRooms[0].id));
     } catch (e) {
-      setNotification({ type: 'error', message: 'Failed to load available rooms' });
+      showError('Failed to load available rooms');
       console.error('Error loading rooms:', e);
     } finally {
       setLoading(false);
@@ -114,23 +115,23 @@ const WalkinReservationPage = () => {
 
   const createWalkIn = async () => {
     if (!selectedRoom) {
-      setNotification({ type: 'error', message: 'Please select a room to proceed' });
+      showError('Please select a room to proceed');
       return;
     }
     if (!selectedRoom.id) {
-      setNotification({ type: 'error', message: 'Selected room is invalid. Please refresh and try again.' });
+      showError('Selected room is invalid. Please refresh and try again.');
       return;
     }
     if (!guestName.trim() || !guestContact.trim()) {
-      setNotification({ type: 'error', message: 'Please enter guest name and contact information' });
+      showError('Please enter guest name and contact information');
       return;
     }
     if (new Date(checkIn) >= new Date(checkOut)) {
-      setNotification({ type: 'error', message: 'Check-out date must be after check-in date' });
+      showError('Check-out date must be after check-in date');
       return;
     }
     if (guests > selectedRoom.guests) {
-      setNotification({ type: 'error', message: `Maximum ${selectedRoom.guests} guests allowed for this room` });
+      showError(`Maximum ${selectedRoom.guests} guests allowed for this room`);
       return;
     }
 
@@ -153,10 +154,7 @@ const WalkinReservationPage = () => {
       const { data } = await axios.post('http://localhost:8081/api/bookings', payload);
       
       console.log('Walkin booking successful:', data);
-      setNotification({ 
-        type: 'success', 
-        message: `Walk-in created successfully! Booking ID: ${data?.bookingId}` 
-      });
+      showSuccess(`Walk-in created successfully! Booking ID: ${data?.bookingId}`);
       setGuestName('');
       setGuestContact('');
       await loadAvailable();
@@ -166,10 +164,7 @@ const WalkinReservationPage = () => {
       console.error('Error data:', e.response?.data);
       
       const errorMessage = e.response?.data?.error || e.message || 'Unknown error occurred';
-      setNotification({ 
-        type: 'error', 
-        message: `Failed to create booking: ${errorMessage}` 
-      });
+      showError(`Failed to create booking: ${errorMessage}`);
     }
   };
 
@@ -185,32 +180,6 @@ const WalkinReservationPage = () => {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Notification */}
-        {notification && (
-          <div className={`p-4 rounded-lg flex items-start gap-3 ${
-            notification.type === 'error' 
-              ? 'bg-red-50 border border-red-200' 
-              : 'bg-green-50 border border-green-200'
-          }`}>
-            {notification.type === 'error' ? (
-              <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-            ) : (
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-            )}
-            <div>
-              <p className={notification.type === 'error' ? 'text-red-900' : 'text-green-900'}>
-                {notification.message}
-              </p>
-            </div>
-            <button 
-              onClick={() => setNotification(null)}
-              className="ml-auto text-slate-500 hover:text-slate-700"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
         {/* Search Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
           <h2 className="text-lg font-semibold text-slate-900 mb-6">Search Criteria</h2>

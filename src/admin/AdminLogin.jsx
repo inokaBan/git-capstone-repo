@@ -2,29 +2,26 @@ import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.jpg'
 import axios from 'axios'
-import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 const AdminLogin = () => {
 
   const [email, setEmail] = useState("");
       const [password, setPassword] = useState("");
       const navigate = useNavigate();
-      const { showSuccess } = useAlertDialog();
-      
-      const [apiError, setApiError] = useState("");
+      const { showSuccess, showError } = useToast();
 
       const handleSubmit = (e) => {
         e.preventDefault();
-        setApiError("");
 
         if (!email.trim() || !password.trim()) {
-          setApiError("Please fill in both email and password.");
+          showError("Please fill in both email and password.");
           return;
         }
 
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-          setApiError("Please enter a valid email address.");
+          showError("Please enter a valid email address.");
           return;
         }
 
@@ -32,7 +29,7 @@ const AdminLogin = () => {
           .post('http://localhost:8081/admin/login', { email, password })
           .then((res) => {
             if (!res?.data?.admin) {
-              setApiError('Unexpected server response');
+              showError('Unexpected server response');
               return;
             }
             showSuccess('Admin login successful!');
@@ -40,7 +37,7 @@ const AdminLogin = () => {
           })
           .catch((err) => {
             const message = err?.response?.data?.error || 'Invalid email or password';
-            setApiError(message);
+            showError(message);
           })
       }
     
@@ -61,11 +58,6 @@ const AdminLogin = () => {
           <p className="text-gray-500 text-base mt-3">Please enter you admin account detailds.</p>
         </div>
         <form onSubmit={handleSubmit}>
-          {apiError && (
-            <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 text-sm mb-4">
-              {apiError}
-            </div>
-          )}
           <div className="space-y-6">
                       <div>
                         <label className="block text-base font-medium text-gray-700 mb-3">

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Plus, AlertTriangle, CheckCircle, ClipboardList } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { useAlertDialog } from '../../context/AlertDialogContext';
 
 const RoomInventoryPage = () => {
   const { getAuthHeader } = useAuth();
+  const { showSuccess, showError } = useToast();
+  const { showConfirm } = useAlertDialog();
   const [rooms, setRooms] = useState([]);
   const [roomInventory, setRoomInventory] = useState({});
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -89,11 +93,14 @@ const RoomInventoryPage = () => {
       });
 
       if (response.ok) {
-        alert('Restocking task created successfully!');
+        showSuccess('Restocking task created successfully!');
         setShowTaskModal(false);
+      } else {
+        showError('Failed to create restocking task');
       }
     } catch (error) {
       console.error('Error creating task:', error);
+      showError('Failed to create restocking task');
     }
   };
 
@@ -118,22 +125,24 @@ const RoomInventoryPage = () => {
       });
 
       if (response.ok) {
-        alert('Inventory updated successfully!');
+        showSuccess('Inventory updated successfully!');
         fetchRoomInventory();
         setShowInventoryModal(false);
         setInventoryFormData({ item_id: '', quantity: 0, action: 'set' });
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error || 'Failed to update inventory'}`);
+        showError(`Error: ${error.error || 'Failed to update inventory'}`);
       }
     } catch (error) {
       console.error('Error updating inventory:', error);
-      alert('Failed to update inventory');
+      showError('Failed to update inventory');
     }
   };
 
   const handleBulkRestock = async (roomId) => {
-    if (!confirm('This will restock all items to standard levels. Continue?')) {
+    const confirmed = await showConfirm('This will restock all items to standard levels. Continue?', 'Bulk Restock');
+    
+    if (!confirmed) {
       return;
     }
     
@@ -149,23 +158,25 @@ const RoomInventoryPage = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(data.message || 'Room restocked successfully!');
+        showSuccess(data.message || 'Room restocked successfully!');
         fetchRoomInventory();
         if (selectedRoom && selectedRoom.id === roomId) {
           setSelectedRoom(rooms.find(r => r.id === roomId));
         }
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error || 'Failed to restock room'}`);
+        showError(`Error: ${error.error || 'Failed to restock room'}`);
       }
     } catch (error) {
       console.error('Error restocking room:', error);
-      alert('Failed to restock room');
+      showError('Failed to restock room');
     }
   };
 
   const handleRemoveItem = async (roomId, itemId) => {
-    if (!confirm('Remove this item from room inventory?')) {
+    const confirmed = await showConfirm('Remove this item from room inventory?', 'Remove Item');
+    
+    if (!confirmed) {
       return;
     }
     
@@ -176,15 +187,15 @@ const RoomInventoryPage = () => {
       });
 
       if (response.ok) {
-        alert('Item removed successfully!');
+        showSuccess('Item removed successfully!');
         fetchRoomInventory();
       } else {
         const error = await response.json();
-        alert(`Error: ${error.error || 'Failed to remove item'}`);
+        showError(`Error: ${error.error || 'Failed to remove item'}`);
       }
     } catch (error) {
       console.error('Error removing item:', error);
-      alert('Failed to remove item');
+      showError('Failed to remove item');
     }
   };
 

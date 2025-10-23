@@ -2,13 +2,17 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Star, Users, Bed, Bath } from 'lucide-react';
 import AmenityIcon from '../context/AmenityIcon';
+import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 const RoomsManagementPage = () => {
   const MAX_IMAGES = 5;
   
+  const { showConfirm } = useAlertDialog();
+  const { showSuccess, showError, showWarning } = useToast();
+  
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [amenities, setAmenities] = useState([]);
   const [roomTypes, setRoomTypes] = useState([]);
   const [roomCategories, setRoomCategories] = useState([]);
@@ -42,7 +46,6 @@ const RoomsManagementPage = () => {
 
   const handleAddRoom = async () => {
     try {
-      setError('');
       console.log('Submitting room data:', newRoom);
       
       if (editingRoom) {
@@ -62,7 +65,7 @@ const RoomsManagementPage = () => {
           amenities: newRoom.amenities
         });
         await loadRooms();
-        alert('Room updated successfully!');
+        showSuccess('Room updated successfully!');
         setEditingRoom(null);
       } else {
         const formData = new FormData();
@@ -107,7 +110,7 @@ const RoomsManagementPage = () => {
           await loadRooms();
         }
         
-        alert('Room created successfully!');
+        showSuccess('Room created successfully!');
       }
       setNewRoom({
         room_number: '',
@@ -130,7 +133,7 @@ const RoomsManagementPage = () => {
       console.error('Add room error:', e);
       console.error('Error response:', e.response);
       console.error('Error data:', e.response?.data);
-      setError(e?.response?.data?.error || 'Failed to save room');
+      showError(e?.response?.data?.error || 'Failed to save room');
     }
   };
 
@@ -141,24 +144,27 @@ const RoomsManagementPage = () => {
   };
 
   const handleDeleteRoom = async (id) => {
-    if (confirm('Are you sure you want to delete this room? This will permanently remove the room and all its images.')) {
-      try {
-        setError('');
-        console.log('Deleting room with ID:', id);
-        const response = await axios.delete(`http://localhost:8081/api/rooms/${id}`);
-        
-        if (response.data.success) {
-          setRooms(rooms.filter(room => room.id !== id));
-          alert('Room deleted successfully!');
-          console.log(`Room deleted successfully. Removed ${response.data.deletedFiles} image files.`);
-        } else {
-          setError('Failed to delete room');
-        }
-      } catch (error) {
-        console.error('Delete room error:', error);
-        console.error('Error response:', error.response);
-        setError(error?.response?.data?.error || 'Failed to delete room');
+    const confirmed = await showConfirm('Are you sure you want to delete this room? This will permanently remove the room and all its images.', 'Delete Room');
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      console.log('Deleting room with ID:', id);
+      const response = await axios.delete(`http://localhost:8081/api/rooms/${id}`);
+      
+      if (response.data.success) {
+        setRooms(rooms.filter(room => room.id !== id));
+        showSuccess('Room deleted successfully!');
+        console.log(`Room deleted successfully. Removed ${response.data.deletedFiles} image files.`);
+      } else {
+        showError('Failed to delete room');
       }
+    } catch (error) {
+      console.error('Delete room error:', error);
+      console.error('Error response:', error.response);
+      showError(error?.response?.data?.error || 'Failed to delete room');
     }
   };
 
@@ -168,7 +174,7 @@ const RoomsManagementPage = () => {
     const filtered = files.filter(f => (f.size || 0) <= MAX_FILE_MB * 1024 * 1024);
     const rejectedCount = files.length - filtered.length;
     if (rejectedCount > 0) {
-      setError(`Some images were skipped (>${MAX_FILE_MB}MB).`);
+      showWarning(`Some images were skipped (>${MAX_FILE_MB}MB).`);
     }
 
     const imagePromises = filtered.map(file => {
@@ -215,7 +221,7 @@ const RoomsManagementPage = () => {
       });
     }).catch(error => {
       console.error('Error processing images:', error);
-      setError('Failed to process some images. Please try again.');
+      showError('Failed to process some images. Please try again.');
     });
   };
 
@@ -248,12 +254,11 @@ const RoomsManagementPage = () => {
   const loadRooms = async () => {
     try {
       setLoading(true);
-      setError('');
       const res = await axios.get('http://localhost:8081/api/rooms');
       setRooms(res.data || []);
     } catch (e) {
       console.error('Failed to load rooms', e);
-      setError(e?.response?.data?.error || 'Failed to load rooms');
+      showError(e?.response?.data?.error || 'Failed to load rooms');
     } finally {
       setLoading(false);
     }
@@ -300,7 +305,9 @@ const RoomsManagementPage = () => {
   };
 
   const handleSyncCategoriesToAmenities = async () => {
-    if (!confirm('This will add all inventory item categories as amenities. Continue?')) {
+    const confirmed = await showConfirm('This will add all inventory item categories as amenities. Continue?', 'Sync Categories');
+    
+    if (!confirmed) {
       return;
     }
     
@@ -312,18 +319,18 @@ const RoomsManagementPage = () => {
       });
       
       if (res.data.success) {
-        alert(res.data.message);
-        await loadAmenities(); // Reload amenities to show newly added ones
+        showSuccess(res.data.message);
+        await loadAmenities();
       }
     } catch (e) {
       console.error('Failed to sync categories', e);
-      setError(e?.response?.data?.error || 'Failed to sync categories to amenities');
+      showError(e?.response?.data?.error || 'Failed to sync categories to amenities');
     }
   };
 
   const handleAddRoomType = async () => {
     if (!newRoomType.trim()) {
-      setError('Room type name is required');
+      showError('Room type name is required');
       return;
     }
     
@@ -334,27 +341,33 @@ const RoomsManagementPage = () => {
       setNewRoomType('');
       setShowRoomTypeModal(false);
       await loadRoomTypes();
+      showSuccess('Room type added successfully!');
     } catch (e) {
       console.error('Failed to add room type', e);
-      setError(e?.response?.data?.error || 'Failed to add room type');
+      showError(e?.response?.data?.error || 'Failed to add room type');
     }
   };
 
   const handleDeleteRoomType = async (id) => {
-    if (confirm('Are you sure you want to delete this room type?')) {
-      try {
-        await axios.delete(`http://localhost:8081/api/room-types/${id}`);
-        await loadRoomTypes();
-      } catch (e) {
-        console.error('Failed to delete room type', e);
-        setError(e?.response?.data?.error || 'Failed to delete room type');
-      }
+    const confirmed = await showConfirm('Are you sure you want to delete this room type?', 'Delete Room Type');
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`http://localhost:8081/api/room-types/${id}`);
+      await loadRoomTypes();
+      showSuccess('Room type deleted successfully!');
+    } catch (e) {
+      console.error('Failed to delete room type', e);
+      showError(e?.response?.data?.error || 'Failed to delete room type');
     }
   };
 
   const handleAddCategory = async () => {
     if (!newCategory.trim()) {
-      setError('Room category name is required');
+      showError('Room category name is required');
       return;
     }
     
@@ -365,27 +378,33 @@ const RoomsManagementPage = () => {
       setNewCategory('');
       setShowCategoryModal(false);
       await loadCategories();
+      showSuccess('Room category added successfully!');
     } catch (e) {
       console.error('Failed to add room category', e);
-      setError(e?.response?.data?.error || 'Failed to add room category');
+      showError(e?.response?.data?.error || 'Failed to add room category');
     }
   };
 
   const handleDeleteCategory = async (id) => {
-    if (confirm('Are you sure you want to delete this room category?')) {
-      try {
-        await axios.delete(`http://localhost:8081/api/room-categories/${id}`);
-        await loadCategories();
-      } catch (e) {
-        console.error('Failed to delete room category', e);
-        setError(e?.response?.data?.error || 'Failed to delete room category');
-      }
+    const confirmed = await showConfirm('Are you sure you want to delete this room category?', 'Delete Room Category');
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`http://localhost:8081/api/room-categories/${id}`);
+      await loadCategories();
+      showSuccess('Room category deleted successfully!');
+    } catch (e) {
+      console.error('Failed to delete room category', e);
+      showError(e?.response?.data?.error || 'Failed to delete room category');
     }
   };
 
   const handleAddAmenity = async () => {
     if (!newAmenity.trim()) {
-      setError('Amenity name is required');
+      showError('Amenity name is required');
       return;
     }
     
@@ -396,21 +415,27 @@ const RoomsManagementPage = () => {
       setNewAmenity('');
       setShowAmenityModal(false);
       await loadAmenities();
+      showSuccess('Amenity added successfully!');
     } catch (e) {
       console.error('Failed to add amenity', e);
-      setError(e?.response?.data?.error || 'Failed to add amenity');
+      showError(e?.response?.data?.error || 'Failed to add amenity');
     }
   };
 
   const handleDeleteAmenity = async (id) => {
-    if (confirm('Are you sure you want to delete this amenity?')) {
-      try {
-        await axios.delete(`http://localhost:8081/api/amenities/${id}`);
-        await loadAmenities();
-      } catch (e) {
-        console.error('Failed to delete amenity', e);
-        setError(e?.response?.data?.error || 'Failed to delete amenity');
-      }
+    const confirmed = await showConfirm('Are you sure you want to delete this amenity?', 'Delete Amenity');
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`http://localhost:8081/api/amenities/${id}`);
+      await loadAmenities();
+      showSuccess('Amenity deleted successfully!');
+    } catch (e) {
+      console.error('Failed to delete amenity', e);
+      showError(e?.response?.data?.error || 'Failed to delete amenity');
     }
   };
 
@@ -442,19 +467,7 @@ const RoomsManagementPage = () => {
         </div>
       </div>
 
-      {/* Error and Loading States */}
-      {error && (
-        <div className="mb-6 bg-red-50 border border-slate-200 p-4 rounded-r-lg flex items-center justify-between flex-col sm:flex-row gap-4">
-          <span className="text-sm text-red-700">{error}</span>
-          <button
-            onClick={loadRooms}
-            className="text-sm text-red-700 font-medium hover:underline focus:outline-none focus:ring-2 focus:ring-red-500"
-            aria-label="Retry loading rooms"
-          >
-            Retry
-          </button>
-        </div>
-      )}
+      {/* Loading State */}
       {loading && (
         <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-gray-500 text-center">
           <div className="animate-pulse">Loading rooms...</div>
@@ -954,7 +967,7 @@ const RoomsManagementPage = () => {
                   aria-label="Upload room images"
                   onError={(e) => {
                     console.error('File input error:', e);
-                    setError('Error with file input. Please try again.');
+                    showError('Error with file input. Please try again.');
                   }}
                 />
                 {newRoom.images.length > 0 && (

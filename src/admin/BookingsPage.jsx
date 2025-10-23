@@ -3,6 +3,7 @@ import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2 } from 'luc
 import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -12,7 +13,8 @@ const BookingsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const { showConfirm, showSuccess, showError } = useAlertDialog();
+  const { showConfirm } = useAlertDialog();
+  const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     const fetchBookings = async () => {

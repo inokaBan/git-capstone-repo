@@ -4,7 +4,7 @@ import logo from '../assets/logo.jpg'
 import SignUpValidation from "../context/SignUpValidation";
 import axios from "axios";
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
-import { useAlertDialog } from '../context/AlertDialogContext';
+import { useToast } from '../context/ToastContext';
 
 const RegisterPage = () => {
   const [values, setValues] = useState({
@@ -14,7 +14,7 @@ const RegisterPage = () => {
         confirmPassword: ""})
 
       const navigate = useNavigate();
-      const { showSuccess } = useAlertDialog();
+      const { showSuccess, showError } = useToast();
       const [errors, setErrors] = useState({});
       const handleInput = (e) => {
         setValues(prev => ({
@@ -49,7 +49,7 @@ const RegisterPage = () => {
               if (isStringError || isObjectError) {
                 const message = isObjectError ? responseData.error : String(responseData);
                 console.error('Server error:', message);
-                setErrors((prev) => ({ ...prev, api: `Server error: ${message}` }));
+                showError(`Server error: ${message}`);
                 return;
               }
               showSuccess("Registration successful!");
@@ -57,7 +57,7 @@ const RegisterPage = () => {
             })
             .catch((err) => {
               console.error(err);
-              setErrors((prev) => ({ ...prev, api: 'Network or server error' }));
+              showError('Network or server error');
             });
         }
       }
