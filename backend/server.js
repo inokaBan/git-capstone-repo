@@ -581,8 +581,152 @@ app.delete("/api/admin/users/:id", requireAdmin, async (req, res) => {
     }
 });
 
-// Save booking data
-app.post("/api/bookings", (req, res) => {
+// Helper function to deduct room inventory from warehouse stock
+// This should be called when a room is booked or checked in
+const deductRoomInventoryFromWarehouse = async (roomId, bookingId, reason) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Get all items in the room inventory
+            const getRoomInventorySql = `
+                SELECT ri.item_id, ri.current_quantity, i.name as item_name, i.unit
+                FROM room_inventory ri
+                JOIN inventory_items i ON ri.item_id = i.id
+                WHERE ri.room_id = ? AND ri.current_quantity > 0
+            `;
+            
+            db.query(getRoomInventorySql, [roomId], async (err, roomItems) => {
+                if (err) {
+                    reject(err);
+                    return;
+                }
+                
+                if (!roomItems || roomItems.length === 0) {
+                    // No items in room inventory, nothing to deduct
+                    resolve({ itemsDeducted: 0, message: 'No items in room inventory' });
+                    return;
+                }
+                
+                // Get room name for logging
+                const getRoomSql = "SELECT name, room_number FROM rooms WHERE id = ?";
+                const roomResult = await new Promise((resolveRoom, rejectRoom) => {
+                    db.query(getRoomSql, [roomId], (err, results) => {
+                        if (err) rejectRoom(err);
+                        else resolveRoom(results);
+                    });
+                });
+                
+                const roomName = roomResult && roomResult.length > 0 
+                    ? `${roomResult[0].name} (${roomResult[0].room_number})` 
+                    : `Room ${roomId}`;
+                
+                let itemsDeducted = 0;
+                let errors = [];
+                
+                // Deduct each item from warehouse
+                for (const item of roomItems) {
+                    try {
+                        // Check warehouse stock
+                        const checkWarehouseSql = "SELECT quantity FROM warehouse_inventory WHERE item_id = ?";
+                        const warehouseResult = await new Promise((resolveWh, rejectWh) => {
+                            db.query(checkWarehouseSql, [item.item_id], (err, results) => {
+                                if (err) rejectWh(err);
+                                else resolveWh(results);
+                            });
+                        });
+                        
+                        if (!warehouseResult || warehouseResult.length === 0) {
+                            errors.push(`Item ${item.item_name} not found in warehouse`);
+                            continue;
+                        }
+                        
+                        const currentWarehouseStock = warehouseResult[0].quantity;
+                        
+                        if (currentWarehouseStock < item.current_quantity) {
+                            errors.push(`Insufficient warehouse stock for ${item.item_name}. Available: ${currentWarehouseStock}, Required: ${item.current_quantity}`);
+                            continue;
+                        }
+                        
+                        // Deduct from warehouse
+                        const newWarehouseStock = currentWarehouseStock - item.current_quantity;
+                        const updateWarehouseSql = "UPDATE warehouse_inventory SET quantity = ?, last_updated = NOW() WHERE item_id = ?";
+                        await new Promise((resolveUpd, rejectUpd) => {
+                            db.query(updateWarehouseSql, [newWarehouseStock, item.item_id], (err) => {
+                                if (err) rejectUpd(err);
+                                else resolveUpd();
+                            });
+                        });
+                        
+                        // Log the transaction
+                        const logSql = `INSERT INTO inventory_log (item_id, change_quantity, new_stock_level, reason, related_booking_id, notes, logged_by) 
+                                       VALUES (?, ?, ?, ?, ?, ?, ?)`;
+                        const notes = `Deducted ${item.current_quantity} ${item.unit} for ${roomName}`;
+                        await new Promise((resolveLog, rejectLog) => {
+                            db.query(logSql, [item.item_id, -item.current_quantity, newWarehouseStock, reason, bookingId, notes, 1], (err) => {
+                                if (err) rejectLog(err);
+                                else resolveLog();
+                            });
+                        });
+                        
+                        // Check if we need to create low stock alert for warehouse
+                        const getItemSql = "SELECT low_stock_threshold FROM inventory_items WHERE id = ?";
+                        const itemResult = await new Promise((resolveItem, rejectItem) => {
+                            db.query(getItemSql, [item.item_id], (err, results) => {
+                                if (err) rejectItem(err);
+                                else resolveItem(results);
+                            });
+                        });
+                        
+                        if (itemResult && itemResult.length > 0) {
+                            const threshold = itemResult[0].low_stock_threshold;
+                            if (newWarehouseStock <= threshold && newWarehouseStock > 0) {
+                                const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
+                                                 VALUES ('low_stock', ?, ?, 'warning', NOW())`;
+                                const alertMessage = `Warehouse stock is low (${newWarehouseStock} remaining, threshold: ${threshold})`;
+                                await new Promise((resolveAlert) => {
+                                    db.query(alertSql, [item.item_id, alertMessage], (err) => {
+                                        if (err) console.error('Failed to create alert:', err);
+                                        resolveAlert();
+                                    });
+                                });
+                            } else if (newWarehouseStock === 0) {
+                                const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
+                                                 VALUES ('out_of_stock', ?, 'Warehouse is out of stock', 'critical', NOW())`;
+                                await new Promise((resolveAlert) => {
+                                    db.query(alertSql, [item.item_id], (err) => {
+                                        if (err) console.error('Failed to create alert:', err);
+                                        resolveAlert();
+                                    });
+                                });
+                            }
+                        }
+                        
+                        itemsDeducted++;
+                    } catch (itemError) {
+                        errors.push(`Error processing ${item.item_name}: ${itemError.message}`);
+                    }
+                }
+                
+                if (errors.length > 0) {
+                    resolve({ 
+                        itemsDeducted, 
+                        errors, 
+                        message: `Deducted ${itemsDeducted} items with ${errors.length} errors` 
+                    });
+                } else {
+                    resolve({ 
+                        itemsDeducted, 
+                        message: `Successfully deducted ${itemsDeducted} items from warehouse` 
+                    });
+                }
+            });
+        } catch (error) {
+            reject(error);
+        }
+    });
+};
+
+// Save booking data (now with warehouse deduction)
+app.post("/api/bookings", async (req, res) => {
     console.log('Received booking request:', req.body);
     
     const {
@@ -618,47 +762,81 @@ app.post("/api/bookings", (req, res) => {
         return res.status(400).json({ error: `Missing or invalid fields: ${missing.join(', ')}` });
     }
 
-    // Align with updated schema: column is `room_id` (FK), and dates are DATE/TIMESTAMP
-    const normalizedCheckIn = String(checkIn).slice(0, 10); // YYYY-MM-DD
-    const normalizedCheckOut = String(checkOut).slice(0, 10); // YYYY-MM-DD
+    const normalizedCheckIn = String(checkIn).slice(0, 10);
+    const normalizedCheckOut = String(checkOut).slice(0, 10);
     const numericRoomId = Number(roomId);
     const numericGuests = Number(guests);
 
-    // For guest bookings (no login), set user_id to NULL since there's no authenticated user
-    // Let MySQL default fill bookingDate
     const sql = `INSERT INTO bookings (bookingId, user_id, room_id, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
     const values = [bookingId, null, numericRoomId, roomName, guestName, guestContact, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
 
     console.log('Executing booking query:', sql, values);
     
-    db.query(sql, values, (err, result) => {
+    db.beginTransaction((err) => {
         if (err) {
-            console.error('Database error during booking:', err);
-            return res.status(500).json({ error: err.code || err.message || "Database error" });
+            console.error('Failed to start transaction:', err);
+            return res.status(500).json({ error: "Failed to start transaction" });
         }
         
-        console.log('Booking inserted successfully:', result);
-        
-        // After booking, also mark the room as booked
-        const updateSql = "UPDATE rooms SET status = ? WHERE id = ?";
-        db.query(updateSql, ['booked', roomId], (uErr) => {
-            if (uErr) {
-                console.warn('Failed to update room status after booking:', uErr);
-            } else {
-                console.log('Room status updated to booked for room:', roomId);
+        db.query(sql, values, async (err, result) => {
+            if (err) {
+                console.error('Database error during booking:', err);
+                return db.rollback(() => {
+                    res.status(500).json({ error: err.code || err.message || "Database error" });
+                });
             }
-            // Return the saved booking
-            return res.status(201).json({
-                bookingId,
-                roomId: numericRoomId,
-                roomName,
-                guestName,
-                guestContact,
-                checkIn: normalizedCheckIn,
-                checkOut: normalizedCheckOut,
-                guests: numericGuests,
-                totalPrice: priceNumber,
-                status
+            
+            console.log('Booking inserted successfully:', result);
+            
+            // Update room status to booked
+            const updateSql = "UPDATE rooms SET status = ? WHERE id = ?";
+            db.query(updateSql, ['booked', roomId], async (uErr) => {
+                if (uErr) {
+                    console.warn('Failed to update room status after booking:', uErr);
+                    return db.rollback(() => {
+                        res.status(500).json({ error: "Failed to update room status" });
+                    });
+                }
+                
+                console.log('Room status updated to booked for room:', roomId);
+                
+                // Deduct room inventory from warehouse
+                try {
+                    const deductionResult = await deductRoomInventoryFromWarehouse(
+                        numericRoomId, 
+                        bookingId, 
+                        'Room booked - inventory deducted from warehouse'
+                    );
+                    
+                    console.log('Warehouse deduction result:', deductionResult);
+                    
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+                        
+                        return res.status(201).json({
+                            bookingId,
+                            roomId: numericRoomId,
+                            roomName,
+                            guestName,
+                            guestContact,
+                            checkIn: normalizedCheckIn,
+                            checkOut: normalizedCheckOut,
+                            guests: numericGuests,
+                            totalPrice: priceNumber,
+                            status,
+                            inventoryDeducted: deductionResult
+                        });
+                    });
+                } catch (deductErr) {
+                    console.error('Error deducting inventory:', deductErr);
+                    return db.rollback(() => {
+                        res.status(500).json({ error: `Booking created but inventory deduction failed: ${deductErr.message}` });
+                    });
+                }
             });
         });
     });
@@ -685,8 +863,8 @@ app.get("/api/bookings", (req, res) => {
     });
 });
 
-// Update booking status (approve/decline)
-app.patch("/api/bookings/:bookingId", (req, res) => {
+// Update booking status (approve/decline) - now with warehouse deduction
+app.patch("/api/bookings/:bookingId", async (req, res) => {
     const { bookingId } = req.params;
     const { status } = req.body;
     if (!bookingId || !status) {
@@ -694,7 +872,7 @@ app.patch("/api/bookings/:bookingId", (req, res) => {
     }
     
     // First get the room_id for this booking
-    const getRoomSql = "SELECT room_id FROM bookings WHERE bookingId = ?";
+    const getRoomSql = "SELECT room_id, status as current_status FROM bookings WHERE bookingId = ?";
     db.query(getRoomSql, [bookingId], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
@@ -704,35 +882,87 @@ app.patch("/api/bookings/:bookingId", (req, res) => {
         }
         
         const roomId = rows[0].room_id;
+        const previousStatus = rows[0].current_status;
         
-        // Update booking status
-        const updateBookingSql = "UPDATE bookings SET status = ? WHERE bookingId = ?";
-        db.query(updateBookingSql, [status, bookingId], (err, result) => {
-            if (err) {
-                return res.status(500).json({ error: err.code || err.message || "Database error" });
+        db.beginTransaction(async (transErr) => {
+            if (transErr) {
+                return res.status(500).json({ error: "Failed to start transaction" });
             }
             
-            // If booking is approved/confirmed, mark room as booked
-            if (status === 'confirmed' || status === 'approved') {
-                const updateRoomSql = "UPDATE rooms SET status = 'booked' WHERE id = ?";
-                db.query(updateRoomSql, [roomId], (roomErr) => {
-                    if (roomErr) {
-                        console.warn('Failed to update room status after booking approval:', roomErr);
+            // Update booking status
+            const updateBookingSql = "UPDATE bookings SET status = ? WHERE bookingId = ?";
+            db.query(updateBookingSql, [status, bookingId], async (err, result) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: err.code || err.message || "Database error" });
+                    });
+                }
+                
+                try {
+                    // If booking is approved/confirmed and wasn't already, deduct inventory and mark room as booked
+                    if ((status === 'confirmed' || status === 'approved') && previousStatus !== 'confirmed' && previousStatus !== 'approved' && previousStatus !== 'checked_in') {
+                        const updateRoomSql = "UPDATE rooms SET status = 'booked' WHERE id = ?";
+                        await new Promise((resolve, reject) => {
+                            db.query(updateRoomSql, [roomId], (roomErr) => {
+                                if (roomErr) reject(roomErr);
+                                else resolve();
+                            });
+                        });
+                        
+                        // Deduct room inventory from warehouse
+                        const deductionResult = await deductRoomInventoryFromWarehouse(
+                            roomId, 
+                            bookingId, 
+                            'Booking confirmed/approved - inventory deducted from warehouse'
+                        );
+                        
+                        console.log('Warehouse deduction result:', deductionResult);
+                        
+                        db.commit((commitErr) => {
+                            if (commitErr) {
+                                return db.rollback(() => {
+                                    res.status(500).json({ error: "Failed to commit transaction" });
+                                });
+                            }
+                            return res.status(200).json({ 
+                                success: true, 
+                                inventoryDeducted: deductionResult 
+                            });
+                        });
+                    } else if (status === 'declined' || status === 'cancelled') {
+                        // If booking is declined/cancelled, mark room as available
+                        const updateRoomSql = "UPDATE rooms SET status = 'available' WHERE id = ?";
+                        await new Promise((resolve, reject) => {
+                            db.query(updateRoomSql, [roomId], (roomErr) => {
+                                if (roomErr) reject(roomErr);
+                                else resolve();
+                            });
+                        });
+                        
+                        db.commit((commitErr) => {
+                            if (commitErr) {
+                                return db.rollback(() => {
+                                    res.status(500).json({ error: "Failed to commit transaction" });
+                                });
+                            }
+                            return res.status(200).json({ success: true });
+                        });
+                    } else {
+                        db.commit((commitErr) => {
+                            if (commitErr) {
+                                return db.rollback(() => {
+                                    res.status(500).json({ error: "Failed to commit transaction" });
+                                });
+                            }
+                            return res.status(200).json({ success: true });
+                        });
                     }
-                    return res.status(200).json({ success: true });
-                });
-            } else if (status === 'declined' || status === 'cancelled') {
-                // If booking is declined/cancelled, mark room as available
-                const updateRoomSql = "UPDATE rooms SET status = 'available' WHERE id = ?";
-                db.query(updateRoomSql, [roomId], (roomErr) => {
-                    if (roomErr) {
-                        console.warn('Failed to update room status after booking decline/cancel:', roomErr);
-                    }
-                    return res.status(200).json({ success: true });
-                });
-            } else {
-                return res.status(200).json({ success: true });
-            }
+                } catch (error) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: error.message });
+                    });
+                }
+            });
         });
     });
 });
@@ -1757,29 +1987,54 @@ app.get("/api/availability", (req, res) => {
     });
 });
 
-// Check-in booking: sets booking.status=checked_in and room.status=booked
-app.patch("/api/bookings/:bookingId/check-in", (req, res) => {
+// Check-in booking: sets booking.status=checked_in and room.status=booked (with warehouse deduction)
+app.patch("/api/bookings/:bookingId/check-in", async (req, res) => {
     const { bookingId } = req.params;
     if (!bookingId) return res.status(400).json({ error: "bookingId required" });
 
-    const getSql = "SELECT room_id FROM bookings WHERE bookingId = ? LIMIT 1";
+    const getSql = "SELECT room_id, status FROM bookings WHERE bookingId = ? LIMIT 1";
     db.query(getSql, [bookingId], (gErr, rows) => {
         if (gErr) return res.status(500).json({ error: gErr.message });
         if (!rows?.length) return res.status(404).json({ error: "Booking not found" });
+        
         const roomId = rows[0].room_id;
+        const previousStatus = rows[0].status;
 
-        db.beginTransaction(err => {
+        db.beginTransaction(async (err) => {
             if (err) return res.status(500).json({ error: "Failed to start transaction" });
+            
             const updBooking = "UPDATE bookings SET status = 'checked_in' WHERE bookingId = ?";
-            db.query(updBooking, [bookingId], (bErr) => {
+            db.query(updBooking, [bookingId], async (bErr) => {
                 if (bErr) return db.rollback(() => res.status(500).json({ error: bErr.message }));
+                
                 const updRoom = "UPDATE rooms SET status = 'booked' WHERE id = ?";
-                db.query(updRoom, [roomId], (rErr) => {
+                db.query(updRoom, [roomId], async (rErr) => {
                     if (rErr) return db.rollback(() => res.status(500).json({ error: rErr.message }));
-                    db.commit(cErr => {
-                        if (cErr) return db.rollback(() => res.status(500).json({ error: "Failed to commit" }));
-                        return res.json({ success: true });
-                    });
+                    
+                    try {
+                        // Only deduct inventory if not already deducted (i.e., if previous status wasn't confirmed/approved/checked_in)
+                        let deductionResult = { message: 'Inventory already deducted' };
+                        if (previousStatus !== 'confirmed' && previousStatus !== 'approved' && previousStatus !== 'checked_in') {
+                            deductionResult = await deductRoomInventoryFromWarehouse(
+                                roomId, 
+                                bookingId, 
+                                'Room checked in - inventory deducted from warehouse'
+                            );
+                            console.log('Warehouse deduction result:', deductionResult);
+                        }
+                        
+                        db.commit(cErr => {
+                            if (cErr) return db.rollback(() => res.status(500).json({ error: "Failed to commit" }));
+                            return res.json({ 
+                                success: true, 
+                                inventoryDeducted: deductionResult 
+                            });
+                        });
+                    } catch (deductErr) {
+                        return db.rollback(() => {
+                            res.status(500).json({ error: `Check-in successful but inventory deduction failed: ${deductErr.message}` });
+                        });
+                    }
                 });
             });
         });
@@ -2207,17 +2462,13 @@ app.get("/api/inventory/room-inventory", requireAuth, (req, res) => {
     });
 });
 
-// Update or add room inventory item
+// Update or add room inventory item (NO warehouse deduction here)
 app.post("/api/inventory/room-inventory", requireAuth, async (req, res) => {
     const { room_id, item_id, quantity, action } = req.body;
     
     if (!room_id || !item_id || quantity === undefined) {
         return res.status(400).json({ error: "room_id, item_id, and quantity are required" });
     }
-    
-    // Get admin ID from auth header
-    const authHeader = req.headers.authorization;
-    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
     
     db.beginTransaction(async (err) => {
         if (err) {
@@ -2235,134 +2486,16 @@ app.post("/api/inventory/room-inventory", requireAuth, async (req, res) => {
             });
             
             let newQuantity = parseInt(quantity);
-            let quantityToDeduct = parseInt(quantity); // Amount to deduct from warehouse
             
             if (existing && existing.length > 0) {
                 // Update existing record
                 if (action === 'add') {
                     newQuantity = existing[0].current_quantity + parseInt(quantity);
-                    quantityToDeduct = parseInt(quantity); // Only deduct the added amount
                 } else if (action === 'subtract') {
                     newQuantity = existing[0].current_quantity - parseInt(quantity);
                     if (newQuantity < 0) newQuantity = 0;
-                    quantityToDeduct = 0; // Don't deduct from warehouse when subtracting from room
-                } else {
-                    // action === 'set' or default
-                    quantityToDeduct = newQuantity - existing[0].current_quantity;
-                    if (quantityToDeduct < 0) quantityToDeduct = 0; // Don't deduct if we're reducing room inventory
                 }
-            } else {
-                // New record - deduct the full quantity
-                quantityToDeduct = newQuantity;
-            }
-            
-            // Only deduct from warehouse if we're adding items to the room
-            if (quantityToDeduct > 0) {
-                // Check warehouse stock
-                const warehouseSql = "SELECT quantity FROM warehouse_inventory WHERE item_id = ?";
-                const warehouseResult = await new Promise((resolve, reject) => {
-                    db.query(warehouseSql, [item_id], (err, results) => {
-                        if (err) reject(err);
-                        else resolve(results);
-                    });
-                });
-                
-                if (!warehouseResult || warehouseResult.length === 0) {
-                    return db.rollback(() => {
-                        res.status(400).json({ error: "Item not found in warehouse inventory" });
-                    });
-                }
-                
-                const currentWarehouseStock = warehouseResult[0].quantity;
-                
-                if (currentWarehouseStock < quantityToDeduct) {
-                    return db.rollback(() => {
-                        res.status(400).json({ 
-                            error: `Insufficient warehouse stock. Available: ${currentWarehouseStock}, Required: ${quantityToDeduct}` 
-                        });
-                    });
-                }
-                
-                // Deduct from warehouse
-                const newWarehouseStock = currentWarehouseStock - quantityToDeduct;
-                const updateWarehouseSql = "UPDATE warehouse_inventory SET quantity = ?, last_updated = NOW() WHERE item_id = ?";
-                await new Promise((resolve, reject) => {
-                    db.query(updateWarehouseSql, [newWarehouseStock, item_id], (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    });
-                });
-                
-                // Get admin ID for logging
-                const getAdminSql = "SELECT id FROM admin_account WHERE admin_email = ? LIMIT 1";
-                const adminResult = await new Promise((resolve, reject) => {
-                    db.query(getAdminSql, [userEmail], (err, results) => {
-                        if (err) reject(err);
-                        else resolve(results);
-                    });
-                });
-                
-                const adminId = adminResult && adminResult.length > 0 ? adminResult[0].id : 1;
-                
-                // Get room name for logging
-                const getRoomSql = "SELECT name, room_number FROM rooms WHERE id = ?";
-                const roomResult = await new Promise((resolve, reject) => {
-                    db.query(getRoomSql, [room_id], (err, results) => {
-                        if (err) reject(err);
-                        else resolve(results);
-                    });
-                });
-                
-                const roomName = roomResult && roomResult.length > 0 
-                    ? `${roomResult[0].name} (${roomResult[0].room_number})` 
-                    : `Room ${room_id}`;
-                
-                // Log warehouse transaction
-                const logSql = `INSERT INTO inventory_log (item_id, change_quantity, new_stock_level, reason, notes, logged_by) 
-                               VALUES (?, ?, ?, ?, ?, ?)`;
-                const reason = "Room restock - transferred to room inventory";
-                const notes = `Transferred ${quantityToDeduct} units to ${roomName}`;
-                await new Promise((resolve, reject) => {
-                    db.query(logSql, [item_id, -quantityToDeduct, newWarehouseStock, reason, notes, adminId], (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    });
-                });
-                
-                // Check if we need to create low stock alert for warehouse
-                const getItemSql = "SELECT low_stock_threshold FROM inventory_items WHERE id = ?";
-                const itemResult = await new Promise((resolve, reject) => {
-                    db.query(getItemSql, [item_id], (err, results) => {
-                        if (err) reject(err);
-                        else resolve(results);
-                    });
-                });
-                
-                if (itemResult && itemResult.length > 0) {
-                    const threshold = itemResult[0].low_stock_threshold;
-                    if (newWarehouseStock <= threshold && newWarehouseStock > 0) {
-                        // Create low stock alert
-                        const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
-                                         VALUES ('low_stock', ?, ?, 'warning', NOW())`;
-                        const alertMessage = `Warehouse stock is low (${newWarehouseStock} remaining, threshold: ${threshold})`;
-                        await new Promise((resolve, reject) => {
-                            db.query(alertSql, [item_id, alertMessage], (err) => {
-                                if (err) console.error('Failed to create alert:', err);
-                                resolve();
-                            });
-                        });
-                    } else if (newWarehouseStock === 0) {
-                        // Create out of stock alert
-                        const alertSql = `INSERT INTO inventory_alerts (alert_type, item_id, message, severity, created_at) 
-                                         VALUES ('out_of_stock', ?, 'Warehouse is out of stock', 'critical', NOW())`;
-                        await new Promise((resolve, reject) => {
-                            db.query(alertSql, [item_id], (err) => {
-                                if (err) console.error('Failed to create alert:', err);
-                                resolve();
-                            });
-                        });
-                    }
-                }
+                // else action === 'set' - use newQuantity as is
             }
             
             // Determine status based on quantity
@@ -2384,7 +2517,7 @@ app.post("/api/inventory/room-inventory", requireAuth, async (req, res) => {
                 }
             }
             
-            // Update or insert room inventory
+            // Update or insert room inventory (NO warehouse deduction)
             if (existing && existing.length > 0) {
                 const updateSql = "UPDATE room_inventory SET current_quantity = ?, last_restocked = NOW(), last_checked = NOW(), status = ? WHERE room_id = ? AND item_id = ?";
                 await new Promise((resolve, reject) => {
@@ -2417,7 +2550,7 @@ app.post("/api/inventory/room-inventory", requireAuth, async (req, res) => {
                 return res.status(200).json({ 
                     success: true, 
                     new_quantity: newQuantity,
-                    warehouse_deducted: quantityToDeduct
+                    message: 'Room inventory updated. Warehouse stock will be deducted when room is booked.'
                 });
             });
         } catch (error) {
