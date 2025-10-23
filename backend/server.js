@@ -735,6 +735,8 @@ app.post("/api/bookings", async (req, res) => {
         roomName,
         guestName,
         guestContact,
+        guestGender,
+        guestAge,
         checkIn,
         checkOut,
         guests,
@@ -767,8 +769,8 @@ app.post("/api/bookings", async (req, res) => {
     const numericRoomId = Number(roomId);
     const numericGuests = Number(guests);
 
-    const sql = `INSERT INTO bookings (bookingId, user_id, room_id, roomName, guestName, guestContact, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const values = [bookingId, null, numericRoomId, roomName, guestName, guestContact, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
+    const sql = `INSERT INTO bookings (bookingId, user_id, room_id, roomName, guestName, guestContact, guest_gender, guest_age, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [bookingId, null, numericRoomId, roomName, guestName, guestContact, guestGender || null, guestAge ? Number(guestAge) : null, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
 
     console.log('Executing booking query:', sql, values);
     
@@ -823,6 +825,8 @@ app.post("/api/bookings", async (req, res) => {
                             roomName,
                             guestName,
                             guestContact,
+                            guestGender: guestGender || null,
+                            guestAge: guestAge ? Number(guestAge) : null,
                             checkIn: normalizedCheckIn,
                             checkOut: normalizedCheckOut,
                             guests: numericGuests,

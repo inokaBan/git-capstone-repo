@@ -75,6 +75,23 @@ const BookingConfirmationModal = ({
                 <span className="text-sm font-semibold text-gray-900">{bookingDetails.guestContact}</span>
               </div>
               
+              {(bookingDetails.guestGender || bookingDetails.guestAge) && (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  {bookingDetails.guestGender && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600 block">Gender</span>
+                      <span className="text-sm font-semibold text-gray-900">{bookingDetails.guestGender}</span>
+                    </div>
+                  )}
+                  {bookingDetails.guestAge && (
+                    <div>
+                      <span className="text-sm font-medium text-gray-600 block">Age</span>
+                      <span className="text-sm font-semibold text-gray-900">{bookingDetails.guestAge} years</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium text-gray-600">Check-in</span>
                 <span className="text-sm font-semibold text-gray-900">

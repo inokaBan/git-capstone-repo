@@ -226,10 +226,28 @@ const MyBookingsPage = () => {
                   <p className="text-lg font-semibold text-gray-900">{booking.guestName}</p>
                 </div>
 
-                <div className="space-y-1">
+                <div className="space-y-1 sm:col-span-2">
                   <label className="text-sm font-medium text-gray-500">Contact Number</label>
                   <p className="text-lg font-semibold text-gray-900">{booking.guestContact}</p>
                 </div>
+
+                {(booking.guest_gender || booking.guest_age) && (
+                  <>
+                    {booking.guest_gender && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-500">Gender</label>
+                        <p className="text-lg font-semibold text-gray-900">{booking.guest_gender}</p>
+                      </div>
+                    )}
+
+                    {booking.guest_age && (
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium text-gray-500">Age</label>
+                        <p className="text-lg font-semibold text-gray-900">{booking.guest_age} years</p>
+                      </div>
+                    )}
+                  </>
+                )}
 
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-500">Room</label>

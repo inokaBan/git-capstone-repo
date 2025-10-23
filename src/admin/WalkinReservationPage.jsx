@@ -42,6 +42,8 @@ const WalkinReservationPage = () => {
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [guestName, setGuestName] = useState('');
   const [guestContact, setGuestContact] = useState('');
+  const [guestGender, setGuestGender] = useState('');
+  const [guestAge, setGuestAge] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [priceFilter, setPriceFilter] = useState(priceRanges[0].label);
   const [sortBy, setSortBy] = useState('name');
@@ -142,6 +144,8 @@ const WalkinReservationPage = () => {
       roomName: selectedRoom.type_name || selectedRoom.name || `Room #${selectedRoom.room_number}`,
       guestName,
       guestContact,
+      guestGender: guestGender || undefined,
+      guestAge: guestAge ? Number(guestAge) : undefined,
       checkIn,
       checkOut,
       guests: Number(guests),
@@ -157,6 +161,8 @@ const WalkinReservationPage = () => {
       showSuccess(`Walk-in created successfully! Booking ID: ${data?.bookingId}`);
       setGuestName('');
       setGuestContact('');
+      setGuestGender('');
+      setGuestAge('');
       await loadAvailable();
     } catch (e) {
       console.error('Error creating walkin booking:', e);
@@ -393,6 +399,36 @@ const WalkinReservationPage = () => {
                   placeholder="Email or phone number"
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
                 />
+              </div>
+
+              {/* Gender and Age - 2 Column Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Gender (Optional)</label>
+                  <select
+                    value={guestGender}
+                    onChange={e => setGuestGender(e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Age (Optional)</label>
+                  <input 
+                    type="number"
+                    value={guestAge}
+                    onChange={e => setGuestAge(e.target.value)}
+                    placeholder="Enter guest age"
+                    min="1"
+                    max="120"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  />
+                </div>
               </div>
 
               <button 

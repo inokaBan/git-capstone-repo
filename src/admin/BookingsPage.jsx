@@ -234,6 +234,8 @@ const BookingsPage = () => {
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guest</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out</th>
@@ -256,6 +258,8 @@ const BookingsPage = () => {
                             </div>
                           </div>
                         </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_gender || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_age ? `${booking.guest_age} years` : '-'}</td>
                         <td className="px-6 py-4 text-sm">
                           <div className="font-medium text-gray-900">{booking.room_number ? `#${booking.room_number}` : booking.roomName}</div>
                           {booking.room_number && (
@@ -361,6 +365,26 @@ const BookingsPage = () => {
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="col-span-2">
+                          <span className="text-gray-500">Contact</span>
+                          <p className="mt-1 font-medium text-gray-900">{booking.guestContact}</p>
+                        </div>
+                        {(booking.guest_gender || booking.guest_age) && (
+                          <>
+                            {booking.guest_gender && (
+                              <div>
+                                <span className="text-gray-500">Gender</span>
+                                <p className="mt-1 font-medium text-gray-900">{booking.guest_gender}</p>
+                              </div>
+                            )}
+                            {booking.guest_age && (
+                              <div>
+                                <span className="text-gray-500">Age</span>
+                                <p className="mt-1 font-medium text-gray-900">{booking.guest_age} years</p>
+                              </div>
+                            )}
+                          </>
+                        )}
                         <div>
                           <span className="text-gray-500 flex items-center gap-1">
                             <Home className="w-4 h-4" />
@@ -506,6 +530,22 @@ const BookingsPage = () => {
                       <label className="text-sm font-medium text-gray-500">Contact</label>
                       <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guestContact}</p>
                     </div>
+                    {(selectedBooking.guest_gender || selectedBooking.guest_age) && (
+                      <>
+                        {selectedBooking.guest_gender && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Gender</label>
+                            <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guest_gender}</p>
+                          </div>
+                        )}
+                        {selectedBooking.guest_age && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">Age</label>
+                            <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guest_age} years</p>
+                          </div>
+                        )}
+                      </>
+                    )}
                     <div>
                       <label className="text-sm font-medium text-gray-500">Room Type</label>
                       <span className={`mt-1 inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getRoomTypeColor(selectedBooking.roomName)}`}>

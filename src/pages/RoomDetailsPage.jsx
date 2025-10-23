@@ -20,6 +20,8 @@ const RoomDetailPage = () => {
   const [bookingDetails, setBookingDetails] = useState(null);
   const [guestName, setGuestName] = useState('');
   const [guestContact, setGuestContact] = useState('');
+  const [guestGender, setGuestGender] = useState('');
+  const [guestAge, setGuestAge] = useState('');
 
   const navigate = useNavigate();
   const { showError, showWarning } = useToast();
@@ -84,6 +86,8 @@ const RoomDetailPage = () => {
         roomName: room.type_name || room.name || `Room #${room.room_number}`,
         guestName,
         guestContact,
+        guestGender: guestGender || undefined,
+        guestAge: guestAge ? Number(guestAge) : undefined,
         checkIn,
         checkOut,
         guests,
@@ -105,6 +109,8 @@ const RoomDetailPage = () => {
       // Clear form
       setGuestName('');
       setGuestContact('');
+      setGuestGender('');
+      setGuestAge('');
     } catch (error) {
       console.error('Booking error:', error);
       console.error('Error response:', error.response);
@@ -261,8 +267,8 @@ const RoomDetailPage = () => {
               </div>
             </div>
             
-            <div className="space-y-2 grid grid-cols-1 mt-4">
-              {/* Guest Name */}
+            <div className="space-y-2 mt-4">
+              {/* Guest Name - Full Width */}
               <input
                 type="text"
                 placeholder="Full Name"
@@ -272,7 +278,7 @@ const RoomDetailPage = () => {
                 required
               />
             
-              {/* Guest Email or Contact Number */}
+              {/* Guest Email or Contact Number - Full Width */}
               <input
                 type="text"
                 placeholder="Email or Contact Number"
@@ -281,6 +287,32 @@ const RoomDetailPage = () => {
                 className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                 required
               />
+
+              {/* Guest Gender and Age - 2 Column Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {/* Guest Gender */}
+                <select
+                  value={guestGender}
+                  onChange={(e) => setGuestGender(e.target.value)}
+                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                >
+                  <option value="">Select Gender (Optional)</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+
+                {/* Guest Age */}
+                <input
+                  type="number"
+                  placeholder="Age (Optional)"
+                  value={guestAge}
+                  onChange={(e) => setGuestAge(e.target.value)}
+                  min="1"
+                  max="120"
+                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                />
+              </div>
             </div>
 
             {room.status === 'booked' && (
