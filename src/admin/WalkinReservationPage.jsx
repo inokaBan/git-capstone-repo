@@ -41,7 +41,8 @@ const WalkinReservationPage = () => {
   const [rooms, setRooms] = useState([]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
   const [guestName, setGuestName] = useState('');
-  const [guestContact, setGuestContact] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
   const [guestGender, setGuestGender] = useState('');
   const [guestAge, setGuestAge] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -124,8 +125,8 @@ const WalkinReservationPage = () => {
       showError('Selected room is invalid. Please refresh and try again.');
       return;
     }
-    if (!guestName.trim() || !guestContact.trim()) {
-      showError('Please enter guest name and contact information');
+    if (!guestName.trim() || (!guestEmail.trim() && !guestPhone.trim())) {
+      showError('Please enter guest name and at least one contact method (email or phone)');
       return;
     }
     if (new Date(checkIn) >= new Date(checkOut)) {
@@ -143,7 +144,9 @@ const WalkinReservationPage = () => {
       roomId: Number(selectedRoom.id),
       roomName: selectedRoom.type_name || selectedRoom.name || `Room #${selectedRoom.room_number}`,
       guestName,
-      guestContact,
+      guestContact: guestEmail || guestPhone,
+      guestEmail: guestEmail || undefined,
+      guestPhone: guestPhone || undefined,
       guestGender: guestGender || undefined,
       guestAge: guestAge ? Number(guestAge) : undefined,
       checkIn,
@@ -160,7 +163,8 @@ const WalkinReservationPage = () => {
       console.log('Walkin booking successful:', data);
       showSuccess(`Walk-in created successfully! Booking ID: ${data?.bookingId}`);
       setGuestName('');
-      setGuestContact('');
+      setGuestEmail('');
+      setGuestPhone('');
       setGuestGender('');
       setGuestAge('');
       await loadAvailable();
@@ -337,7 +341,7 @@ const WalkinReservationPage = () => {
                     {room.room_number && (
                       <p className="text-sm text-slate-500">{room.type_name}</p>
                     )}
-                    <p className="text-sm text-slate-600 mt-1">{room.category}</p>
+                    <p className="text-sm text-slate-600">{room.category}</p>
                     
                     <div className="mt-4 pt-4 border-t border-slate-200">
                       <div className="flex items-baseline justify-between">
@@ -387,28 +391,41 @@ const WalkinReservationPage = () => {
                   onChange={e => setGuestName(e.target.value)}
                   placeholder="Enter guest name"
                   className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  required
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Contact Information</label>
-                <input 
-                  type="text"
-                  value={guestContact}
-                  onChange={e => setGuestContact(e.target.value)}
-                  placeholder="Email or phone number"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <input 
+                    type="email"
+                    value={guestEmail}
+                    onChange={e => setGuestEmail(e.target.value)}
+                    placeholder="Email"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
+                  />
+                  <input 
+                    type="tel"
+                    value={guestPhone}
+                    onChange={e => setGuestPhone(e.target.value)}
+                    placeholder="Contact number"
+                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
+                  />
+                </div>
               </div>
 
               {/* Gender and Age - 2 Column Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Gender (Optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
                   <select
                     value={guestGender}
                     onChange={e => setGuestGender(e.target.value)}
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
                   >
                     <option value="">Select Gender</option>
                     <option value="Male">Male</option>
@@ -418,15 +435,16 @@ const WalkinReservationPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Age (Optional)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
                   <input 
                     type="number"
                     value={guestAge}
                     onChange={e => setGuestAge(e.target.value)}
-                    placeholder="Enter guest age"
+                    placeholder="Age"
                     min="1"
                     max="120"
                     className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    required
                   />
                 </div>
               </div>

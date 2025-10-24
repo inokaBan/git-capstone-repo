@@ -735,6 +735,8 @@ app.post("/api/bookings", async (req, res) => {
         roomName,
         guestName,
         guestContact,
+        guestEmail,
+        guestPhone,
         guestGender,
         guestAge,
         checkIn,
@@ -750,7 +752,9 @@ app.post("/api/bookings", async (req, res) => {
     if (isEmpty(roomId)) missing.push('roomId');
     if (isEmpty(roomName)) missing.push('roomName');
     if (isEmpty(guestName)) missing.push('guestName');
-    if (isEmpty(guestContact)) missing.push('guestContact');
+    // allow any of the three contact fields
+    const hasAnyContact = !isEmpty(guestContact) || !isEmpty(guestEmail) || !isEmpty(guestPhone);
+    if (!hasAnyContact) missing.push('guestContact or guestEmail or guestPhone');
     if (isEmpty(checkIn)) missing.push('checkIn');
     if (isEmpty(checkOut)) missing.push('checkOut');
     if (isEmpty(guests)) missing.push('guests');
@@ -769,8 +773,11 @@ app.post("/api/bookings", async (req, res) => {
     const numericRoomId = Number(roomId);
     const numericGuests = Number(guests);
 
-    const sql = `INSERT INTO bookings (bookingId, user_id, room_id, roomName, guestName, guestContact, guest_gender, guest_age, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
-    const values = [bookingId, null, numericRoomId, roomName, guestName, guestContact, guestGender || null, guestAge ? Number(guestAge) : null, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
+    // derive guestContact for backward compatibility while saving dedicated email/phone
+    const derivedGuestContact = (guestContact && guestContact.trim()) || (guestEmail && guestEmail.trim()) || (guestPhone && guestPhone.trim()) || null;
+
+    const sql = `INSERT INTO bookings (bookingId, user_id, room_id, roomName, guestName, guestContact, guest_email, guest_phone, guest_gender, guest_age, checkIn, checkOut, guests, totalPrice, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+    const values = [bookingId, null, numericRoomId, roomName, guestName, derivedGuestContact, guestEmail || null, guestPhone || null, guestGender || null, guestAge ? Number(guestAge) : null, normalizedCheckIn, normalizedCheckOut, numericGuests, priceNumber, status];
 
     console.log('Executing booking query:', sql, values);
     
@@ -824,7 +831,9 @@ app.post("/api/bookings", async (req, res) => {
                             roomId: numericRoomId,
                             roomName,
                             guestName,
-                            guestContact,
+                            guestContact: derivedGuestContact,
+                            guestEmail: guestEmail || null,
+                            guestPhone: guestPhone || null,
                             guestGender: guestGender || null,
                             guestAge: guestAge ? Number(guestAge) : null,
                             checkIn: normalizedCheckIn,
