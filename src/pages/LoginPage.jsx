@@ -131,15 +131,6 @@ const LoginPage = () => {
             </button>
           </p>
         </div>
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={handleContinueAsGuest}
-            className="w-full bg-gray-100 text-gray-700 py-4 px-4 rounded-xl font-medium hover:bg-gray-200 focus:ring-4 focus:ring-gray-300 transition-all duration-200 text-base"
-          >
-            Continue as Guest
-          </button>
-        </div>
       </div>
     </div>
   );
