@@ -1214,6 +1214,30 @@ app.get("/api/rooms/:id", (req, res) => {
     });
 });
 
+// Get occupied dates for a specific room
+app.get("/api/rooms/:id/occupied-dates", (req, res) => {
+    const { id } = req.params;
+    
+    if (!id) {
+        return res.status(400).json({ error: "Room ID is required" });
+    }
+    
+    // Get all bookings for this room that are occupying it (pending, confirmed, or checked_in)
+    const sql = `
+        SELECT bookingId, checkIn, checkOut, status, guestName
+        FROM bookings
+        WHERE room_id = ? AND status IN ('pending', 'confirmed', 'checked_in')
+        ORDER BY checkIn ASC
+    `;
+    
+    db.query(sql, [id], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
 // Rooms: create a new room with amenities and images using Multer
 app.post("/api/rooms", upload.array('images', 5), (req, res) => {
     const body = req.body || {};

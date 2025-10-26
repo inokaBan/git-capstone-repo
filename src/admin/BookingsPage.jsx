@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2 } from 'lucide-react';
+import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2, CheckCircle } from 'lucide-react';
 import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
@@ -72,6 +72,32 @@ const BookingsPage = () => {
     }
   };
 
+  const handleMarkCompleted = async (bookingId) => {
+    const confirmed = await showConfirm('Are you sure you want to mark this booking as completed?', 'Mark Completed');
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    setProcessingId(bookingId);
+    try {
+      await axios.patch(`http://localhost:8081/api/bookings/${bookingId}/check-out`);
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.bookingId === bookingId 
+            ? { ...booking, status: 'completed' }
+            : booking
+        )
+      );
+      showSuccess('Booking marked as completed successfully');
+    } catch (error) {
+      console.error('Error marking booking as completed:', error);
+      showError(error.response?.data?.error || 'Failed to mark booking as completed');
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -107,7 +133,9 @@ const BookingsPage = () => {
       'pending': 'bg-yellow-50 text-yellow-700',
       'confirmed': 'bg-green-50 text-green-700',
       'declined': 'bg-red-50 text-red-700',
-      'cancelled': 'bg-gray-50 text-gray-700'
+      'cancelled': 'bg-gray-50 text-gray-700',
+      'checked_in': 'bg-blue-50 text-blue-700',
+      'completed': 'bg-purple-50 text-purple-700'
     };
     return colors[status] || 'bg-gray-50 text-gray-700';
   };
@@ -142,7 +170,9 @@ const BookingsPage = () => {
     pending: bookings.filter(b => b.status === 'pending').length,
     confirmed: bookings.filter(b => b.status === 'confirmed').length,
     declined: bookings.filter(b => b.status === 'declined').length,
-    cancelled: bookings.filter(b => b.status === 'cancelled').length
+    cancelled: bookings.filter(b => b.status === 'cancelled').length,
+    checked_in: bookings.filter(b => b.status === 'checked_in').length,
+    completed: bookings.filter(b => b.status === 'completed').length
   };
 
   const showBookingDetails = (booking) => {
@@ -321,6 +351,23 @@ const BookingsPage = () => {
                                 </button>
                               </>
                             )}
+                            {(booking.status === 'checked_in' || booking.status === 'confirmed') && (
+                              <button
+                                onClick={() => handleMarkCompleted(booking.bookingId)}
+                                disabled={processingId === booking.bookingId}
+                                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                aria-label={`Mark booking ${booking.bookingId} as completed`}
+                              >
+                                {processingId === booking.bookingId ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Complete
+                                  </>
+                                )}
+                              </button>
+                            )}
                             <button
                               onClick={() => handleDeleteBooking(booking.bookingId)}
                               disabled={processingId === booking.bookingId}
@@ -469,6 +516,23 @@ const BookingsPage = () => {
                               )}
                             </button>
                           </>
+                        )}
+                        {(booking.status === 'checked_in' || booking.status === 'confirmed') && (
+                          <button
+                            onClick={() => handleMarkCompleted(booking.bookingId)}
+                            disabled={processingId === booking.bookingId}
+                            className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                            aria-label={`Mark booking ${booking.bookingId} as completed`}
+                          >
+                            {processingId === booking.bookingId ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-1.5" />
+                                Complete
+                              </>
+                            )}
+                          </button>
                         )}
                       </div>
                       <button

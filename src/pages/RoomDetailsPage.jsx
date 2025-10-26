@@ -6,6 +6,7 @@ import {
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import BookingConfirmationModal from '../components/BookingConfirmationModal';
+import BookingCalendar from '../components/BookingCalendar';
 import { useBooking } from '../context/BookingContext'; 
 import AmenityIcon from '../context/AmenityIcon';
 import { useToast } from '../context/ToastContext';
@@ -28,6 +29,17 @@ const RoomDetailPage = () => {
   const { showError, showWarning } = useToast();
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Handle date selection from calendar
+  const handleDateSelect = (newCheckIn, newCheckOut) => {
+    setCheckIn(newCheckIn || '');
+    setCheckOut(newCheckOut || '');
+  };
+
+  // Handle validation errors from calendar
+  const handleCalendarValidationError = (message) => {
+    showWarning(message);
+  };
 
   // Normalize price regardless of API representation
   const getNumericPrice = () => {
@@ -151,7 +163,7 @@ const RoomDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 px-4">
+    <div className="min-h-screen bg-gray-50 px-4">
       <div className="bg-white w-full border-b border-gray-300 mb-4">
         <div className="max-w-7xl mx-auto py-4">
           <button onClick={() => navigate('/rooms')} className="flex items-center text-blue-600 hover:text-blue-800 font-medium">
@@ -236,39 +248,37 @@ const RoomDetailPage = () => {
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-in</label>
-                <input
-                  type="date"
-                  value={checkIn}
-                  min={today}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                />
+            {/* Booking Calendar */}
+            <div className="mb-4">
+              <BookingCalendar
+                roomId={room.id}
+                checkIn={checkIn}
+                checkOut={checkOut}
+                onDateSelect={handleDateSelect}
+                onValidationError={handleCalendarValidationError}
+              />
+            </div>
+
+            {room.status === 'booked' && (
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                <strong>Note:</strong> This room has some booked dates. Please check the calendar above for availability.
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Check-out</label>
-                <input
-                  type="date"
-                  value={checkOut}
-                  min={checkIn || today}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Guest/s</label>
-                <select
-                  value={guests}
-                  onChange={(e) => setGuests(parseInt(e.target.value))}
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                >
-                  {[...Array(room.guests)].map((_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}
-                </select>
-              </div>
+            )}
+            
+            {/* Guests Selector */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Number of Guests</label>
+              <select
+                value={guests}
+                onChange={(e) => setGuests(parseInt(e.target.value))}
+                className="w-full px-4 py-3 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+              >
+                {[...Array(room.guests)].map((_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1} {i + 1 === 1 ? 'Guest' : 'Guests'}
+                  </option>
+                ))}
+              </select>
             </div>
             
             <div className="space-y-2 mt-4">
@@ -331,11 +341,7 @@ const RoomDetailPage = () => {
               </div>
             </div>
 
-            {room.status === 'booked' && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
-                <strong>Room Unavailable:</strong> This room is currently booked and cannot be reserved at this time.
-              </div>
-            )}
+            
 
             <button 
               onClick={handleBooking} 
