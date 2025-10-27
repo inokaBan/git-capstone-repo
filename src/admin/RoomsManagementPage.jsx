@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Plus, Edit2, Trash2, Star, Users, Bed, Bath } from 'lucide-react';
+import { Plus, Edit2, Trash2, Star, Users, Bed, Bath, X } from 'lucide-react';
 import AmenityIcon from '../context/AmenityIcon';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
@@ -508,9 +508,9 @@ const RoomsManagementPage = () => {
                         />
                       )}
                       <div>
-                        <h3 className="text-sm font-medium text-gray-900">{room.room_number ? `#${room.room_number}` : room.type_name}</h3>
+                        <h3 className="text-sm font-bold text-gray-900">{room.room_number ? `#${room.room_number}` : room.type_name}</h3>
                         {room.room_number && (
-                          <div className="text-xs text-gray-500">{room.type_name}</div>
+                          <div className="text-xs text-gray-900 font-bold">{room.type_name}</div>
                         )}
                         <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
@@ -614,13 +614,16 @@ const RoomsManagementPage = () => {
                     />
                   )}
                   <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-900">{room.type_name}</h3>
+                    <h3 className="text-sm font-bold text-gray-900">{room.type_name}</h3>
                     <span className="inline-flex px-2.5 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium mt-1">
                       {room.category}
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-gray-500">
+                  {room.room_number && (
+                    <span className="font-bold text-gray-900">Room #{room.room_number}</span>
+                  )}
                   <span className="flex items-center gap-1">
                     <Bed className="w-4 h-4" />
                     {room.beds} beds
@@ -695,12 +698,64 @@ const RoomsManagementPage = () => {
 
       {/* Add/Edit Room Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+        <div 
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" 
+          role="dialog" 
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAddModal(false);
+              setEditingRoom(null);
+              setNewRoom({
+                room_number: '',
+                room_type_id: '',
+                category: 'Standard',
+                description: '',
+                rating: 5,
+                status: 'available',
+                beds: 1,
+                bathrooms: 1,
+                price: 0,
+                original_price: '',
+                guests: 1,
+                size: '',
+                amenities: [],
+                images: []
+              });
+            }
+          }}
+        >
           <div className="bg-white rounded-xl w-full max-w-md sm:max-w-lg md:max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6 border-b border-gray-100">
+            <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
                 {editingRoom ? 'Edit Room' : 'Add New Room'}
               </h2>
+              <button
+                onClick={() => {
+                  setShowAddModal(false);
+                  setEditingRoom(null);
+                  setNewRoom({
+                    room_number: '',
+                    room_type_id: '',
+                    category: 'Standard',
+                    description: '',
+                    rating: 5,
+                    status: 'available',
+                    beds: 1,
+                    bathrooms: 1,
+                    price: 0,
+                    original_price: '',
+                    guests: 1,
+                    size: '',
+                    amenities: [],
+                    images: []
+                  });
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
             <div className="p-4 sm:p-6 space-y-6">
@@ -1037,10 +1092,30 @@ const RoomsManagementPage = () => {
 
       {/* Room Type Management Modal */}
       {showRoomTypeModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+        <div 
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" 
+          role="dialog" 
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowRoomTypeModal(false);
+              setNewRoomType('');
+            }
+          }}
+        >
           <div className="bg-white rounded-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Manage Room Types</h2>
+              <button
+                onClick={() => {
+                  setShowRoomTypeModal(false);
+                  setNewRoomType('');
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
             <div className="p-6 space-y-4">
@@ -1101,10 +1176,30 @@ const RoomsManagementPage = () => {
 
       {/* Category Management Modal */}
       {showCategoryModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+        <div 
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" 
+          role="dialog" 
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowCategoryModal(false);
+              setNewCategory('');
+            }
+          }}
+        >
           <div className="bg-white rounded-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Manage Room Categories</h2>
+              <button
+                onClick={() => {
+                  setShowCategoryModal(false);
+                  setNewCategory('');
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
             <div className="p-6 space-y-4">
@@ -1165,10 +1260,30 @@ const RoomsManagementPage = () => {
 
       {/* Amenity Management Modal */}
       {showAmenityModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
+        <div 
+          className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" 
+          role="dialog" 
+          aria-modal="true"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowAmenityModal(false);
+              setNewAmenity('');
+            }
+          }}
+        >
           <div className="bg-white rounded-xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-100">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-gray-900">Manage Amenities</h2>
+              <button
+                onClick={() => {
+                  setShowAmenityModal(false);
+                  setNewAmenity('');
+                }}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
             
             <div className="p-6 space-y-4">

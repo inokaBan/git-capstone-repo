@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2, CheckCircle, Star, Search } from 'lucide-react';
 import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
@@ -9,7 +9,7 @@ const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -29,6 +29,33 @@ const BookingsPage = () => {
     };
     fetchBookings();
   }, []);
+
+  // Identify first booker for each room (priority bookings)
+  const firstBookerIds = useMemo(() => {
+    const roomFirstBookings = new Map();
+    
+    // Group bookings by room_id and find the earliest booking for each room
+    bookings.forEach(booking => {
+      const roomId = booking.room_id;
+      const bookingDate = new Date(booking.bookingDate);
+      
+      if (!roomFirstBookings.has(roomId)) {
+        roomFirstBookings.set(roomId, { bookingId: booking.bookingId, date: bookingDate });
+      } else {
+        const current = roomFirstBookings.get(roomId);
+        if (bookingDate < current.date) {
+          roomFirstBookings.set(roomId, { bookingId: booking.bookingId, date: bookingDate });
+        }
+      }
+    });
+    
+    // Return a Set of bookingIds that are first bookers
+    return new Set(Array.from(roomFirstBookings.values()).map(entry => entry.bookingId));
+  }, [bookings]);
+
+  const isFirstBooker = (bookingId) => {
+    return firstBookerIds.has(bookingId);
+  };
 
   const handleBookingAction = async (bookingId, action) => {
     setProcessingId(bookingId);
@@ -153,17 +180,34 @@ const BookingsPage = () => {
     }
   };
 
-  const filteredBookings = bookings.filter((booking) => {
-    const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-    if (!matchesStatus) return false;
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return true;
-    const name = (booking.guestName || '').toString().toLowerCase();
-    const idStr = (booking.bookingId || '').toString().toLowerCase();
-    const roomNumber = (booking.room_number || '').toString().toLowerCase();
-    const roomName = (booking.roomName || '').toString().toLowerCase();
-    return name.includes(query) || idStr.includes(query) || roomNumber.includes(query) || roomName.includes(query);
-  });
+  const filteredBookings = useMemo(() => {
+    const filtered = bookings.filter((booking) => {
+      const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
+      if (!matchesStatus) return false;
+      
+      // General search query across all relevant fields
+      const query = searchQuery.trim().toLowerCase();
+      if (query) {
+        const name = (booking.guestName || '').toString().toLowerCase();
+        const idStr = (booking.bookingId || '').toString().toLowerCase();
+        const roomNumber = (booking.room_number || '').toString().toLowerCase();
+        const roomName = (booking.roomName || '').toString().toLowerCase();
+        return name.includes(query) || idStr.includes(query) || roomNumber.includes(query) || roomName.includes(query);
+      }
+      
+      return true;
+    });
+
+    // Sort by room_id first, then by bookingDate within each room group
+    return filtered.sort((a, b) => {
+      // First, sort by room_id
+      if (a.room_id !== b.room_id) {
+        return a.room_id - b.room_id;
+      }
+      // Within the same room, sort by bookingDate (earliest first)
+      return new Date(a.bookingDate) - new Date(b.bookingDate);
+    });
+  }, [bookings, statusFilter, searchQuery]);
 
   const statusCounts = {
     all: bookings.length,
@@ -202,21 +246,19 @@ const BookingsPage = () => {
           </div>
 
           <div className="w-full sm:w-80">
-              <div className="relative">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search by name or booking ID"
-                  className="bg-white w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-                />
-                <span className="absolute left-3 top-1/2 -translate-y-1/2">
-                  <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </span>
-              </div>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by guest, booking ID, room number, or room type"
+                className="bg-white w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2">
+                <Search className="w-5 h-5 text-gray-400" />
+              </span>
             </div>
+          </div>
         </div>
 
         {/* Filter Section */}
@@ -240,7 +282,7 @@ const BookingsPage = () => {
               <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
               <p className="text-gray-500 text-sm">
                 {statusFilter === 'all'
-                  ? 'No bookings available in the syst em.'
+                  ? 'No bookings available in the system.'
                   : `No ${statusFilter} bookings found.`}
               </p>
             </div>
@@ -262,91 +304,62 @@ const BookingsPage = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50 sticky top-0 z-10">
                     <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guest</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking Date</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {filteredBookings.map((booking) => (
-                      <tr key={booking.bookingId} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">#{booking.bookingId}</td>
+                      <tr 
+                        key={booking.bookingId} 
+                        className={`hover:bg-gray-50 transition-colors ${isFirstBooker(booking.bookingId) ? 'bg-amber-50 border-l-4 border-amber-500' : ''}`}
+                      >
                         <td className="px-6 py-4">
-                          <div className="flex items-center">
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{booking.guestName}</div>
-                              <div className="text-sm text-gray-500">{booking.guestContact}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_gender || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_age ? `${booking.guest_age} years` : '-'}</td>
-                        <td className="px-6 py-4 text-sm">
-                          <div className="font-medium text-gray-900">{booking.room_number ? `#${booking.room_number}` : booking.roomName}</div>
-                          {booking.room_number && (
-                            <div className="text-gray-500">{booking.roomName}</div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkIn)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkOut)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guests}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">₱{booking.totalPrice}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
-                            {getStatusIcon(booking.status)}
-                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{formatDateTime(booking.bookingDate)}</td>
-                        <td className="px-6 py-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center gap-2">
                             <button
                               onClick={() => showBookingDetails(booking)}
-                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              className="inline-flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              title="View details"
                               aria-label={`View details for booking ${booking.bookingId}`}
                             >
-                              <Eye className="w-4 h-4 mr-1" />
-                              View
+                              <Eye className="w-4 h-4" />
                             </button>
                             {booking.status === 'pending' && (
                               <>
                                 <button
                                   onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                                   disabled={processingId === booking.bookingId}
-                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                  className="inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                  title="Approve booking"
                                   aria-label={`Approve booking ${booking.bookingId}`}
                                 >
                                   {processingId === booking.bookingId ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                   ) : (
-                                    <>
-                                      <Check className="w-4 h-4 mr-1" />
-                                      Approve
-                                    </>
+                                    <Check className="w-4 h-4" />
                                   )}
                                 </button>
                                 <button
                                   onClick={() => handleBookingAction(booking.bookingId, 'decline')}
                                   disabled={processingId === booking.bookingId}
-                                  className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                  className="inline-flex items-center justify-center p-2 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                  title="Decline booking"
                                   aria-label={`Decline booking ${booking.bookingId}`}
                                 >
                                   {processingId === booking.bookingId ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
                                   ) : (
-                                    <>
-                                      <X className="w-4 h-4 mr-1" />
-                                      Decline
-                                    </>
+                                    <X className="w-4 h-4" />
                                   )}
                                 </button>
                               </>
@@ -355,36 +368,70 @@ const BookingsPage = () => {
                               <button
                                 onClick={() => handleMarkCompleted(booking.bookingId)}
                                 disabled={processingId === booking.bookingId}
-                                className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                className="inline-flex items-center justify-center p-2 text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                title="Mark as completed"
                                 aria-label={`Mark booking ${booking.bookingId} as completed`}
                               >
                                 {processingId === booking.bookingId ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
                                 ) : (
-                                  <>
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    Complete
-                                  </>
+                                  <CheckCircle className="w-4 h-4" />
                                 )}
                               </button>
                             )}
                             <button
                               onClick={() => handleDeleteBooking(booking.bookingId)}
                               disabled={processingId === booking.bookingId}
-                              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="inline-flex items-center justify-center p-2 text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              title="Delete booking"
                               aria-label={`Delete booking ${booking.bookingId}`}
                             >
                               {processingId === booking.bookingId ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
-                                <>
-                                  <Trash2 className="w-4 h-4 mr-1" />
-                                  Delete
-                                </>
+                                <Trash2 className="w-4 h-4" />
                               )}
                             </button>
                           </div>
                         </td>
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          <div className="flex items-center gap-2">
+                            #{booking.bookingId}
+                            {isFirstBooker(booking.bookingId) && (
+                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                <Star className="w-3 h-3 mr-1 fill-amber-500 text-amber-500" />
+                                Priority
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center">
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{booking.guestName}</div>
+                              <div className="text-sm text-gray-500">{booking.guestContact}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-sm">
+                          <div className="font-bold text-blue-600">{booking.room_number ? `#${booking.room_number}` : booking.roomName}</div>
+                          {booking.room_number && (
+                            <div className="text-blue-600 font-bold">{booking.roomName}</div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
+                            {getStatusIcon(booking.status)}
+                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkIn)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkOut)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">₱{booking.totalPrice}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guests}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500">{formatDateTime(booking.bookingDate)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_gender || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_age ? `${booking.guest_age} years` : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -395,15 +442,27 @@ const BookingsPage = () => {
               <div className="lg:hidden divide-y divide-gray-200">
                 {filteredBookings.map((booking) => (
                   <div key={booking.bookingId} className="p-4 sm:p-5">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5 space-y-4">
+                    <div className={`bg-white rounded-xl shadow-sm border p-4 sm:p-5 space-y-4 ${isFirstBooker(booking.bookingId) ? 'border-amber-400 border-2 bg-amber-50' : 'border-gray-200'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center">
-                            <User className="w-6 h-6 text-blue-600" />
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isFirstBooker(booking.bookingId) ? 'bg-amber-100' : 'bg-blue-50'}`}>
+                            {isFirstBooker(booking.bookingId) ? (
+                              <Star className="w-6 h-6 text-amber-600 fill-amber-600" />
+                            ) : (
+                              <User className="w-6 h-6 text-blue-600" />
+                            )}
                           </div>
                           <div>
                             <h3 className="text-base font-semibold text-gray-900">{booking.guestName}</h3>
-                            <p className="text-sm text-gray-500">ID: #{booking.bookingId}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm text-gray-500">ID: #{booking.bookingId}</p>
+                              {isFirstBooker(booking.bookingId) && (
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                                  <Star className="w-3 h-3 mr-1 fill-amber-500 text-amber-500" />
+                                  Priority
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
@@ -437,7 +496,7 @@ const BookingsPage = () => {
                             <Home className="w-4 h-4" />
                             Room
                           </span>
-                          <span className={`mt-1 inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getRoomTypeColor(booking.roomName)}`}>
+                          <span className={`mt-1 inline-flex px-2.5 py-1 text-xs font-bold rounded-full ${getRoomTypeColor(booking.roomName)}`}>
                             {booking.roomName}
                           </span>
                         </div>
@@ -477,42 +536,38 @@ const BookingsPage = () => {
                       <div className="flex flex-wrap gap-2 pt-3">
                         <button
                           onClick={() => showBookingDetails(booking)}
-                          className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                          className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                          title="View details"
                           aria-label={`View details for booking ${booking.bookingId}`}
                         >
-                          <Eye className="w-4 h-4 mr-1.5" />
-                          View
+                          <Eye className="w-5 h-5" />
                         </button>
                         {booking.status === 'pending' && (
                           <>
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                               disabled={processingId === booking.bookingId}
-                              className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              title="Approve booking"
                               aria-label={`Approve booking ${booking.bookingId}`}
                             >
                               {processingId === booking.bookingId ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-5 h-5 animate-spin" />
                               ) : (
-                                <>
-                                  <Check className="w-4 h-4 mr-1.5" />
-                                  Approve
-                                </>
+                                <Check className="w-5 h-5" />
                               )}
                             </button>
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'decline')}
                               disabled={processingId === booking.bookingId}
-                              className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              title="Decline booking"
                               aria-label={`Decline booking ${booking.bookingId}`}
                             >
                               {processingId === booking.bookingId ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                                <Loader2 className="w-5 h-5 animate-spin" />
                               ) : (
-                                <>
-                                  <X className="w-4 h-4 mr-1.5" />
-                                  Decline
-                                </>
+                                <X className="w-5 h-5" />
                               )}
                             </button>
                           </>
@@ -521,35 +576,31 @@ const BookingsPage = () => {
                           <button
                             onClick={() => handleMarkCompleted(booking.bookingId)}
                             disabled={processingId === booking.bookingId}
-                            className="flex-1 min-w-[100px] inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                            className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                            title="Mark as completed"
                             aria-label={`Mark booking ${booking.bookingId} as completed`}
                           >
                             {processingId === booking.bookingId ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <Loader2 className="w-5 h-5 animate-spin" />
                             ) : (
-                              <>
-                                <CheckCircle className="w-4 h-4 mr-1.5" />
-                                Complete
-                              </>
+                              <CheckCircle className="w-5 h-5" />
                             )}
                           </button>
                         )}
+                        <button
+                          onClick={() => handleDeleteBooking(booking.bookingId)}
+                          disabled={processingId === booking.bookingId}
+                          className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                          title="Delete booking"
+                          aria-label={`Delete booking ${booking.bookingId}`}
+                        >
+                          {processingId === booking.bookingId ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-5 h-5" />
+                          )}
+                        </button>
                       </div>
-                      <button
-                        onClick={() => handleDeleteBooking(booking.bookingId)}
-                        disabled={processingId === booking.bookingId}
-                        className="w-full mt-2 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                        aria-label={`Delete booking ${booking.bookingId}`}
-                      >
-                        {processingId === booking.bookingId ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Trash2 className="w-4 h-4 mr-2" />
-                            Delete
-                          </>
-                        )}
-                      </button>
                     </div>
                   </div>
                 ))}

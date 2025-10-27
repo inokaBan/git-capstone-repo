@@ -199,7 +199,7 @@ const RoomDetailPage = () => {
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{room.room_number ? `Room #${room.room_number}` : room.name}</h1>
                 {room.room_number && (
-                  <p className="text-sm text-gray-500">{room.name}</p>
+                  <p className="text-sm text-gray-900 font-bold">{room.name}</p>
                 )}
               </div>
               <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
@@ -248,6 +248,13 @@ const RoomDetailPage = () => {
               )}
             </div>
 
+            {/* Note about booked dates - moved to top */}
+            {room.status === 'booked' && (
+              <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+                <strong>Note:</strong> This room has some booked dates. Please check the calendar below for availability.
+              </div>
+            )}
+
             {/* Booking Calendar */}
             <div className="mb-4">
               <BookingCalendar
@@ -258,12 +265,6 @@ const RoomDetailPage = () => {
                 onValidationError={handleCalendarValidationError}
               />
             </div>
-
-            {room.status === 'booked' && (
-              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-                <strong>Note:</strong> This room has some booked dates. Please check the calendar above for availability.
-              </div>
-            )}
             
             {/* Guests Selector */}
             <div className="mb-4">

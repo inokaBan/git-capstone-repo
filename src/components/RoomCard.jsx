@@ -17,26 +17,6 @@ const RoomCard = ({ room, onClick }) => {
     setShowFullDescription(!showFullDescription);
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'available': return 'bg-green-500 text-white';
-      case 'booked': return 'bg-red-500 text-white';
-      case 'maintenance': return 'bg-yellow-500 text-white';
-      case 'cleaning': return 'bg-blue-500 text-white';
-      default: return 'bg-gray-500 text-white';
-    }
-  };
-
-  const getStatusText = (status) => {
-    switch (status) {
-      case 'available': return 'Available';
-      case 'booked': return 'Booked';
-      case 'maintenance': return 'Maintenance';
-      case 'cleaning': return 'Cleaning';
-      default: return 'Unknown';
-    }
-  };
-
   return (
     <div 
       onClick={onClick}
@@ -58,14 +38,17 @@ const RoomCard = ({ room, onClick }) => {
         <div className="absolute top-2 left-2 bg-blue-600 text-white rounded-full px-2 py-1">
           <span className="text-xs font-semibold">{room.category || 'N/A'}</span>
         </div>
-        <div className={`absolute top-12 left-2 ${getStatusColor(room.status)} rounded-full px-2 py-1`}>
-          <span className="text-xs font-semibold">{getStatusText(room.status)}</span>
+        <div className="absolute bottom-2 right-2 bg-white bg-opacity-95 rounded-lg px-3 py-2 shadow-md">
+          <p className="text-lg font-bold text-gray-900">
+            ₱{Number(room.price).toLocaleString() || 'N/A'}
+            <span className="text-xs text-gray-600 font-normal">/night</span>
+          </p>
         </div>
       </div>
 
       <div className="p-4 sm:p-5">
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
+          <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
             {room.room_number ? `Room #${room.room_number}` : room.name || 'Room'}
           </h3>
           <div className="flex items-center space-x-1 text-gray-600">
@@ -75,7 +58,7 @@ const RoomCard = ({ room, onClick }) => {
         </div>
 
         {room.type_name && (
-          <p className="text-sm text-gray-600 font-medium mb-2">{room.type_name}</p>
+          <p className="text-sm text-gray-900 font-bold mb-2">{room.type_name}</p>
         )}
 
         <div className="mb-3">
@@ -109,11 +92,9 @@ const RoomCard = ({ room, onClick }) => {
         </div>
 
         <div className="flex items-center justify-between">
-          <div>
-            <p className="text-lg font-bold text-gray-900">
-              ₱{Number(room.price).toLocaleString() || 'N/A'}
-              <span className="text-xs text-gray-500 font-normal">/night</span>
-            </p>
+          <div className="flex items-center space-x-1 text-gray-600">
+            <Users className="w-4 h-4" />
+            <span className="text-sm">{room.guests || 'N/A'} guests</span>
           </div>
           <button
             className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors min-w-[44px] min-h-[44px]"

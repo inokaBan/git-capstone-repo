@@ -94,8 +94,28 @@ const RoomsPage = () => {
     }
   });
 
-  const availableRooms = filteredRooms.filter(room => (room.status || '').toLowerCase() === 'available');
-  const otherRooms = filteredRooms.filter(room => (room.status || '').toLowerCase() !== 'available');
+  // Group filtered rooms by room type
+  const roomsByType = useMemo(() => {
+    const grouped = {};
+    filteredRooms.forEach(room => {
+      const typeName = room.type_name || 'Other';
+      if (!grouped[typeName]) {
+        grouped[typeName] = [];
+      }
+      grouped[typeName].push(room);
+    });
+    return grouped;
+  }, [filteredRooms]);
+
+  // Get room types to display (either all or just the selected one)
+  const roomTypesToDisplay = useMemo(() => {
+    if (selectedRoomType !== 'All') {
+      // Only show the selected room type if it has rooms
+      return roomsByType[selectedRoomType] ? [selectedRoomType] : [];
+    }
+    // Show all room types that have rooms
+    return Object.keys(roomsByType).sort();
+  }, [roomsByType, selectedRoomType]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -161,6 +181,20 @@ const RoomsPage = () => {
               })}
             </div>
 
+            {/* Desktop Search Bar - Only on larger screens */}
+            <div className="hidden lg:flex items-center px-4 border-l border-gray-200">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search rooms..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-9 pr-4 py-2 w-64 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
             {/* Filter Button */}
             <button
               onClick={() => setShowFilters(!showFilters)}
@@ -222,11 +256,11 @@ const RoomsPage = () => {
 
         {/* Results Count */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
-            Available Rooms
-          </h2>
           <p className="text-gray-600">
-            Showing {availableRooms.length} of {filteredRooms.length} rooms
+            {selectedRoomType !== 'All' 
+              ? `Showing ${filteredRooms.length} ${selectedRoomType} room${filteredRooms.length !== 1 ? 's' : ''}`
+              : `Showing ${filteredRooms.length} room${filteredRooms.length !== 1 ? 's' : ''} across ${roomTypesToDisplay.length} room type${roomTypesToDisplay.length !== 1 ? 's' : ''}`
+            }
           </p>
         </div>
 
@@ -242,38 +276,39 @@ const RoomsPage = () => {
           </div>
         )}
 
-        {/* Available Rooms Grid */}
+        {/* Rooms Grid - Show rooms grouped by type */}
         {!loading && !error && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {availableRooms.length > 0 ? (
-                availableRooms.map(room => (
-                  <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
-                ))
-              ) : (
-                <div className="col-span-full text-center py-12">
-                  <p className="text-gray-500 text-lg">No available rooms match your criteria.</p>
-                </div>
-              )}
-            </div>
+            {roomTypesToDisplay.length > 0 ? (
+              roomTypesToDisplay.map((typeName, index) => (
+                <div key={typeName} className={index > 0 ? 'mt-12' : ''}>
+                  {/* Room Type Section Header */}
+                  <div className={`${index > 0 ? 'border-t border-gray-200 pt-8' : ''} mb-6`}>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                      {typeName}
+                    </h2>
+                    <p className="text-gray-600">
+                      {roomsByType[typeName].length} room{roomsByType[typeName].length !== 1 ? 's' : ''}
+                    </p>
+                  </div>
 
-            {/* Other Rooms Section */}
-            {otherRooms.length > 0 && (
-              <>
-                <div className="border-t border-gray-200 pt-8 mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Other Rooms
-                  </h2>
-                  <p className="text-gray-600">
-                    Currently unavailable rooms
-                  </p>
+                  {/* Room Cards Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    {roomsByType[typeName].map(room => (
+                      <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {otherRooms.map(room => (
-                    <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
-                  ))}
-                </div>
-              </>
+              ))
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-500 text-lg">
+                  {selectedRoomType !== 'All' 
+                    ? `No ${selectedRoomType} rooms found.`
+                    : 'No rooms match your criteria.'
+                  }
+                </p>
+              </div>
             )}
           </>
         )}
@@ -282,7 +317,7 @@ const RoomsPage = () => {
       {/* Floating Search Button - Twitter Style */}
       <button
         onClick={() => setShowSearch(true)}
-        className="fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 hover:scale-110 z-40"
+        className="lg:hidden fixed bottom-6 right-6 bg-blue-600 text-white p-4 rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200 hover:scale-110 z-40"
       >
         <Search className="h-6 w-6" />
       </button>
@@ -325,7 +360,7 @@ const RoomsPage = () => {
                         }}
                         className="w-full text-left p-3 hover:bg-gray-50 rounded-lg transition-colors"
                       >
-                        <div className="font-semibold text-gray-900">{room.type_name || room.name}</div>
+                        <div className="font-bold text-blue-600">{room.type_name || room.name}</div>
                         <div className="text-sm text-gray-600 truncate">{room.description}</div>
                         <div className="text-sm font-semibold text-blue-600 mt-1">₱{Number(room.price).toLocaleString()}</div>
                       </button>
