@@ -246,7 +246,7 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
           <span className="text-gray-600">Selected</span>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="w-4 h-4 bg-red-100 rounded border border-red-300"></div>
+          <div className="w-4 h-4 bg-red-500 rounded"></div>
           <span className="text-gray-600">Occupied</span>
         </div>
         <div className="flex items-center space-x-2">
@@ -307,14 +307,14 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
                     ${inCurrentMonth ? '' : 'opacity-40'}
                     ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-blue-50'}
                     ${selected && !isOccupied ? 'bg-blue-500 text-white hover:bg-blue-600' : 
-                      isOccupied ? 'bg-red-50 border-red-200' : 
+                      isOccupied ? 'bg-red-500 border-red-600' : 
                       isPast ? 'bg-gray-50' : 
                       'bg-white'}
                     ${isCheckIn ? 'font-bold ring-2 ring-blue-600 ring-inset' : ''}
                     ${isCheckOut ? 'font-bold ring-2 ring-blue-600 ring-inset' : ''}
                   `}
                 >
-                  <span className={`text-sm ${isToday && !selected ? 'font-bold text-blue-600' : ''} ${selected ? 'text-white font-bold' : isOccupied ? 'text-red-700 font-medium' : 'text-gray-900 font-medium'}`}>
+                  <span className={`text-sm ${isToday && !selected ? 'font-bold text-blue-600' : ''} ${selected ? 'text-white font-bold' : isOccupied ? 'text-white font-bold' : 'text-gray-900 font-medium'}`}>
                     {date.getDate()}
                   </span>
                   {isCheckIn && (
@@ -324,7 +324,7 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
                     <span className={`text-[9px] mt-0.5 font-medium ${selected ? 'text-white' : 'text-blue-600'}`}>Check-out</span>
                   )}
                   {isOccupied && (
-                    <span className="text-[9px] text-red-600 mt-0.5 font-medium">Booked</span>
+                    <span className="text-[9px] text-white mt-0.5 font-medium">Booked</span>
                   )}
                 </button>
               );

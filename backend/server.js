@@ -876,6 +876,33 @@ app.get("/api/bookings", (req, res) => {
     });
 });
 
+// Get bookings for the logged-in user
+app.get("/api/user/bookings", requireAuth, (req, res) => {
+    // Extract email from auth header
+    const authHeader = req.headers.authorization;
+    const userEmail = authHeader ? authHeader.replace('Bearer ', '') : null;
+    
+    if (!userEmail) {
+        return res.status(401).json({ error: "Authentication required" });
+    }
+    
+    // Get bookings where guest_email matches the logged-in user's email
+    const sql = `
+        SELECT b.*, r.room_number 
+        FROM bookings b 
+        LEFT JOIN rooms r ON b.room_id = r.id 
+        WHERE b.guest_email = ? 
+        ORDER BY b.bookingDate DESC
+    `;
+    
+    db.query(sql, [userEmail], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.code || err.message || "Database error" });
+        }
+        return res.status(200).json(results || []);
+    });
+});
+
 // Update booking status (approve/decline) - now with warehouse deduction
 app.patch("/api/bookings/:bookingId", async (req, res) => {
     const { bookingId } = req.params;

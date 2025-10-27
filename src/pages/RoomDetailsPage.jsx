@@ -10,9 +10,11 @@ import BookingCalendar from '../components/BookingCalendar';
 import { useBooking } from '../context/BookingContext'; 
 import AmenityIcon from '../context/AmenityIcon';
 import { useToast } from '../context/ToastContext';
+import { useAuth } from '../context/AuthContext';
 
 const RoomDetailPage = () => {
   const { id } = useParams();
+  const { user, isAuthenticated } = useAuth();
   const [room, setRoom] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { checkIn, setCheckIn, checkOut, setCheckOut, guests, setGuests } = useBooking();
@@ -29,6 +31,13 @@ const RoomDetailPage = () => {
   const { showError, showWarning } = useToast();
 
   const today = new Date().toISOString().split('T')[0];
+
+  // Auto-fill email with logged-in user's email
+  useEffect(() => {
+    if (isAuthenticated && user?.email) {
+      setGuestEmail(user.email);
+    }
+  }, [isAuthenticated, user]);
 
   // Handle date selection from calendar
   const handleDateSelect = (newCheckIn, newCheckOut) => {
@@ -175,12 +184,17 @@ const RoomDetailPage = () => {
       <div className="max-w-7xl mx-auto grid lg:grid-cols-3 gap-6">
         {/* Left side images and description */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden relative">
             <img 
               src={(room.images && room.images[selectedImageIndex]) || (room.images && room.images[0]) || room.image || 'https://via.placeholder.com/800x400?text=Room'} 
               alt={room.name} 
               className="w-full h-64 sm:h-80 object-cover" 
             />
+            {/* Price badge in bottom-right corner */}
+            <div className="absolute bottom-4 right-4 text-black px-4 py-2">
+              <div className="text-xl font-bold">{getDisplayPrice()}</div>
+              <div className="text-xs">per night</div>
+            </div>
             <div className="flex overflow-x-auto space-x-2 p-4">
               {(room.images || []).map((img, i) => (
                 <img
@@ -235,19 +249,6 @@ const RoomDetailPage = () => {
         {/* Right side booking card */}
         <div className="space-y-6">
           <div className="bg-white rounded-2xl shadow-lg p-6 sticky top-20 ">
-            <div className="mb-4">
-              <div className="text-2xl font-bold text-gray-900">{getDisplayPrice()}</div>
-              {room.original_price && (
-                <div className="text-sm line-through text-gray-500">{room.original_price}</div>
-              )}
-              <p className="text-xs text-gray-600">Per night</p>
-              {checkIn && checkOut && (
-                <p className="text-sm text-green-600 font-medium mt-2">
-                  Total: ₱{calculateTotalPrice()} ({Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))} nights)
-                </p>
-              )}
-            </div>
-
             {/* Note about booked dates - moved to top */}
             {room.status === 'booked' && (
               <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
@@ -264,6 +265,14 @@ const RoomDetailPage = () => {
                 onDateSelect={handleDateSelect}
                 onValidationError={handleCalendarValidationError}
               />
+            </div>
+
+            <div className="mb-4">
+              {checkIn && checkOut && (
+                <p className="text-md text-green-600 font-medium mt-2">
+                  Total: ₱{calculateTotalPrice()} ({Math.ceil((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24))} nights)
+                </p>
+              )}
             </div>
             
             {/* Guests Selector */}
