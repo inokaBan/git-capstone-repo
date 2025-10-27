@@ -160,7 +160,7 @@ const RoomDetailPage = () => {
         </div>
       </div>
     );
-  }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 px-4">
@@ -345,7 +345,7 @@ const RoomDetailPage = () => {
 
             <button 
               onClick={handleBooking} 
-              disabled={room.status === 'booked' || !checkIn || !checkOut || !guestName || (!guestEmail && !guestPhone)}
+              disabled={!checkIn || !checkOut || !guestName || (!guestEmail && !guestPhone)}
               className="w-full bg-blue-600 text-white py-3 rounded-lg mt-12 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
               Book Now

@@ -53,7 +53,7 @@ const RegisterPage = () => {
                 return;
               }
               showSuccess("Registration successful!");
-              navigate('/login');
+              navigate('/');
             })
             .catch((err) => {
               console.error(err);
@@ -166,7 +166,7 @@ const RegisterPage = () => {
           <div className="text-center mt-8 space-y-4">
             <p className="text-gray-600">
               Already have an account?{" "}
-              <Link to="/login" className="text-blue-600 hover:underline font-medium cursor-pointer">
+              <Link to="/" className="text-blue-600 hover:underline font-medium cursor-pointer">
                 Sign in
               </Link>
             </p>

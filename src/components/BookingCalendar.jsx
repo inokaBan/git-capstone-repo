@@ -302,18 +302,19 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
                   onClick={() => !isDisabled && handleDateClick(date)}
                   disabled={isDisabled}
                   className={`
-                    bg-white min-h-[60px] p-2 flex flex-col items-center justify-center
+                    min-h-[60px] p-2 flex flex-col items-center justify-center
                     transition-colors relative
                     ${inCurrentMonth ? '' : 'opacity-40'}
                     ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-blue-50'}
-                    ${isPast && !isOccupied ? 'bg-gray-50' : ''}
-                    ${isOccupied ? 'bg-red-50 border-red-200' : ''}
-                    ${selected && !isOccupied ? 'bg-blue-500 text-white hover:bg-blue-600' : ''}
+                    ${selected && !isOccupied ? 'bg-blue-500 text-white hover:bg-blue-600' : 
+                      isOccupied ? 'bg-red-50 border-red-200' : 
+                      isPast ? 'bg-gray-50' : 
+                      'bg-white'}
                     ${isCheckIn ? 'font-bold ring-2 ring-blue-600 ring-inset' : ''}
                     ${isCheckOut ? 'font-bold ring-2 ring-blue-600 ring-inset' : ''}
                   `}
                 >
-                  <span className={`text-sm font-medium ${isToday && !selected ? 'font-bold text-blue-600' : ''} ${selected ? 'text-white font-semibold' : isOccupied ? 'text-red-700' : 'text-gray-900'}`}>
+                  <span className={`text-sm ${isToday && !selected ? 'font-bold text-blue-600' : ''} ${selected ? 'text-white font-bold' : isOccupied ? 'text-red-700 font-medium' : 'text-gray-900 font-medium'}`}>
                     {date.getDate()}
                   </span>
                   {isCheckIn && (
