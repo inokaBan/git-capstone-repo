@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require("express")
 const mysql = require("mysql")
 const cors = require("cors")
@@ -89,10 +91,10 @@ const validatePasswordStrength = (password) => {
 };
 
 const db = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    password: "",
-    database: "osner_db"
+    host: process.env.DB_HOST || "localhost",
+    user: process.env.DB_USER || "root",
+    password: process.env.DB_PASSWORD || "",
+    database: process.env.DB_DATABASE || "osner_db"
 })
 
 // Handle database connection errors
@@ -3315,6 +3317,8 @@ app.get("/api/admin/stats", requireAuth, async (req, res) => {
     }
 });
 
-app.listen(8081, () => {
-    console.log("Server is running on port 8081")
+const PORT = process.env.PORT || 8081;
+
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`)
 })

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.jpg'
 import axios from 'axios'
 import { useToast } from '../context/ToastContext';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminLogin = () => {
 
@@ -26,7 +27,7 @@ const AdminLogin = () => {
         }
 
         axios
-          .post('http://localhost:8081/admin/login', { email, password })
+          .post(API_ENDPOINTS.ADMIN_LOGIN, { email, password })
           .then((res) => {
             if (!res?.data?.admin) {
               showError('Unexpected server response');

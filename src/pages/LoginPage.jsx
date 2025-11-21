@@ -5,6 +5,7 @@ import LoginValidation from "../context/LoginValidation"
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { API_ENDPOINTS } from '../config/api';
 
 
 const LoginPage = () => {
@@ -24,7 +25,7 @@ const LoginPage = () => {
 
       const hasNoErrors = validationErrors.email === "" && validationErrors.password === "";
       if (hasNoErrors) {
-        axios.post('http://localhost:8081/api/auth/login', {
+        axios.post(API_ENDPOINTS.AUTH_LOGIN, {
           email: values.email,
           password: values.password
         })

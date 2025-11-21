@@ -3,6 +3,7 @@ import { Wifi, Car, Coffee, Waves, Users, Star, Filter, Search, X } from 'lucide
 import axios from 'axios';
 import { useNavigate, useLocation } from 'react-router-dom';
 import RoomCard from '../components/RoomCard'
+import { API_ENDPOINTS } from '../config/api';
 
 const capitalize = str => str?.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
@@ -38,10 +39,10 @@ const RoomsPage = () => {
         setLoading(true);
         setError('');
         
-        const roomsRes = await axios.get('http://localhost:8081/api/rooms');
+        const roomsRes = await axios.get(API_ENDPOINTS.ROOMS);
         setRooms(Array.isArray(roomsRes.data) ? roomsRes.data : []);
         
-        const typesRes = await axios.get('http://localhost:8081/api/room-types');
+        const typesRes = await axios.get(API_ENDPOINTS.ROOM_TYPES);
         const types = Array.isArray(typesRes.data) ? typesRes.data : [];
         setRoomTypes(types);
       } catch (e) {
