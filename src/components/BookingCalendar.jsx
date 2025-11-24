@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Calendar, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { buildApiUrl } from '../config/api';
 
 // Utility function to get all days in a month view (including padding days)
 const getDaysInMonthView = (year, month) => {
@@ -76,7 +77,7 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
     const fetchOccupiedDates = async () => {
       try {
         setLoading(true);
-        const res = await axios.get(`http://localhost:8081/api/rooms/${roomId}/occupied-dates`);
+        const res = await axios.get(buildApiUrl(`api/rooms/${roomId}/occupied-dates`));
         setOccupiedBookings(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error('Failed to load occupied dates:', err);

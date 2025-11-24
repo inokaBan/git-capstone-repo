@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import RoomCard from './RoomCard';
+import { API_ENDPOINTS } from '../config/api';
 
 const RoomSection = () => {
   const navigate = useNavigate()
@@ -13,7 +14,7 @@ const RoomSection = () => {
     const load = async () => {
       try {
         setLoading(true)
-        const res = await axios.get('http://localhost:8081/api/rooms')
+        const res = await axios.get(API_ENDPOINTS.ROOMS)
         setRooms(Array.isArray(res.data) ? res.data : [])
       } catch (e) {
         setError('Failed to load rooms')

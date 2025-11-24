@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check, X } from 'lucide-react';
-import { calculatePasswordStrength } from '../context/PasswordStrength';
+import { calculatePasswordStrength } from '../utils/validation/passwordStrength';
 
 const PasswordStrengthMeter = ({ password, showRequirements = true }) => {
   const strength = calculatePasswordStrength(password);

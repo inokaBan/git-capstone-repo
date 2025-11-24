@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { API_ENDPOINTS } from '../config/api';
 
 const MyBookingsPage = () => {
   const { user, isAuthenticated, getAuthHeader } = useAuth();
@@ -25,7 +26,7 @@ const MyBookingsPage = () => {
 
       try {
         setLoading(true);
-        const response = await axios.get('http://localhost:8081/api/user/bookings', {
+        const response = await axios.get(API_ENDPOINTS.USER_BOOKINGS, {
           headers: getAuthHeader()
         });
         setBookings(response.data || []);
@@ -50,7 +51,7 @@ const MyBookingsPage = () => {
 
     setCancelling(bookingId);
     try {
-      await axios.patch(`http://localhost:8081/api/bookings/${bookingId}`, {
+      await axios.patch(`${API_ENDPOINTS.BOOKINGS}/${bookingId}`, {
         status: 'cancelled'
       });
       

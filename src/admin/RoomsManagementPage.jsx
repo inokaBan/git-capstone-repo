@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Star, Users, Bed, Bath, X } from 'lucide-react';
-import AmenityIcon from '../context/AmenityIcon';
+import AmenityIcon from '../components/AmenityIcon';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
+import { API_ENDPOINTS, buildApiUrl } from '../config/api';
 
 const RoomsManagementPage = () => {
   const MAX_IMAGES = 5;
@@ -49,7 +50,7 @@ const RoomsManagementPage = () => {
       console.log('Submitting room data:', newRoom);
       
       if (editingRoom) {
-        await axios.patch(`http://localhost:8081/api/rooms/${editingRoom.id}`, {
+        await axios.patch(`${API_ENDPOINTS.ROOMS}/${editingRoom.id}`, {
           room_number: newRoom.room_number,
           room_type_id: newRoom.room_type_id,
           category: newRoom.category,
@@ -97,7 +98,7 @@ const RoomsManagementPage = () => {
           formData.append('images', file);
         });
         
-        const res = await axios.post('http://localhost:8081/api/rooms', formData, {
+        const res = await axios.post(API_ENDPOINTS.ROOMS, formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
@@ -152,7 +153,7 @@ const RoomsManagementPage = () => {
     
     try {
       console.log('Deleting room with ID:', id);
-      const response = await axios.delete(`http://localhost:8081/api/rooms/${id}`);
+      const response = await axios.delete(`${API_ENDPOINTS.ROOMS}/${id}`);
       
       if (response.data.success) {
         setRooms(rooms.filter(room => room.id !== id));
@@ -254,7 +255,7 @@ const RoomsManagementPage = () => {
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:8081/api/rooms');
+      const res = await axios.get(API_ENDPOINTS.ROOMS);
       setRooms(res.data || []);
     } catch (e) {
       console.error('Failed to load rooms', e);
@@ -266,7 +267,7 @@ const RoomsManagementPage = () => {
 
   const loadAmenities = async () => {
     try {
-      const res = await axios.get('http://localhost:8081/api/amenities');
+      const res = await axios.get(API_ENDPOINTS.AMENITIES);
       setAmenities(res.data || []);
     } catch (e) {
       console.error('Failed to load amenities', e);
@@ -275,7 +276,7 @@ const RoomsManagementPage = () => {
 
   const loadRoomTypes = async () => {
     try {
-      const res = await axios.get('http://localhost:8081/api/room-types');
+      const res = await axios.get(API_ENDPOINTS.ROOM_TYPES);
       setRoomTypes(res.data || []);
     } catch (e) {
       console.error('Failed to load room types', e);
@@ -284,7 +285,7 @@ const RoomsManagementPage = () => {
 
   const loadCategories = async () => {
     try {
-      const res = await axios.get('http://localhost:8081/api/room-categories');
+      const res = await axios.get(buildApiUrl('api/room-categories'));
       setRoomCategories(res.data || []);
     } catch (e) {
       console.error('Failed to load room categories', e);
@@ -293,7 +294,7 @@ const RoomsManagementPage = () => {
 
   const loadItemCategories = async () => {
     try {
-      const res = await axios.get('http://localhost:8081/api/inventory/categories', {
+      const res = await axios.get(buildApiUrl('api/inventory/categories'), {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('userEmail') || ''}`
         }
@@ -312,7 +313,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      const res = await axios.post('http://localhost:8081/api/inventory/categories/sync-to-amenities', {}, {
+      const res = await axios.post(buildApiUrl('api/inventory/categories/sync-to-amenities'), {}, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('userEmail') || ''}`
         }
@@ -335,7 +336,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      await axios.post('http://localhost:8081/api/room-types', {
+      await axios.post(API_ENDPOINTS.ROOM_TYPES, {
         type_name: newRoomType.trim()
       });
       setNewRoomType('');
@@ -356,7 +357,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      await axios.delete(`http://localhost:8081/api/room-types/${id}`);
+      await axios.delete(`${API_ENDPOINTS.ROOM_TYPES}/${id}`);
       await loadRoomTypes();
       showSuccess('Room type deleted successfully!');
     } catch (e) {
@@ -372,7 +373,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      await axios.post('http://localhost:8081/api/room-categories', {
+      await axios.post(buildApiUrl('api/room-categories'), {
         category_name: newCategory.trim()
       });
       setNewCategory('');
@@ -393,7 +394,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      await axios.delete(`http://localhost:8081/api/room-categories/${id}`);
+      await axios.delete(buildApiUrl(`api/room-categories/${id}`));
       await loadCategories();
       showSuccess('Room category deleted successfully!');
     } catch (e) {
@@ -409,7 +410,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      await axios.post('http://localhost:8081/api/amenities', {
+      await axios.post(API_ENDPOINTS.AMENITIES, {
         name: newAmenity.trim()
       });
       setNewAmenity('');
@@ -430,7 +431,7 @@ const RoomsManagementPage = () => {
     }
     
     try {
-      await axios.delete(`http://localhost:8081/api/amenities/${id}`);
+      await axios.delete(`${API_ENDPOINTS.AMENITIES}/${id}`);
       await loadAmenities();
       showSuccess('Amenity deleted successfully!');
     } catch (e) {

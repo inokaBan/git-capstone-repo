@@ -4,6 +4,7 @@ import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
+import { API_ENDPOINTS } from '../config/api';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -19,7 +20,7 @@ const BookingsPage = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await axios.get('http://localhost:8081/api/bookings?status=all');
+        const response = await axios.get(`${API_ENDPOINTS.BOOKINGS}?status=all`);
         setBookings(response.data);
       } catch (error) {
         console.error('Error fetching bookings:', error);
@@ -60,7 +61,7 @@ const BookingsPage = () => {
   const handleBookingAction = async (bookingId, action) => {
     setProcessingId(bookingId);
     try {
-      const response = await axios.patch(`http://localhost:8081/api/bookings/${bookingId}`, {
+      const response = await axios.patch(`${API_ENDPOINTS.BOOKINGS}/${bookingId}`, {
         status: action === 'approve' ? 'confirmed' : 'declined'
       });
       setBookings(prevBookings => 
@@ -86,7 +87,7 @@ const BookingsPage = () => {
     
     setProcessingId(bookingId);
     try {
-      await axios.delete(`http://localhost:8081/api/bookings/${bookingId}`);
+      await axios.delete(`${API_ENDPOINTS.BOOKINGS}/${bookingId}`);
       setBookings(prevBookings => 
         prevBookings.filter(booking => booking.bookingId !== bookingId)
       );
@@ -108,7 +109,7 @@ const BookingsPage = () => {
     
     setProcessingId(bookingId);
     try {
-      await axios.patch(`http://localhost:8081/api/bookings/${bookingId}/check-out`);
+      await axios.patch(`${API_ENDPOINTS.BOOKINGS}/${bookingId}/check-out`);
       setBookings(prevBookings => 
         prevBookings.map(booking => 
           booking.bookingId === bookingId 

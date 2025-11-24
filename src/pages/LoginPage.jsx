@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/logo.jpg'
-import LoginValidation from "../context/LoginValidation"
+import loginValidation from "../utils/validation/loginValidation"
 import axios from 'axios'
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -20,7 +20,7 @@ const LoginPage = () => {
     
     const handleSubmit = (e) => {
       e.preventDefault();
-      const validationErrors = LoginValidation(values);
+      const validationErrors = loginValidation(values);
       setErrors(validationErrors);
 
       const hasNoErrors = validationErrors.email === "" && validationErrors.password === "";

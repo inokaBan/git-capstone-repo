@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 import { Bed, Calendar, Users, DollarSign, TrendingUp, User, Clock, Check, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { API_ENDPOINTS } from '../config/api';
 
 const AdminOverview = () => {
 
@@ -20,7 +21,7 @@ const AdminOverview = () => {
     const fetchStats = async () => {
       try {
         setLoadingStats(true);
-        const response = await axios.get('http://localhost:8081/api/admin/stats', {
+        const response = await axios.get(API_ENDPOINTS.ADMIN_STATS, {
           headers: getAuthHeader()
         });
         setStats(response.data);
@@ -38,7 +39,7 @@ const AdminOverview = () => {
     const fetchRecent = async () => {
       try {
         setLoadingBookings(true);
-        const response = await axios.get('http://localhost:8081/api/bookings?status=all');
+        const response = await axios.get(`${API_ENDPOINTS.BOOKINGS}?status=all`);
         const all = Array.isArray(response.data) ? response.data : [];
         const sorted = [...all].sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate));
         setRecentBookings(sorted.slice(0, 5));

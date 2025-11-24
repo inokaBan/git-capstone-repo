@@ -1,10 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import logo from '../assets/logo.jpg'
-import SignUpValidation from "../context/SignUpValidation";
+import signUpValidation from "../utils/validation/signUpValidation";
 import axios from "axios";
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { useToast } from '../context/ToastContext';
+import { API_ENDPOINTS } from '../config/api';
 
 const RegisterPage = () => {
   const [values, setValues] = useState({
@@ -24,7 +25,7 @@ const RegisterPage = () => {
       
       const handleSubmit = (e) => {
         e.preventDefault();
-        const validationErrors = SignUpValidation(values);
+        const validationErrors = signUpValidation(values);
         setErrors(validationErrors);
 
         // Check if password and confirmPassword match
@@ -40,7 +41,7 @@ const RegisterPage = () => {
 
         if (hasNoErrors) {
           axios
-            .post('http://localhost:8081/osner_db', values)
+            .post(API_ENDPOINTS.REGISTER, values)
             .then((res) => {
               const responseData = res?.data;
               const isStringError = typeof responseData === 'string' && responseData.toLowerCase().includes('error');

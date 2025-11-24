@@ -8,9 +8,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import BookingConfirmationModal from '../components/BookingConfirmationModal';
 import BookingCalendar from '../components/BookingCalendar';
 import { useBooking } from '../context/BookingContext'; 
-import AmenityIcon from '../context/AmenityIcon';
+import AmenityIcon from '../components/AmenityIcon';
 import { useToast } from '../context/ToastContext';
 import { useAuth } from '../context/AuthContext';
+import { API_ENDPOINTS } from '../config/api';
 
 const RoomDetailPage = () => {
   const { id } = useParams();
@@ -66,13 +67,13 @@ const RoomDetailPage = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await axios.get(`http://localhost:8081/api/rooms/${id}`);
+        const res = await axios.get(`${API_ENDPOINTS.ROOMS}/${id}`);
         setRoom(res.data);
       } catch (e) {
         console.warn('Failed to load room', e);
         // Fallback to loading all rooms and finding the specific one
         try {
-          const res = await axios.get('http://localhost:8081/api/rooms');
+          const res = await axios.get(API_ENDPOINTS.ROOMS);
           const list = Array.isArray(res.data) ? res.data : [];
           const found = list.find(r => String(r.id) === String(id));
           if (found) setRoom(found);
@@ -122,7 +123,7 @@ const RoomDetailPage = () => {
       console.log('Sending booking data:', bookingData);
 
       // Send booking data to backend via axios
-      const { data: savedBooking } = await axios.post('http://localhost:8081/api/bookings', bookingData, {
+      const { data: savedBooking } = await axios.post(API_ENDPOINTS.BOOKINGS, bookingData, {
         headers: { 'Content-Type': 'application/json' }
       });
       

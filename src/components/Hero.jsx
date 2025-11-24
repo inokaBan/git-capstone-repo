@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_ENDPOINTS } from '../config/api';
 
 
 
@@ -15,7 +16,7 @@ const Hero = () => {
     const loadRoomTypes = async () => {
       try {
         setLoading(true);
-        const res = await axios.get('http://localhost:8081/api/room-types');
+        const res = await axios.get(API_ENDPOINTS.ROOM_TYPES);
         setRooms(Array.isArray(res.data) ? res.data : []);
       } catch (e) {
         console.error('Failed to load room types', e);
