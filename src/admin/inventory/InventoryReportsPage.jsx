@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Package, BarChart, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../config/api';
 
 const InventoryReportsPage = () => {
   const { getAuthHeader } = useAuth();
   const [reports, setReports] = useState(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30'); // days
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchReports();
@@ -23,6 +25,44 @@ const InventoryReportsPage = () => {
       console.error('Error fetching reports:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      
+      // Fetch CSV data from backend
+      const response = await fetch(`${API_ENDPOINTS.INVENTORY_REPORTS_EXPORT}?days=${dateRange}`, {
+        headers: getAuthHeader(),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export report');
+      }
+      
+      // Get the CSV data as blob
+      const blob = await response.blob();
+      
+      // Create a download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `inventory-report-${dateRange}days-${Date.now()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message (optional - you can add a toast notification if you have one)
+      console.log('Report exported successfully');
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      alert('Failed to export report. Please try again.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -53,9 +93,13 @@ const InventoryReportsPage = () => {
             <option value="90">Last 90 days</option>
             <option value="365">Last year</option>
           </select>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button 
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Download className="h-5 w-5" />
-            Export
+            {exporting ? 'Exporting...' : 'Export'}
           </button>
         </div>
       </div>

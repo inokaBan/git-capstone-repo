@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Calendar, Users, Bed, Clock, Download, BarChart3, PieChart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { API_ENDPOINTS } from '../config/api';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -34,6 +35,7 @@ const AnalyticsPage = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30'); // days
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     fetchAnalytics();
@@ -164,6 +166,44 @@ const AnalyticsPage = () => {
 
   const analytics = calculateAnalytics();
 
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      
+      // Fetch CSV data from backend
+      const response = await fetch(`${API_ENDPOINTS.ANALYTICS_EXPORT}?days=${dateRange}`, {
+        headers: getAuthHeader(),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export report');
+      }
+      
+      // Get the CSV data as blob
+      const blob = await response.blob();
+      
+      // Create a download link and trigger download
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `analytics-report-${dateRange}days-${Date.now()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      
+      // Cleanup
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      // Show success message (optional - you can add a toast notification if you have one)
+      console.log('Report exported successfully');
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      alert('Failed to export report. Please try again.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Common tooltip styles for consistency across charts
   const tooltipStyles = {
     backgroundColor: 'rgba(31, 41, 55, 0.95)', // Dark gray with slight transparency
@@ -212,9 +252,13 @@ const AnalyticsPage = () => {
             <option value="90">Last 90 days</option>
             <option value="365">Last year</option>
           </select>
-          <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors shadow-sm">
+          <button 
+            onClick={handleExport}
+            disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Download className="h-4 w-4" />
-            Export Report
+            {exporting ? 'Exporting...' : 'Export Report'}
           </button>
         </div>
       </header>

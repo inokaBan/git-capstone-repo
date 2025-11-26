@@ -30,6 +30,10 @@ export const API_ENDPOINTS = {
   ADMIN_USERS: `${API_BASE_URL}/api/admin/users`,
   ADMIN_STATS: `${API_BASE_URL}/api/admin/stats`,
   
+  // Reports Export
+  ANALYTICS_EXPORT: `${API_BASE_URL}/api/admin/reports/analytics/export`,
+  INVENTORY_REPORTS_EXPORT: `${API_BASE_URL}/api/inventory/reports/export`,
+  
   // Amenities
   AMENITIES: `${API_BASE_URL}/api/amenities`,
   

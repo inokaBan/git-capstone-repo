@@ -99,7 +99,9 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
       const end = new Date(booking.checkOut);
       let current = new Date(start);
       
-      while (current <= end) {
+      // Include check-in date but exclude check-out date
+      // This allows new bookings to check in on the day previous guests check out
+      while (current < end) {
         dates.add(formatYMD(current));
         current.setDate(current.getDate() + 1);
       }

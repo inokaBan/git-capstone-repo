@@ -3247,6 +3247,166 @@ app.get("/api/inventory/reports", requireAuth, (req, res) => {
     });
 });
 
+// Export inventory reports as CSV
+app.get("/api/inventory/reports/export", requireAuth, (req, res) => {
+    const days = parseInt(req.query.days) || 30;
+    const dateFrom = new Date();
+    dateFrom.setDate(dateFrom.getDate() - days);
+    
+    // Get summary statistics
+    const summarySql = `
+        SELECT 
+            COUNT(DISTINCT i.id) as total_items,
+            SUM(w.quantity * i.unit_cost) as total_value,
+            COUNT(l.id) as total_transactions,
+            (SELECT COUNT(*) FROM warehouse_inventory w2 
+             JOIN inventory_items i2 ON w2.item_id = i2.id 
+             WHERE w2.quantity <= i2.low_stock_threshold) as low_stock_items
+        FROM inventory_items i
+        LEFT JOIN warehouse_inventory w ON i.id = w.item_id
+        LEFT JOIN inventory_log l ON i.id = l.item_id AND l.created_at >= ?
+        WHERE i.is_active = 1
+    `;
+    
+    db.query(summarySql, [dateFrom], (err, summaryResults) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        const summary = summaryResults[0];
+        
+        // Get most used items
+        const mostUsedSql = `
+            SELECT 
+                i.id, i.name, i.category, i.unit, i.unit_cost,
+                SUM(ABS(l.change_quantity)) as total_used
+            FROM inventory_items i
+            JOIN inventory_log l ON i.id = l.item_id
+            WHERE l.created_at >= ? AND l.change_quantity < 0 AND i.is_active = 1
+            GROUP BY i.id
+            ORDER BY total_used DESC
+            LIMIT 20
+        `;
+        
+        db.query(mostUsedSql, [dateFrom], (err, mostUsedResults) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            
+            // Get category breakdown
+            const categorySql = `
+                SELECT 
+                    i.category,
+                    COUNT(l.id) as transaction_count,
+                    SUM(ABS(l.change_quantity) * i.unit_cost) as total_cost
+                FROM inventory_items i
+                JOIN inventory_log l ON i.id = l.item_id
+                WHERE l.created_at >= ? AND i.is_active = 1
+                GROUP BY i.category
+                ORDER BY transaction_count DESC
+            `;
+            
+            db.query(categorySql, [dateFrom], (err, categoryResults) => {
+                if (err) {
+                    return res.status(500).json({ error: err.message });
+                }
+                
+                // Get recent activity
+                const activitySql = `
+                    SELECT l.*, i.name as item_name, i.unit
+                    FROM inventory_log l
+                    JOIN inventory_items i ON l.item_id = i.id
+                    WHERE l.created_at >= ?
+                    ORDER BY l.created_at DESC
+                    LIMIT 100
+                `;
+                
+                db.query(activitySql, [dateFrom], (err, activityResults) => {
+                    if (err) {
+                        return res.status(500).json({ error: err.message });
+                    }
+                    
+                    // Generate CSV content
+                    let csv = 'Inventory Report\n';
+                    csv += `Date Range: Last ${days} days\n`;
+                    csv += `Generated: ${new Date().toLocaleString()}\n`;
+                    csv += '\n';
+                    csv += 'Summary Statistics\n';
+                    csv += `Total Items,${summary.total_items || 0}\n`;
+                    csv += `Total Inventory Value,₱${(summary.total_value || 0).toFixed(2)}\n`;
+                    csv += `Total Transactions,${summary.total_transactions || 0}\n`;
+                    csv += `Low Stock Items,${summary.low_stock_items || 0}\n`;
+                    csv += '\n\n';
+                    
+                    // Add most used items
+                    csv += 'Most Used Items\n';
+                    csv += 'Item Name,Category,Total Used,Unit,Unit Cost,Total Cost\n';
+                    
+                    const escapeCSV = (val) => {
+                        if (val === null || val === undefined) return '';
+                        const str = String(val);
+                        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                            return `"${str.replace(/"/g, '""')}"`;
+                        }
+                        return str;
+                    };
+                    
+                    (mostUsedResults || []).forEach(item => {
+                        const totalCost = (item.total_used || 0) * (item.unit_cost || 0);
+                        csv += [
+                            escapeCSV(item.name),
+                            escapeCSV(item.category),
+                            escapeCSV(item.total_used),
+                            escapeCSV(item.unit),
+                            escapeCSV(parseFloat(item.unit_cost || 0).toFixed(2)),
+                            escapeCSV(totalCost.toFixed(2))
+                        ].join(',') + '\n';
+                    });
+                    
+                    csv += '\n\n';
+                    
+                    // Add category breakdown
+                    csv += 'Usage by Category\n';
+                    csv += 'Category,Transaction Count,Total Cost\n';
+                    
+                    (categoryResults || []).forEach(category => {
+                        csv += [
+                            escapeCSV(category.category || 'Uncategorized'),
+                            escapeCSV(category.transaction_count),
+                            escapeCSV(parseFloat(category.total_cost || 0).toFixed(2))
+                        ].join(',') + '\n';
+                    });
+                    
+                    csv += '\n\n';
+                    
+                    // Add recent activity
+                    csv += 'Recent Activity\n';
+                    csv += 'Date,Item Name,Change Quantity,New Stock Level,Reason,Notes\n';
+                    
+                    (activityResults || []).forEach(activity => {
+                        csv += [
+                            escapeCSV(new Date(activity.created_at).toLocaleString()),
+                            escapeCSV(activity.item_name),
+                            escapeCSV(activity.change_quantity),
+                            escapeCSV(activity.new_stock_level),
+                            escapeCSV(activity.reason),
+                            escapeCSV(activity.notes)
+                        ].join(',') + '\n';
+                    });
+                    
+                    // Set headers for CSV download
+                    const filename = `inventory-report-${days}days-${Date.now()}.csv`;
+                    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+                    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+                    
+                    // Send CSV
+                    return res.send(csv);
+                });
+            });
+        });
+    });
+});
+
 // Get admin dashboard statistics
 app.get("/api/admin/stats", requireAuth, async (req, res) => {
     try {
@@ -3314,6 +3474,112 @@ app.get("/api/admin/stats", requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error fetching admin stats:', error);
         return res.status(500).json({ error: error.message || "Failed to fetch statistics" });
+    }
+});
+
+// Export analytics data as CSV
+app.get("/api/admin/reports/analytics/export", requireAuth, async (req, res) => {
+    const days = parseInt(req.query.days) || 30;
+    const dateFrom = new Date();
+    dateFrom.setDate(dateFrom.getDate() - days);
+    
+    try {
+        // Get all bookings within the date range
+        const bookingsSql = `
+            SELECT 
+                b.bookingId,
+                b.bookingDate,
+                b.guestName,
+                b.guest_email,
+                b.guest_phone,
+                b.guest_gender,
+                b.guest_age,
+                b.roomName,
+                r.room_number,
+                b.checkIn,
+                b.checkOut,
+                b.guests,
+                b.totalPrice,
+                b.status
+            FROM bookings b
+            LEFT JOIN rooms r ON b.room_id = r.id
+            WHERE b.bookingDate >= ?
+            ORDER BY b.bookingDate DESC
+        `;
+        
+        const bookings = await new Promise((resolve, reject) => {
+            db.query(bookingsSql, [dateFrom], (err, results) => {
+                if (err) reject(err);
+                else resolve(results || []);
+            });
+        });
+        
+        // Calculate summary statistics
+        const totalRevenue = bookings.reduce((sum, b) => sum + (parseFloat(b.totalPrice) || 0), 0);
+        const totalBookings = bookings.length;
+        const avgBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+        const completedBookings = bookings.filter(b => b.status === 'completed').length;
+        const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+        const confirmedBookings = bookings.filter(b => ['confirmed', 'checked_in'].includes(b.status)).length;
+        const cancelledBookings = bookings.filter(b => ['cancelled', 'declined'].includes(b.status)).length;
+        
+        // Generate CSV content
+        let csv = 'Analytics Report\n';
+        csv += `Date Range: Last ${days} days\n`;
+        csv += `Generated: ${new Date().toLocaleString()}\n`;
+        csv += '\n';
+        csv += 'Summary Statistics\n';
+        csv += `Total Revenue,₱${totalRevenue.toFixed(2)}\n`;
+        csv += `Total Bookings,${totalBookings}\n`;
+        csv += `Average Booking Value,₱${avgBookingValue.toFixed(2)}\n`;
+        csv += `Completed Bookings,${completedBookings}\n`;
+        csv += `Confirmed/Checked-In Bookings,${confirmedBookings}\n`;
+        csv += `Pending Bookings,${pendingBookings}\n`;
+        csv += `Cancelled/Declined Bookings,${cancelledBookings}\n`;
+        csv += '\n\n';
+        
+        // Add detailed bookings data
+        csv += 'Booking Details\n';
+        csv += 'Booking ID,Booking Date,Guest Name,Email,Phone,Gender,Age,Room Type,Room Number,Check-In,Check-Out,Guests,Total Price,Status\n';
+        
+        bookings.forEach(booking => {
+            const escapeCSV = (val) => {
+                if (val === null || val === undefined) return '';
+                const str = String(val);
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+            
+            csv += [
+                escapeCSV(booking.bookingId),
+                escapeCSV(new Date(booking.bookingDate).toLocaleString()),
+                escapeCSV(booking.guestName),
+                escapeCSV(booking.guest_email),
+                escapeCSV(booking.guest_phone),
+                escapeCSV(booking.guest_gender),
+                escapeCSV(booking.guest_age),
+                escapeCSV(booking.roomName),
+                escapeCSV(booking.room_number),
+                escapeCSV(booking.checkIn),
+                escapeCSV(booking.checkOut),
+                escapeCSV(booking.guests),
+                escapeCSV(parseFloat(booking.totalPrice || 0).toFixed(2)),
+                escapeCSV(booking.status)
+            ].join(',') + '\n';
+        });
+        
+        // Set headers for CSV download
+        const filename = `analytics-report-${days}days-${Date.now()}.csv`;
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        
+        // Send CSV
+        return res.send(csv);
+    } catch (error) {
+        console.error('Error exporting analytics:', error);
+        return res.status(500).json({ error: error.message || 'Failed to export analytics' });
     }
 });
 
