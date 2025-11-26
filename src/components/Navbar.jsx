@@ -45,7 +45,7 @@ const Navbar = () => {
 
   const navItems = React.useMemo(() => {
     const items = [
-      { name: 'Home', to: '/home' },
+      { name: 'Home', to: '/' },
       { name: 'Rooms', to: '/rooms' },
     ];
 
@@ -75,7 +75,7 @@ const Navbar = () => {
       });
     } else {
       items.push(
-        { name: 'Log in', to: '/', className: 'login-btn' },
+        { name: 'Log in', to: '/login', className: 'login-btn' },
         { name: 'Sign up', to: '/register', className: 'signup-btn' }
       );
     }
@@ -88,7 +88,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <NavLink to={isAuthenticated ? '/home' : '/'}>
+          <NavLink to="/">
             <div className="flex items-center flex-shrink-0">
                       <img src={logo} alt="Logo" className="w-10 h-10 rounded-full object-cover"
                       />

@@ -6,16 +6,23 @@ import axios from "axios";
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
 import { useToast } from '../context/ToastContext';
 import { API_ENDPOINTS } from '../config/api';
+import { useAuth } from '../context/AuthContext';
 
 const RegisterPage = () => {
   const [values, setValues] = useState({
         username: "",
         email: "",
         password: "",
-        confirmPassword: ""})
+        confirmPassword: "",
+        fullname: "",
+        gender: "",
+        age: "",
+        address: "",
+        contactNumber: ""})
 
       const navigate = useNavigate();
       const { showSuccess, showError } = useToast();
+      const { login } = useAuth();
       const [errors, setErrors] = useState({});
       const handleInput = (e) => {
         setValues(prev => ({
@@ -37,7 +44,12 @@ const RegisterPage = () => {
         const hasNoErrors =
           validationErrors.username === "" &&
           validationErrors.email === "" &&
-          validationErrors.password === "";
+          validationErrors.password === "" &&
+          validationErrors.fullname === "" &&
+          validationErrors.gender === "" &&
+          validationErrors.age === "" &&
+          validationErrors.address === "" &&
+          validationErrors.contactNumber === "";
 
         if (hasNoErrors) {
           axios
@@ -53,8 +65,33 @@ const RegisterPage = () => {
                 showError(`Server error: ${message}`);
                 return;
               }
-              showSuccess("Registration successful!");
-              navigate('/');
+              
+              // Registration successful, now log in automatically
+              axios
+                .post(API_ENDPOINTS.AUTH_LOGIN, {
+                  email: values.email,
+                  password: values.password
+                })
+                .then((loginRes) => {
+                  const loginData = loginRes?.data;
+                  if (!loginData || !loginData.user || !loginData.role) {
+                    showError('Registration successful but automatic login failed. Please log in manually.');
+                    navigate('/login');
+                    return;
+                  }
+                  
+                  // Store authentication state
+                  login(loginData.user, loginData.role);
+                  
+                  // Show success message and redirect to home
+                  showSuccess('Registration successful! Welcome to Osner Hotel.');
+                  navigate('/');
+                })
+                .catch((loginErr) => {
+                  console.error('Auto-login error:', loginErr);
+                  showError('Registration successful but automatic login failed. Please log in manually.');
+                  navigate('/login');
+                });
             })
             .catch((err) => {
               console.error(err);
@@ -102,6 +139,22 @@ const RegisterPage = () => {
               />
               <span className="text-red-500 text-sm mt-2">{errors.username}</span>
             </div>
+
+            {/* Full Name Field */}
+            <div>
+              <label className="block text-gray-700 text-base font-medium mb-2">
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="fullname"
+                placeholder="Enter your full name"
+                onChange={handleInput}
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                required
+              />
+              <span className="text-red-500 text-sm mt-2">{errors.fullname}</span>
+            </div>
   
             {/* Email Field */}
             <div>
@@ -117,6 +170,77 @@ const RegisterPage = () => {
                 required
               />
               <span className="text-red-500 text-sm mt-2">{errors.email}</span>
+            </div>
+
+            {/* Contact Number Field */}
+            <div>
+              <label className="block text-gray-700 text-base font-medium mb-2">
+                Contact Number
+              </label>
+              <input
+                type="tel"
+                name="contactNumber"
+                placeholder="Enter your contact number"
+                onChange={handleInput}
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                required
+              />
+              <span className="text-red-500 text-sm mt-2">{errors.contactNumber}</span>
+            </div>
+
+            {/* Gender and Age Fields - 2 Column Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 text-base font-medium mb-2">
+                  Gender
+                </label>
+                <select
+                  name="gender"
+                  onChange={handleInput}
+                  value={values.gender}
+                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                  required
+                >
+                  <option value="">Select Gender</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+                <span className="text-red-500 text-sm mt-2">{errors.gender}</span>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 text-base font-medium mb-2">
+                  Age
+                </label>
+                <input
+                  type="number"
+                  name="age"
+                  placeholder="Enter your age"
+                  onChange={handleInput}
+                  min="1"
+                  max="120"
+                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                  required
+                />
+                <span className="text-red-500 text-sm mt-2">{errors.age}</span>
+              </div>
+            </div>
+
+            {/* Address Field */}
+            <div>
+              <label className="block text-gray-700 text-base font-medium mb-2">
+                Address
+              </label>
+              <textarea
+                name="address"
+                placeholder="Enter your address"
+                onChange={handleInput}
+                rows="3"
+                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all resize-none"
+                required
+              />
+              <span className="text-red-500 text-sm mt-2">{errors.address}</span>
             </div>
   
             {/* Password Field */}
@@ -167,7 +291,7 @@ const RegisterPage = () => {
           <div className="text-center mt-8 space-y-4">
             <p className="text-gray-600">
               Already have an account?{" "}
-              <Link to="/" className="text-blue-600 hover:underline font-medium cursor-pointer">
+              <Link to="/login" className="text-blue-600 hover:underline font-medium cursor-pointer">
                 Sign in
               </Link>
             </p>

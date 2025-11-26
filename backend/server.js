@@ -148,10 +148,10 @@ const requireAdmin = (req, res, next) => {
 };
 
 app.post("/osner_db", async (req, res) => {
-    const { username, email, password } = req.body || {};
+    const { username, email, password, fullname, gender, age, address, contactNumber } = req.body || {};
 
-    if (!username || !email || !password) {
-        return res.status(400).json({ error: "Missing required fields: username, email, and password are required." });
+    if (!username || !email || !password || !fullname) {
+        return res.status(400).json({ error: "Missing required fields: username, email, password, and fullname are required." });
     }
 
     // Validate password strength
@@ -165,15 +165,60 @@ app.post("/osner_db", async (req, res) => {
         const saltRounds = 10;
         const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-        const sql = "INSERT INTO user_account (username, email, password) VALUES (?)";
-        const values = [username, email, hashedPassword];
-
-        db.query(sql, [values], (err, data) => {
+        // Start transaction to insert both user_account and customer_info
+        db.beginTransaction((err) => {
             if (err) {
-                return res.status(500).json({ error: err.code || err.message || "Database error" });
+                return res.status(500).json({ error: "Failed to start transaction" });
             }
-            return res.status(201).json({ insertId: data.insertId, affectedRows: data.affectedRows });
-        })
+
+            // Insert into user_account
+            const userSql = "INSERT INTO user_account (username, email, password) VALUES (?)";
+            const userValues = [username, email, hashedPassword];
+
+            db.query(userSql, [userValues], (err, userData) => {
+                if (err) {
+                    return db.rollback(() => {
+                        res.status(500).json({ error: err.code || err.message || "Database error" });
+                    });
+                }
+
+                const userId = userData.insertId;
+
+                // Insert into customer_info
+                const customerSql = "INSERT INTO customer_info (user_id, full_name, gender, age, address, contact_number) VALUES (?, ?, ?, ?, ?, ?)";
+                const customerValues = [
+                    userId,
+                    fullname,
+                    gender || null,
+                    age ? parseInt(age) : null,
+                    address || null,
+                    contactNumber || null
+                ];
+
+                db.query(customerSql, customerValues, (err, customerData) => {
+                    if (err) {
+                        return db.rollback(() => {
+                            res.status(500).json({ error: err.code || err.message || "Failed to save customer information" });
+                        });
+                    }
+
+                    // Commit transaction
+                    db.commit((err) => {
+                        if (err) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+
+                        return res.status(201).json({ 
+                            insertId: userId, 
+                            affectedRows: userData.affectedRows,
+                            message: "Registration successful" 
+                        });
+                    });
+                });
+            });
+        });
     } catch (error) {
         return res.status(500).json({ error: "Failed to hash password" });
     }
@@ -213,8 +258,25 @@ app.post("/api/auth/login", async (req, res) => {
             }
         }
 
-        // If not admin or password didn't match, check user_account table
-        const userSql = "SELECT id, username, email, password, role FROM user_account WHERE email = ? LIMIT 1";
+        // If not admin or password didn't match, check user_account table with customer_info
+        const userSql = `
+            SELECT 
+                u.id, 
+                u.username, 
+                u.email, 
+                u.password, 
+                u.role,
+                c.full_name,
+                c.gender,
+                c.age,
+                c.address,
+                c.contact_number
+            FROM user_account u
+            LEFT JOIN customer_info c ON u.id = c.user_id
+            WHERE u.email = ? 
+            LIMIT 1
+        `;
+        
         db.query(userSql, [email], async (err, userResults) => {
             if (err) {
                 return res.status(500).json({ error: err.code || err.message || "Database error" });
@@ -230,7 +292,12 @@ app.post("/api/auth/login", async (req, res) => {
                             user: {
                                 id: user.id,
                                 username: user.username,
-                                email: user.email
+                                email: user.email,
+                                full_name: user.full_name,
+                                gender: user.gender,
+                                age: user.age,
+                                address: user.address,
+                                contact_number: user.contact_number
                             },
                             role: user.role || 'guest'
                         });

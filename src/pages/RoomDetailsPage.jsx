@@ -27,16 +27,37 @@ const RoomDetailPage = () => {
   const [guestPhone, setGuestPhone] = useState('');
   const [guestGender, setGuestGender] = useState('');
   const [guestAge, setGuestAge] = useState('');
+  const [showRegistrationPrompt, setShowRegistrationPrompt] = useState(false);
+  const [continueAsGuest, setContinueAsGuest] = useState(false);
 
   const navigate = useNavigate();
   const { showError, showWarning } = useToast();
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Auto-fill email with logged-in user's email
+  // Auto-fill guest details with logged-in user's information
   useEffect(() => {
-    if (isAuthenticated && user?.email) {
-      setGuestEmail(user.email);
+    if (isAuthenticated && user) {
+      if (user.email) {
+        setGuestEmail(user.email);
+      }
+      // Use full_name from customer_info if available, otherwise fall back to username
+      if (user.full_name) {
+        setGuestName(user.full_name);
+      } else if (user.username) {
+        setGuestName(user.username);
+      }
+      // Pre-fill gender and age if available
+      if (user.gender) {
+        setGuestGender(user.gender);
+      }
+      if (user.age) {
+        setGuestAge(user.age.toString());
+      }
+      // Pre-fill contact number if available
+      if (user.contact_number) {
+        setGuestPhone(user.contact_number);
+      }
     }
   }, [isAuthenticated, user]);
 
@@ -88,7 +109,19 @@ const RoomDetailPage = () => {
   // Mock booking function - simulates a successful booking
   const handleBooking = async () => {
     if (!checkIn || !checkOut) return showWarning('Please select check-in and check-out dates');
-    if (!guestName || (!guestEmail && !guestPhone)) return showWarning('Please enter your name and at least one contact method (email or phone)');
+    
+    // If user is not logged in and hasn't chosen to continue as guest, show registration prompt
+    if (!isAuthenticated && !continueAsGuest) {
+      setShowRegistrationPrompt(true);
+      return;
+    }
+    
+    // Validation: for logged-in users, name and email are auto-filled
+    // For guests who chose to continue, they must fill the form
+    if (!guestName || (!guestEmail && !guestPhone)) {
+      return showWarning('Please enter your name and at least one contact method (email or phone)');
+    }
+    
     if (!room || !room.id) return showError('Room information is missing. Please refresh the page and try again.');
     
     // Validate dates
@@ -131,12 +164,20 @@ const RoomDetailPage = () => {
       setBookingDetails(savedBooking);
       setIsBookingConfirmationOpen(true);
 
-      // Clear form
-      setGuestName('');
-      setGuestEmail('');
-      setGuestPhone('');
-      setGuestGender('');
-      setGuestAge('');
+      // Clear form only for guest users (not logged-in users)
+      if (!isAuthenticated) {
+        setGuestName('');
+        setGuestEmail('');
+        setGuestPhone('');
+        setGuestGender('');
+        setGuestAge('');
+        setContinueAsGuest(false);
+      } else {
+        // For logged-in users, only clear optional fields
+        setGuestPhone('');
+        setGuestGender('');
+        setGuestAge('');
+      }
     } catch (error) {
       console.error('Booking error:', error);
       console.error('Error response:', error.response);
@@ -158,6 +199,72 @@ const RoomDetailPage = () => {
     
     return nights * pricePerNight;
   };
+
+  // Registration/Login Prompt Modal
+  const RegistrationPromptModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="text-center mb-6">
+          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Login or Register to Book</h2>
+          <p className="text-gray-600">Please login or create an account to continue with your booking</p>
+        </div>
+
+        <div className="bg-blue-50 rounded-lg p-4 mb-6">
+          <h4 className="text-sm font-semibold text-blue-900 mb-2">Benefits of Having an Account:</h4>
+          <ul className="text-sm text-blue-800 space-y-1.5">
+            <li>✓ Skip filling forms on future bookings</li>
+            <li>✓ View and manage all your bookings in one place</li>
+            <li>✓ Faster checkout process</li>
+            <li>✓ Receive booking updates via email</li>
+          </ul>
+        </div>
+
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setShowRegistrationPrompt(false);
+              navigate('/login');
+            }}
+            className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            Login to Existing Account
+          </button>
+          
+          <button
+            onClick={() => {
+              setShowRegistrationPrompt(false);
+              navigate('/register');
+            }}
+            className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-medium"
+          >
+            Create New Account
+          </button>
+          
+          <button
+            onClick={() => {
+              setShowRegistrationPrompt(false);
+              setContinueAsGuest(true);
+            }}
+            className="w-full border-2 border-gray-300 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+          >
+            Continue as Guest
+          </button>
+
+          <button
+            onClick={() => setShowRegistrationPrompt(false)}
+            className="w-full text-gray-500 py-2 px-4 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   if (!room) {
     return (
@@ -292,74 +399,113 @@ const RoomDetailPage = () => {
               </select>
             </div>
             
-            <div className="space-y-2 mt-4">
-              {/* Guest Name - Full Width */}
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                required
-              />
-
-              {/* Email and Contact Number - 2 Column Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={guestEmail}
-                  onChange={(e) => setGuestEmail(e.target.value)}
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                  required
-                />
-                <input
-                  type="tel"
-                  placeholder="Contact Number"
-                  value={guestPhone}
-                  onChange={(e) => setGuestPhone(e.target.value)}
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                  required
-                />
+            {/* User Status Badge */}
+            {isAuthenticated && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span className="text-sm font-medium text-green-800">
+                  Booking as registered user: {user?.username}
+                </span>
               </div>
+            )}
 
-              {/* Guest Gender and Age - 2 Column Grid */}
-              <div className="grid grid-cols-2 gap-2">
-                {/* Guest Gender */}
-                <select
-                  value={guestGender}
-                  onChange={(e) => setGuestGender(e.target.value)}
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
-                  required
+            {!isAuthenticated && !continueAsGuest && (
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800 mb-2">
+                  <strong>New here?</strong> Register for a faster booking experience!
+                </p>
+                <button
+                  onClick={() => navigate('/register')}
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium underline"
                 >
-                  <option value="">Select Gender</option>
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
+                  Create an account →
+                </button>
+              </div>
+            )}
 
-                {/* Guest Age */}
+            {/* Only show guest info form if user is authenticated OR has chosen to continue as guest */}
+            {(isAuthenticated || continueAsGuest) && (
+              <div className="space-y-2 mt-4">
+                {/* Guest Name - Full Width */}
                 <input
-                  type="number"
-                  placeholder="Age"
-                  value={guestAge}
-                  onChange={(e) => setGuestAge(e.target.value)}
-                  min="1"
-                  max="120"
-                  className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                  type="text"
+                  placeholder="Full Name"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  disabled={isAuthenticated}
+                  className={`w-full px-4 py-4 text-base border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                    isAuthenticated 
+                      ? 'bg-gray-100 cursor-not-allowed text-gray-600' 
+                      : 'bg-gray-100 focus:bg-white'
+                  }`}
                   required
                 />
+
+                {/* Email and Contact Number - 2 Column Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={guestEmail}
+                    onChange={(e) => setGuestEmail(e.target.value)}
+                    disabled={isAuthenticated}
+                    className={`w-full px-4 py-4 text-base border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                      isAuthenticated 
+                        ? 'bg-gray-100 cursor-not-allowed text-gray-600' 
+                        : 'bg-gray-100 focus:bg-white'
+                    }`}
+                    required
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Contact Number"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Guest Gender and Age - 2 Column Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  {/* Guest Gender */}
+                  <select
+                    value={guestGender}
+                    onChange={(e) => setGuestGender(e.target.value)}
+                    className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                    required
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+
+                  {/* Guest Age */}
+                  <input
+                    type="number"
+                    placeholder="Age"
+                    value={guestAge}
+                    onChange={(e) => setGuestAge(e.target.value)}
+                    min="1"
+                    max="120"
+                    className="w-full px-4 py-4 text-base bg-gray-100 border border-gray-300 rounded-xl placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                    required
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             
 
             <button 
               onClick={handleBooking} 
-              disabled={!checkIn || !checkOut || !guestName || (!guestEmail && !guestPhone)}
+              disabled={!checkIn || !checkOut || (isAuthenticated ? false : (!continueAsGuest && !guestName))}
               className="w-full bg-blue-600 text-white py-3 rounded-lg mt-12 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
             >
-              Book Now
+              {isAuthenticated ? 'Book Now' : (continueAsGuest ? 'Book Now' : 'Book Now')}
             </button>
             <button className="w-full border border-blue-600 text-blue-600 py-3 rounded-lg mt-2 hover:bg-blue-50 transition-colors">
               <Phone className="w-4 h-4 inline mr-2" /> Call for Booking
@@ -371,6 +517,7 @@ const RoomDetailPage = () => {
           </div>
         </div>
       </div>
+      {showRegistrationPrompt && <RegistrationPromptModal />}
       <BookingConfirmationModal
         isOpen={isBookingConfirmationOpen}
         onClose={() => setIsBookingConfirmationOpen(false)}

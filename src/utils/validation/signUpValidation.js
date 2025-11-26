@@ -28,6 +28,46 @@ const signUpValidation = (values) => {
       errors.password = "";
     }
   }
+
+  if (values.fullname === "") {
+    errors.fullname = "Full name is required";
+  } else if (values.fullname.length < 2) {
+    errors.fullname = "Full name must be at least 2 characters";
+  } else {
+    errors.fullname = "";
+  }
+
+  if (values.gender === "") {
+    errors.gender = "Gender is required";
+  } else {
+    errors.gender = "";
+  }
+
+  if (values.age === "") {
+    errors.age = "Age is required";
+  } else if (isNaN(values.age) || parseInt(values.age) < 1 || parseInt(values.age) > 120) {
+    errors.age = "Please enter a valid age between 1 and 120";
+  } else {
+    errors.age = "";
+  }
+
+  if (values.address === "") {
+    errors.address = "Address is required";
+  } else if (values.address.length < 5) {
+    errors.address = "Address must be at least 5 characters";
+  } else {
+    errors.address = "";
+  }
+
+  if (values.contactNumber === "") {
+    errors.contactNumber = "Contact number is required";
+  } else if (!/^[\d\s\-\(\)\+]+$/.test(values.contactNumber)) {
+    errors.contactNumber = "Please enter a valid contact number";
+  } else if (values.contactNumber.replace(/[\s\-\(\)\+]/g, '').length < 7) {
+    errors.contactNumber = "Contact number must be at least 7 digits";
+  } else {
+    errors.contactNumber = "";
+  }
   
   return errors;
 };

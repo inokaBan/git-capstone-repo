@@ -45,7 +45,7 @@ const LoginPage = () => {
             navigate('/admin/overview');
           } else {
             showSuccess('Login successful!');
-            navigate('/home');
+            navigate('/');
           }
         })
         .catch((err) => {
@@ -63,10 +63,6 @@ const LoginPage = () => {
   
     const handleSignUp = () => {
       navigate('/register')
-    };
-
-    const handleContinueAsGuest = () => {
-      navigate('/home');
     };
 
   return (
