@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wifi, Car, Coffee, Waves, Users, Star } from 'lucide-react';
 import AmenityIcon from '../context/AmenityIcon';
 
-const RoomCard = ({ room, onClick }) => {
+const RoomCard = ({ room, onClick, className = '', roomTypeStatus }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const MAX_DESCRIPTION_LENGTH = 100;
 
@@ -20,7 +20,7 @@ const RoomCard = ({ room, onClick }) => {
   return (
     <div 
       onClick={onClick}
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer border border-gray-100"
+      className={`bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden cursor-pointer border border-gray-100 ${className}`}
     >
       <div className="relative w-full h-48 sm:h-56">
         <img 
@@ -38,6 +38,15 @@ const RoomCard = ({ room, onClick }) => {
         <div className="absolute top-2 left-2 bg-blue-600 text-white rounded-full px-2 py-1">
           <span className="text-xs font-semibold">{room.category || 'N/A'}</span>
         </div>
+        {roomTypeStatus && (
+          <div className={`absolute top-11 left-2 rounded-full px-2 py-1 text-xs font-semibold ${
+            roomTypeStatus === 'Available' 
+              ? 'bg-green-100 text-green-700 border border-green-300' 
+              : 'bg-red-100 text-red-700 border border-red-300'
+          }`}>
+            {roomTypeStatus}
+          </div>
+        )}
         <div className="absolute bottom-2 right-2 bg-white bg-opacity-95 rounded-lg px-3 py-2 shadow-md">
           <p className="text-lg font-bold text-gray-900">
             ₱{Number(room.price).toLocaleString() || 'N/A'}
@@ -49,17 +58,13 @@ const RoomCard = ({ room, onClick }) => {
       <div className="p-4 sm:p-5">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg sm:text-xl font-bold text-gray-900 truncate">
-            {room.room_number ? `Room #${room.room_number}` : room.name || 'Room'}
+            {room.type_name || room.name || 'Room'}
           </h3>
           <div className="flex items-center space-x-1 text-gray-600">
             <Users className="w-4 h-4" />
             <span className="text-sm">{room.guests || 'N/A'}</span>
           </div>
         </div>
-
-        {room.type_name && (
-          <p className="text-sm text-gray-900 font-bold mb-2">{room.type_name}</p>
-        )}
 
         <div className="mb-3">
           <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">

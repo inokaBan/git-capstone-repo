@@ -95,15 +95,21 @@ const RoomsPage = () => {
     }
   });
 
-  // Group filtered rooms by room type
+  // Group filtered rooms by guest capacity only
   const roomsByType = useMemo(() => {
     const grouped = {};
     filteredRooms.forEach(room => {
-      const typeName = room.type_name || 'Other';
-      if (!grouped[typeName]) {
-        grouped[typeName] = [];
+      // Create a key from guest capacity only
+      const compositeKey = `GUESTS_${room.guests || 0}`;
+      
+      if (!grouped[compositeKey]) {
+        grouped[compositeKey] = {
+          rooms: [],
+          displayName: room.type_name || 'Other',
+          guests: room.guests || 0
+        };
       }
-      grouped[typeName].push(room);
+      grouped[compositeKey].rooms.push(room);
     });
     return grouped;
   }, [filteredRooms]);
@@ -111,11 +117,16 @@ const RoomsPage = () => {
   // Get room types to display (either all or just the selected one)
   const roomTypesToDisplay = useMemo(() => {
     if (selectedRoomType !== 'All') {
-      // Only show the selected room type if it has rooms
-      return roomsByType[selectedRoomType] ? [selectedRoomType] : [];
+      // Filter groups that contain the selected room type
+      return Object.keys(roomsByType).filter(key => 
+        roomsByType[key].rooms.some(room => room.type_name === selectedRoomType)
+      );
     }
-    // Show all room types that have rooms
-    return Object.keys(roomsByType).sort();
+    // Show all groups
+    return Object.keys(roomsByType).sort((a, b) => {
+      // Sort by display name
+      return roomsByType[a].displayName.localeCompare(roomsByType[b].displayName);
+    });
   }, [roomsByType, selectedRoomType]);
 
   return (
@@ -260,7 +271,7 @@ const RoomsPage = () => {
           <p className="text-gray-600">
             {selectedRoomType !== 'All' 
               ? `Showing ${filteredRooms.length} ${selectedRoomType} room${filteredRooms.length !== 1 ? 's' : ''}`
-              : `Showing ${filteredRooms.length} room${filteredRooms.length !== 1 ? 's' : ''} across ${roomTypesToDisplay.length} room type${roomTypesToDisplay.length !== 1 ? 's' : ''}`
+              : `Showing ${filteredRooms.length} room${filteredRooms.length !== 1 ? 's' : ''} in ${roomTypesToDisplay.length} group${roomTypesToDisplay.length !== 1 ? 's' : ''}`
             }
           </p>
         </div>
@@ -277,30 +288,46 @@ const RoomsPage = () => {
           </div>
         )}
 
-        {/* Rooms Grid - Show rooms grouped by type */}
+        {/* Rooms Grid - Show rooms grouped by amenities and capacity */}
         {!loading && !error && (
           <>
             {roomTypesToDisplay.length > 0 ? (
-              roomTypesToDisplay.map((typeName, index) => (
-                <div key={typeName} className={index > 0 ? 'mt-12' : ''}>
-                  {/* Room Type Section Header */}
-                  <div className={`${index > 0 ? 'border-t border-gray-200 pt-8' : ''} mb-6`}>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                      {typeName}
-                    </h2>
-                    <p className="text-gray-600">
-                      {roomsByType[typeName].length} room{roomsByType[typeName].length !== 1 ? 's' : ''}
-                    </p>
-                  </div>
+              roomTypesToDisplay.map((groupKey, index) => {
+                const group = roomsByType[groupKey];
+                return (
+                  <div key={groupKey} className={index > 0 ? 'mt-12' : ''}>
+                    {/* Room Type Section Header */}
+                    <div className={`${index > 0 ? 'border-t border-gray-200 pt-8' : ''} mb-6`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h2 className="text-2xl font-bold text-gray-900">
+                          {group.displayName}
+                        </h2>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          {group.guests} guest{group.guests !== 1 ? 's' : ''}
+                        </span>
+                        <span>•</span>
+                        <span>{group.rooms.length} room{group.rooms.length !== 1 ? 's' : ''} available</span>
+                      </div>
+                    </div>
 
-                  {/* Room Cards Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                    {roomsByType[typeName].map(room => (
-                      <RoomCard key={room.id} room={room} onClick={() => navigate(`/rooms/${room.id}`)} />
-                    ))}
+                    {/* Room Cards Grid - Horizontal scroll on mobile, grid on larger screens */}
+                    <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 overflow-x-auto md:overflow-x-visible scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+                      {group.rooms.map(room => (
+                        <RoomCard 
+                          key={room.id} 
+                          room={room} 
+                          onClick={() => navigate(`/rooms/${room.id}`)}
+                          className="w-80 flex-shrink-0 md:w-auto"
+                          roomTypeStatus={group.rooms.length > 0 ? 'Available' : 'Fully Booked'}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">

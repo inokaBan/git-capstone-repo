@@ -972,17 +972,23 @@ app.get("/api/user/bookings", requireAuth, (req, res) => {
     });
 });
 
-// Update booking status (approve/decline) - now with warehouse deduction
+// Update booking status (approve/decline) - now with warehouse deduction and room assignment
 app.patch("/api/bookings/:bookingId", async (req, res) => {
     const { bookingId } = req.params;
-    const { status } = req.body;
-    if (!bookingId || !status) {
-        return res.status(400).json({ error: "Missing bookingId or status." });
+    const { status, room_id } = req.body;
+    
+    if (!bookingId) {
+        return res.status(400).json({ error: "Missing bookingId." });
     }
     
-    // First get the room_id for this booking
-    const getRoomSql = "SELECT room_id, status as current_status FROM bookings WHERE bookingId = ?";
-    db.query(getRoomSql, [bookingId], (err, rows) => {
+    // Need at least status or room_id
+    if (!status && !room_id) {
+        return res.status(400).json({ error: "Missing status or room_id." });
+    }
+    
+    // First get the booking details
+    const getBookingSql = "SELECT room_id, status as current_status FROM bookings WHERE bookingId = ?";
+    db.query(getBookingSql, [bookingId], (err, rows) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
@@ -990,88 +996,141 @@ app.patch("/api/bookings/:bookingId", async (req, res) => {
             return res.status(404).json({ error: "Booking not found" });
         }
         
-        const roomId = rows[0].room_id;
+        const currentRoomId = rows[0].room_id;
         const previousStatus = rows[0].current_status;
+        const newRoomId = room_id || currentRoomId;
+        const newStatus = status || previousStatus;
         
         db.beginTransaction(async (transErr) => {
             if (transErr) {
                 return res.status(500).json({ error: "Failed to start transaction" });
             }
             
-            // Update booking status
-            const updateBookingSql = "UPDATE bookings SET status = ? WHERE bookingId = ?";
-            db.query(updateBookingSql, [status, bookingId], async (err, result) => {
-                if (err) {
-                    return db.rollback(() => {
-                        res.status(500).json({ error: err.code || err.message || "Database error" });
+            try {
+                // Build update fields
+                const updateFields = [];
+                const updateValues = [];
+                
+                if (status) {
+                    updateFields.push('status = ?');
+                    updateValues.push(status);
+                }
+                
+                if (room_id) {
+                    updateFields.push('room_id = ?');
+                    updateValues.push(room_id);
+                }
+                
+                updateValues.push(bookingId);
+                
+                // Update booking
+                const updateBookingSql = `UPDATE bookings SET ${updateFields.join(', ')} WHERE bookingId = ?`;
+                await new Promise((resolve, reject) => {
+                    db.query(updateBookingSql, updateValues, (err, result) => {
+                        if (err) reject(err);
+                        else resolve(result);
+                    });
+                });
+                
+                // Handle room status updates
+                
+                // If room_id changed, mark old room as available and new room as booked
+                if (room_id && currentRoomId && room_id !== currentRoomId) {
+                    // Mark old room as available
+                    const updateOldRoomSql = "UPDATE rooms SET status = 'available' WHERE id = ?";
+                    await new Promise((resolve, reject) => {
+                        db.query(updateOldRoomSql, [currentRoomId], (err) => {
+                            if (err) reject(err);
+                            else resolve();
+                        });
                     });
                 }
                 
-                try {
-                    // If booking is approved/confirmed and wasn't already, deduct inventory and mark room as booked
-                    if ((status === 'confirmed' || status === 'approved') && previousStatus !== 'confirmed' && previousStatus !== 'approved' && previousStatus !== 'checked_in') {
-                        const updateRoomSql = "UPDATE rooms SET status = 'booked' WHERE id = ?";
-                        await new Promise((resolve, reject) => {
-                            db.query(updateRoomSql, [roomId], (roomErr) => {
-                                if (roomErr) reject(roomErr);
-                                else resolve();
-                            });
+                // If booking is approved/confirmed and has a room, mark room as booked and deduct inventory
+                if ((newStatus === 'confirmed' || newStatus === 'approved') && newRoomId && 
+                    (previousStatus !== 'confirmed' && previousStatus !== 'approved' && previousStatus !== 'checked_in')) {
+                    
+                    const updateRoomSql = "UPDATE rooms SET status = 'booked' WHERE id = ?";
+                    await new Promise((resolve, reject) => {
+                        db.query(updateRoomSql, [newRoomId], (roomErr) => {
+                            if (roomErr) reject(roomErr);
+                            else resolve();
                         });
-                        
-                        // Deduct room inventory from warehouse
-                        const deductionResult = await deductRoomInventoryFromWarehouse(
-                            roomId, 
-                            bookingId, 
-                            'Booking confirmed/approved - inventory deducted from warehouse'
-                        );
-                        
-                        console.log('Warehouse deduction result:', deductionResult);
-                        
-                        db.commit((commitErr) => {
-                            if (commitErr) {
-                                return db.rollback(() => {
-                                    res.status(500).json({ error: "Failed to commit transaction" });
-                                });
-                            }
-                            return res.status(200).json({ 
-                                success: true, 
-                                inventoryDeducted: deductionResult 
+                    });
+                    
+                    // Deduct room inventory from warehouse
+                    const deductionResult = await deductRoomInventoryFromWarehouse(
+                        newRoomId, 
+                        bookingId, 
+                        'Booking confirmed/approved - inventory deducted from warehouse'
+                    );
+                    
+                    console.log('Warehouse deduction result:', deductionResult);
+                    
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
                             });
+                        }
+                        return res.status(200).json({ 
+                            success: true, 
+                            inventoryDeducted: deductionResult 
                         });
-                    } else if (status === 'declined' || status === 'cancelled') {
-                        // If booking is declined/cancelled, mark room as available
+                    });
+                } else if (newStatus === 'declined' || newStatus === 'cancelled') {
+                    // If booking is declined/cancelled, mark room as available
+                    if (newRoomId) {
                         const updateRoomSql = "UPDATE rooms SET status = 'available' WHERE id = ?";
                         await new Promise((resolve, reject) => {
-                            db.query(updateRoomSql, [roomId], (roomErr) => {
+                            db.query(updateRoomSql, [newRoomId], (roomErr) => {
                                 if (roomErr) reject(roomErr);
                                 else resolve();
                             });
                         });
-                        
-                        db.commit((commitErr) => {
-                            if (commitErr) {
-                                return db.rollback(() => {
-                                    res.status(500).json({ error: "Failed to commit transaction" });
-                                });
-                            }
-                            return res.status(200).json({ success: true });
-                        });
-                    } else {
-                        db.commit((commitErr) => {
-                            if (commitErr) {
-                                return db.rollback(() => {
-                                    res.status(500).json({ error: "Failed to commit transaction" });
-                                });
-                            }
-                            return res.status(200).json({ success: true });
-                        });
                     }
-                } catch (error) {
-                    return db.rollback(() => {
-                        res.status(500).json({ error: error.message });
+                    
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+                        return res.status(200).json({ success: true });
+                    });
+                } else if (room_id && !currentRoomId) {
+                    // Room assigned for the first time (no previous room)
+                    const updateRoomSql = "UPDATE rooms SET status = 'booked' WHERE id = ?";
+                    await new Promise((resolve, reject) => {
+                        db.query(updateRoomSql, [room_id], (roomErr) => {
+                            if (roomErr) reject(roomErr);
+                            else resolve();
+                        });
+                    });
+                    
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+                        return res.status(200).json({ success: true });
+                    });
+                } else {
+                    db.commit((commitErr) => {
+                        if (commitErr) {
+                            return db.rollback(() => {
+                                res.status(500).json({ error: "Failed to commit transaction" });
+                            });
+                        }
+                        return res.status(200).json({ success: true });
                     });
                 }
-            });
+            } catch (error) {
+                return db.rollback(() => {
+                    res.status(500).json({ error: error.message });
+                });
+            }
         });
     });
 });

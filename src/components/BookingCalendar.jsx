@@ -99,9 +99,9 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
       const end = new Date(booking.checkOut);
       let current = new Date(start);
       
-      // Include check-in date but exclude check-out date
-      // This allows new bookings to check in on the day previous guests check out
-      while (current < end) {
+      // Include both check-in and check-out dates
+      // This ensures the full booking period is marked as occupied
+      while (current <= end) {
         dates.add(formatYMD(current));
         current.setDate(current.getDate() + 1);
       }
@@ -309,7 +309,7 @@ const BookingCalendar = ({ roomId, checkIn, checkOut, onDateSelect, onValidation
                     transition-colors relative
                     ${inCurrentMonth ? '' : 'opacity-40'}
                     ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:bg-blue-50'}
-                    ${selected && !isOccupied ? 'bg-blue-500 text-white hover:bg-blue-600' : 
+                    ${selected && !isOccupied ? 'bg-blue-600 text-white hover:bg-blue-700' : 
                       isOccupied ? 'bg-red-500 border-red-600' : 
                       isPast ? 'bg-gray-50' : 
                       'bg-white'}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2, CheckCircle, Star, Search } from 'lucide-react';
+import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2, CheckCircle, Star, Search, Users } from 'lucide-react';
 import FilterButtonGroup from '../components/FilterButtonGroup';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
@@ -14,6 +14,11 @@ const BookingsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRoomAssignmentModal, setShowRoomAssignmentModal] = useState(false);
+  const [availableRooms, setAvailableRooms] = useState([]);
+  const [loadingRooms, setLoadingRooms] = useState(false);
+  const [roomSearchQuery, setRoomSearchQuery] = useState('');
+  const [selectedRoomForAssignment, setSelectedRoomForAssignment] = useState(null);
   const { showConfirm } = useAlertDialog();
   const { showSuccess, showError } = useToast();
 
@@ -56,6 +61,83 @@ const BookingsPage = () => {
 
   const isFirstBooker = (bookingId) => {
     return firstBookerIds.has(bookingId);
+  };
+
+  const handleAssignRoom = async (booking) => {
+    setSelectedBooking(booking);
+    setShowRoomAssignmentModal(true);
+    setLoadingRooms(true);
+    setRoomSearchQuery('');
+    setSelectedRoomForAssignment(null);
+    
+    try {
+      // Fetch all rooms
+      const response = await axios.get(API_ENDPOINTS.ROOMS);
+      const allRooms = response.data || [];
+      
+      // Filter available rooms that can accommodate the booking and match room type
+      const available = allRooms.filter(room => {
+        // Room must be available status
+        if (room.status !== 'available') return false;
+        
+        // Room must accommodate the number of guests
+        if (room.guests < booking.guests) return false;
+        
+        // Room must match the booking's room type
+        if (room.type_name !== booking.roomName) return false;
+        
+        return true;
+      });
+      
+      setAvailableRooms(available);
+    } catch (error) {
+      console.error('Error fetching available rooms:', error);
+      showError('Failed to load available rooms');
+      setAvailableRooms([]);
+    } finally {
+      setLoadingRooms(false);
+    }
+  };
+
+  const handleConfirmRoomAssignment = async () => {
+    if (!selectedRoomForAssignment || !selectedBooking) {
+      showError('Please select a room to assign');
+      return;
+    }
+    
+    setProcessingId(selectedBooking.bookingId);
+    
+    try {
+      await axios.patch(`${API_ENDPOINTS.BOOKINGS}/${selectedBooking.bookingId}`, {
+        room_id: selectedRoomForAssignment.id,
+        status: 'confirmed' // Also confirm the booking when assigning a room
+      });
+      
+      // Update local state
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.bookingId === selectedBooking.bookingId 
+            ? { 
+                ...booking, 
+                room_id: selectedRoomForAssignment.id,
+                room_number: selectedRoomForAssignment.room_number,
+                roomName: selectedRoomForAssignment.type_name || selectedRoomForAssignment.name,
+                status: 'confirmed'
+              }
+            : booking
+        )
+      );
+      
+      showSuccess(`Room ${selectedRoomForAssignment.room_number || selectedRoomForAssignment.type_name} assigned successfully`);
+      setShowRoomAssignmentModal(false);
+      setSelectedBooking(null);
+      setSelectedRoomForAssignment(null);
+    } catch (error) {
+      console.error('Error assigning room:', error);
+      showError(error.response?.data?.error || 'Failed to assign room');
+    } finally {
+      setProcessingId(null);
+    }
   };
 
   const handleBookingAction = async (bookingId, action) => {
@@ -210,6 +292,19 @@ const BookingsPage = () => {
     });
   }, [bookings, statusFilter, searchQuery]);
 
+  const filteredAvailableRooms = useMemo(() => {
+    if (!roomSearchQuery.trim()) return availableRooms;
+    
+    const query = roomSearchQuery.toLowerCase();
+    return availableRooms.filter(room => {
+      const roomNumber = (room.room_number || '').toString().toLowerCase();
+      const typeName = (room.type_name || '').toLowerCase();
+      const category = (room.category || '').toLowerCase();
+      
+      return roomNumber.includes(query) || typeName.includes(query) || category.includes(query);
+    });
+  }, [availableRooms, roomSearchQuery]);
+
   const statusCounts = {
     all: bookings.length,
     pending: bookings.filter(b => b.status === 'pending').length,
@@ -338,6 +433,14 @@ const BookingsPage = () => {
                             {booking.status === 'pending' && (
                               <>
                                 <button
+                                  onClick={() => handleAssignRoom(booking)}
+                                  className="inline-flex items-center justify-center p-2 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                                  title="Assign room"
+                                  aria-label={`Assign room to booking ${booking.bookingId}`}
+                                >
+                                  <Home className="w-4 h-4" />
+                                </button>
+                                <button
                                   onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                                   disabled={processingId === booking.bookingId}
                                   className="inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
@@ -415,9 +518,13 @@ const BookingsPage = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm">
-                          <div className="font-bold text-blue-600">{booking.room_number ? `#${booking.room_number}` : booking.roomName}</div>
-                          {booking.room_number && (
-                            <div className="text-blue-600 font-bold">{booking.roomName}</div>
+                          {booking.room_number ? (
+                            <>
+                              <div className="text-lg font-bold text-blue-600">Room #{booking.room_number}</div>
+                              <div className="text-sm text-gray-600">{booking.roomName}</div>
+                            </>
+                          ) : (
+                            <div className="font-bold text-blue-600">{booking.roomName}</div>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -545,6 +652,14 @@ const BookingsPage = () => {
                         </button>
                         {booking.status === 'pending' && (
                           <>
+                            <button
+                              onClick={() => handleAssignRoom(booking)}
+                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors"
+                              title="Assign room"
+                              aria-label={`Assign room to booking ${booking.bookingId}`}
+                            >
+                              <Home className="w-5 h-5" />
+                            </button>
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                               disabled={processingId === booking.bookingId}
@@ -699,6 +814,157 @@ const BookingsPage = () => {
                     Close
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Room Assignment Modal */}
+        {showRoomAssignmentModal && selectedBooking && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-bold text-gray-900">Assign Room</h2>
+                  <button
+                    onClick={() => {
+                      setShowRoomAssignmentModal(false);
+                      setSelectedBooking(null);
+                      setSelectedRoomForAssignment(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Close modal"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
+                </div>
+                
+                <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Booking ID:</span>
+                      <span className="ml-2 font-semibold">#{selectedBooking.bookingId}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Guest:</span>
+                      <span className="ml-2 font-semibold">{selectedBooking.guestName}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Check-in:</span>
+                      <span className="ml-2 font-semibold">{formatDate(selectedBooking.checkIn)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Check-out:</span>
+                      <span className="ml-2 font-semibold">{formatDate(selectedBooking.checkOut)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Guests:</span>
+                      <span className="ml-2 font-semibold">{selectedBooking.guests}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={roomSearchQuery}
+                    onChange={(e) => setRoomSearchQuery(e.target.value)}
+                    placeholder="Search by room number, type, or category..."
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-6">
+                {loadingRooms ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                  </div>
+                ) : filteredAvailableRooms.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {filteredAvailableRooms.map(room => (
+                      <div
+                        key={room.id}
+                        onClick={() => setSelectedRoomForAssignment(room)}
+                        className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                          selectedRoomForAssignment?.id === room.id
+                            ? 'border-blue-500 bg-blue-50'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            {room.room_number && (
+                              <h3 className="text-xl font-bold text-gray-900">Room #{room.room_number}</h3>
+                            )}
+                            <p className="text-sm text-gray-600 font-medium">
+                              {room.type_name || room.name}
+                            </p>
+                          </div>
+                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                            Available
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-4 h-4" />
+                            {room.guests} guests
+                          </span>
+                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
+                            {room.category}
+                          </span>
+                        </div>
+                        
+                        <div className="text-lg font-bold text-blue-600">
+                          ₱{Number(room.price).toLocaleString()}
+                          <span className="text-sm text-gray-500 font-normal"> / night</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Home className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">
+                      {roomSearchQuery 
+                        ? 'No rooms match your search criteria'
+                        : 'No available rooms found for this booking'
+                      }
+                    </p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowRoomAssignmentModal(false);
+                    setSelectedBooking(null);
+                    setSelectedRoomForAssignment(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmRoomAssignment}
+                  disabled={!selectedRoomForAssignment || processingId === selectedBooking.bookingId}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors flex items-center gap-2"
+                >
+                  {processingId === selectedBooking.bookingId ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Assigning...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" />
+                      Assign Room
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
