@@ -61,7 +61,7 @@ const AboutPage = () => {
         <div 
           className="absolute inset-0 bg-cover bg-center"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=1600&q=80)',
+            backgroundImage: 'url("/background.jpg")',
           }}
         ></div>
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/40 to-black/60"></div>

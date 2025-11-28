@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Menu, X, User } from 'lucide-react'
+import { Menu, X, User, ChevronDown, ChevronRight } from 'lucide-react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.jpg'
@@ -90,14 +90,11 @@ const Navbar = () => {
           {/* Logo */}
           <NavLink to="/">
             <div className="flex items-center flex-shrink-0">
-                      <img src={logo} alt="Logo" className="w-10 h-10 rounded-full object-cover"
-                      />
-            
-                        <h1 className=":text-2xl font-bold text-gray-800 font-inter">Osner Hotel</h1>
+              <img src={logo} alt="Logo" className="w-10 h-10 rounded-full object-cover" />
+              <h1 className="text-xl font-bold text-gray-800 font-inter">Osner Hotel</h1>
             </div>
           </NavLink>
           
-
           {/* Desktop Menu */}
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-2">
@@ -185,24 +182,26 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Mobile menu button */}
+          {/* Mobile menu button - User Avatar with Arrow */}
           <div className="md:hidden">
             <button
               onClick={toggleMenu}
-              className="inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors duration-200"
-              aria-expanded="false"
+              className="inline-flex items-center justify-center gap-1 p-2 rounded-md text-gray-700 hover:text-blue-600 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors duration-200"
+              aria-expanded={isOpen}
             >
               <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <X className="block h-6 w-6" aria-hidden="true" />
-              ) : (
-                <Menu className="block h-6 w-6" aria-hidden="true" />
-              )}
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white">
+                <User className="w-4 h-4" aria-hidden="true" />
+              </div>
+              <ChevronDown 
+                className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} 
+                aria-hidden="true" 
+              />
             </button>
           </div>
         </div>
 
-        {/* Mobile Menu - Slide in from left */}
+        {/* Mobile Menu - Slide in from right */}
         {isOpen && (
           <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-blue-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4">
             <div className="px-4 pt-8 pb-6 space-y-2 flex flex-col items-stretch h-full"> 
@@ -216,10 +215,14 @@ const Navbar = () => {
               </button>
               {navItems.map((item) => {
                 let customClass = "";
+                let isAuthButton = false;
+                
                 if (item.className === "login-btn") {
                   customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center mt-56";
+                  isAuthButton = true;
                 } else if (item.className === "signup-btn") {
                   customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
+                  isAuthButton = true;
                 } else if (item.className === "logout-btn") {
                   customClass = "bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
                 }
@@ -243,13 +246,14 @@ const Navbar = () => {
                     onClick={closeMenu}
                     className={({ isActive }) => {
                       let baseClass = isActive
-                        ? "text-blue-700 hover:text-blue-600 hover:bg-white block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter"
-                        : "text-gray-700 hover:text-blue-600 hover:bg-white block px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter";
+                        ? "text-blue-700 hover:text-blue-600 hover:bg-white px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter flex items-center gap-2"
+                        : "text-gray-700 hover:text-blue-600 hover:bg-white px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter flex items-center gap-2";
                       if (customClass) baseClass = customClass;
                       return baseClass;
                     }}
                   >
-                    {item.name}
+                    {!isAuthButton && <ChevronRight className="w-5 h-5 flex-shrink-0" />}
+                    <span>{item.name}</span>
                   </NavLink>
                 );
               })}

@@ -66,7 +66,8 @@ const RoomsPage = () => {
 
   const priceRanges = ['All', 'Under ₱2000', '₱2000-₱4000', 'Above ₱4000'];
 
-  const filteredRooms = rooms.filter(room => {
+  // First pass: Filter with guest capacity requirement
+  const filteredWithGuests = rooms.filter(room => {
     const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
     const matchesRoomType = selectedRoomType === 'All' || room.type_name === selectedRoomType;
     const matchesSearch = (room.type_name || room.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,7 +79,46 @@ const RoomsPage = () => {
     const matchesGuests = guestCount ? room.guests >= parseInt(guestCount) : true;
 
     return matchesCategory && matchesRoomType && matchesSearch && matchesPrice && matchesGuests;
-  }).sort((a, b) => {
+  });
+
+  // Second pass: If no rooms match with guest filter AND guest count was specified, 
+  // try again without the guest capacity requirement
+  const filteredRooms = (filteredWithGuests.length === 0 && guestCount) 
+    ? rooms.filter(room => {
+        const matchesCategory = selectedCategory === 'All' || room.category === selectedCategory;
+        const matchesRoomType = selectedRoomType === 'All' || room.type_name === selectedRoomType;
+        const matchesSearch = (room.type_name || room.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             room.description.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesPrice = priceRange === 'All' || 
+                            (priceRange === 'Under ₱2000' && Number(room.price) < 2000) ||
+                            (priceRange === '₱2000-₱4000' && Number(room.price) >= 2000 && Number(room.price) <= 4000) ||
+                            (priceRange === 'Above ₱4000' && Number(room.price) > 4000);
+        // Note: No guest capacity filter in this pass
+        return matchesCategory && matchesRoomType && matchesSearch && matchesPrice;
+      })
+    : filteredWithGuests;
+
+  // Sort the filtered rooms
+  const sortedFilteredRooms = filteredRooms.sort((a, b) => {
+    // First, prioritize by guest capacity match if guestCount is specified
+    if (guestCount) {
+      const requestedGuests = parseInt(guestCount);
+      const aIsExactMatch = a.guests === requestedGuests;
+      const bIsExactMatch = b.guests === requestedGuests;
+      
+      // If one is exact match and other isn't, exact match comes first
+      if (aIsExactMatch && !bIsExactMatch) return -1;
+      if (!aIsExactMatch && bIsExactMatch) return 1;
+      
+      // If both are not exact matches, sort by how close they are to requested capacity
+      if (!aIsExactMatch && !bIsExactMatch) {
+        const aDiff = Math.abs(a.guests - requestedGuests);
+        const bDiff = Math.abs(b.guests - requestedGuests);
+        if (aDiff !== bDiff) return aDiff - bDiff;
+      }
+    }
+    
+    // Then apply the selected sort option
     switch (sortBy) {
       case 'name':
         return (a.type_name || a.name || '').localeCompare(b.type_name || b.name || '');
@@ -98,7 +138,7 @@ const RoomsPage = () => {
   // Group filtered rooms by guest capacity only
   const roomsByType = useMemo(() => {
     const grouped = {};
-    filteredRooms.forEach(room => {
+    sortedFilteredRooms.forEach(room => {
       // Create a key from guest capacity only
       const compositeKey = `GUESTS_${room.guests || 0}`;
       
@@ -112,7 +152,7 @@ const RoomsPage = () => {
       grouped[compositeKey].rooms.push(room);
     });
     return grouped;
-  }, [filteredRooms]);
+  }, [sortedFilteredRooms]);
 
   // Get room types to display (either all or just the selected one)
   const roomTypesToDisplay = useMemo(() => {
@@ -136,7 +176,7 @@ const RoomsPage = () => {
         <div 
           className="absolute inset-0 opacity-50"
           style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1566073771259-6a8506099945?w=1920)',
+            backgroundImage: 'url("/background.jpg")',
             backgroundSize: 'cover',
             backgroundPosition: 'center'
           }}
@@ -270,8 +310,8 @@ const RoomsPage = () => {
         <div className="mb-6">
           <p className="text-gray-600">
             {selectedRoomType !== 'All' 
-              ? `Showing ${filteredRooms.length} ${selectedRoomType} room${filteredRooms.length !== 1 ? 's' : ''}`
-              : `Showing ${filteredRooms.length} room${filteredRooms.length !== 1 ? 's' : ''} in ${roomTypesToDisplay.length} group${roomTypesToDisplay.length !== 1 ? 's' : ''}`
+              ? `Showing ${sortedFilteredRooms.length} ${selectedRoomType} room${sortedFilteredRooms.length !== 1 ? 's' : ''}`
+              : `Showing ${sortedFilteredRooms.length} room${sortedFilteredRooms.length !== 1 ? 's' : ''} in ${roomTypesToDisplay.length} group${roomTypesToDisplay.length !== 1 ? 's' : ''}`
             }
           </p>
         </div>
@@ -376,9 +416,9 @@ const RoomsPage = () => {
             </div>
             {searchTerm && (
               <div className="max-h-96 overflow-y-auto p-4">
-                {filteredRooms.length > 0 ? (
+                {sortedFilteredRooms.length > 0 ? (
                   <div className="space-y-2">
-                    {filteredRooms.slice(0, 5).map(room => (
+                    {sortedFilteredRooms.slice(0, 5).map(room => (
                       <button
                         key={room.id}
                         onClick={() => {
