@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Calendar, User, Home, Clock, Check, X, Loader2, Eye, Trash2, CheckCircle, Star, Search, Users } from 'lucide-react';
 import FilterButtonGroup from '../components/FilterButtonGroup';
+import Pagination from '../components/Pagination';
 import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
@@ -19,14 +20,20 @@ const BookingsPage = () => {
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [roomSearchQuery, setRoomSearchQuery] = useState('');
   const [selectedRoomForAssignment, setSelectedRoomForAssignment] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const { showConfirm } = useAlertDialog();
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const response = await axios.get(`${API_ENDPOINTS.BOOKINGS}?status=all`);
-        setBookings(response.data);
+        const response = await axios.get(`${API_ENDPOINTS.BOOKINGS}?status=all&page=${currentPage}&limit=${itemsPerPage}`);
+        setBookings(response.data.data || response.data);
+        setTotalItems(response.data.totalItems || response.data.length);
+        setTotalPages(response.data.totalPages || 1);
       } catch (error) {
         console.error('Error fetching bookings:', error);
       } finally {
@@ -34,7 +41,7 @@ const BookingsPage = () => {
       }
     };
     fetchBookings();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   // Identify first booker for each room (priority bookings)
   const firstBookerIds = useMemo(() => {
@@ -208,6 +215,15 @@ const BookingsPage = () => {
     } finally {
       setProcessingId(null);
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1); // Reset to first page when changing items per page
   };
 
   const formatDate = (dateString) => {
@@ -723,6 +739,16 @@ const BookingsPage = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Pagination */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                itemsPerPage={itemsPerPage}
+                onPageChange={handlePageChange}
+                onItemsPerPageChange={handleItemsPerPageChange}
+              />
             </>
           )}
         </div>

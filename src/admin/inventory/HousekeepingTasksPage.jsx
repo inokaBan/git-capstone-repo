@@ -3,6 +3,7 @@ import { Plus, CheckCircle, Clock, AlertCircle, User, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
+import Pagination from '../../components/Pagination';
 
 const HousekeepingTasksPage = () => {
   const { getAuthHeader, isStaff, user } = useAuth();
@@ -12,6 +13,10 @@ const HousekeepingTasksPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [formData, setFormData] = useState({
     room_id: '',
     task_type: 'restocking',
@@ -24,14 +29,16 @@ const HousekeepingTasksPage = () => {
     fetchTasks();
     fetchRooms();
     fetchStaff();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.INVENTORY_TASKS, {
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_TASKS}?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: getAuthHeader(),
       });
-      setTasks(response.data);
+      setTasks(response.data.data || response.data || []);
+      setTotalItems(response.data.totalItems || (response.data.data || response.data || []).length);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
@@ -99,6 +106,15 @@ const HousekeepingTasksPage = () => {
       description: '',
       assigned_to: '',
     });
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
   };
 
   const filteredTasks = tasks.filter(task => {
@@ -233,6 +249,18 @@ const HousekeepingTasksPage = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredTasks.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
 
       {/* Create Task Modal */}
       {showModal && (

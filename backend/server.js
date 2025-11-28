@@ -485,8 +485,12 @@ app.post("/api/admin/users", requireAdmin, async (req, res) => {
     }
 });
 
-// Admin endpoint to get all user accounts
+// Admin endpoint to get all user accounts (with pagination)
 app.get("/api/admin/users", requireAdmin, async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
+    
     try {
         // Extract email from auth header to determine requesting user's role
         const authHeader = req.headers.authorization;
@@ -529,15 +533,26 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
             return res.status(403).json({ error: "Access denied" });
         }
 
-        // Query user_account table
-        const userSql = "SELECT id, username, email, IFNULL(role, 'guest') as role, created_at FROM user_account ORDER BY created_at DESC";
+        // Count total users
+        const userCountSql = "SELECT COUNT(*) as total FROM user_account";
+        const userCountResult = await new Promise((resolve, reject) => {
+            db.query(userCountSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        
+        let totalUserCount = userCountResult[0].total;
+
+        // Query user_account table with pagination
+        const userSql = "SELECT id, username, email, IFNULL(role, 'guest') as role, created_at FROM user_account ORDER BY created_at DESC LIMIT ? OFFSET ?";
         const userResults = await new Promise((resolve, reject) => {
-            db.query(userSql, [], (err, results) => {
+            db.query(userSql, [limit, offset], (err, results) => {
                 if (err) {
                     // Fallback for tables without created_at or role columns
                     if (err.code === 'ER_BAD_FIELD_ERROR') {
-                        const fallbackSql = "SELECT id, username, email FROM user_account ORDER BY id DESC";
-                        db.query(fallbackSql, [], (fallbackErr, fallbackResults) => {
+                        const fallbackSql = "SELECT id, username, email FROM user_account ORDER BY id DESC LIMIT ? OFFSET ?";
+                        db.query(fallbackSql, [limit, offset], (fallbackErr, fallbackResults) => {
                             if (fallbackErr) reject(fallbackErr);
                             else {
                                 const withDefaults = (fallbackResults || []).map(user => ({
@@ -559,7 +574,18 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 
         // Only query admin_account table if requesting user is admin
         let adminResults = [];
+        let adminCount = 0;
         if (requestingUserRole === 'admin') {
+            const adminCountSql = "SELECT COUNT(*) as total FROM admin_account";
+            const adminCountResult = await new Promise((resolve, reject) => {
+                db.query(adminCountSql, [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results);
+                });
+            });
+            adminCount = adminCountResult[0].total;
+            
+            // For simplicity, we'll fetch all admins (they're typically few)
             const adminSql = "SELECT admin_username as username, admin_email as email, 'admin' as role, NULL as created_at, admin_email as id FROM admin_account ORDER BY admin_email";
             adminResults = await new Promise((resolve, reject) => {
                 db.query(adminSql, [], (err, results) => {
@@ -571,8 +597,15 @@ app.get("/api/admin/users", requireAdmin, async (req, res) => {
 
         // Combine results
         const allUsers = [...userResults, ...adminResults];
+        const totalItems = totalUserCount + adminCount;
+        const totalPages = Math.ceil(totalItems / limit);
         
-        return res.status(200).json(allUsers);
+        return res.status(200).json({
+            data: allUsers,
+            totalItems,
+            totalPages,
+            currentPage: page
+        });
     } catch (error) {
         console.error('Error fetching users:', error);
         return res.status(500).json({ error: error.message || "Database error" });
@@ -924,24 +957,47 @@ app.post("/api/bookings", async (req, res) => {
     });
 });
 
-// Get all bookings for admin panel
+// Get all bookings for admin panel (with pagination)
 app.get("/api/bookings", (req, res) => {
     const status = req.query.status;
-    let sql = "SELECT b.*, r.room_number FROM bookings b LEFT JOIN rooms r ON b.room_id = r.id";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
+    
+    let countSql = "SELECT COUNT(*) as total FROM bookings b";
+    let dataSql = "SELECT b.*, r.room_number FROM bookings b LEFT JOIN rooms r ON b.room_id = r.id";
     let params = [];
     
     if (status && status !== 'all') {
-        sql += " WHERE b.status = ?";
+        countSql += " WHERE b.status = ?";
+        dataSql += " WHERE b.status = ?";
         params.push(status);
     }
     
-    sql += " ORDER BY b.bookingDate DESC";
-    
-    db.query(sql, params, (err, results) => {
+    // Get total count
+    db.query(countSql, params, (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
-        return res.status(200).json(results);
+        
+        const totalItems = countResults[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Get paginated data
+        dataSql += " ORDER BY b.bookingDate DESC LIMIT ? OFFSET ?";
+        const dataParams = [...params, limit, offset];
+        
+        db.query(dataSql, dataParams, (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
+            }
+            return res.status(200).json({
+                data: results,
+                totalItems,
+                totalPages,
+                currentPage: page
+            });
+        });
     });
 });
 
@@ -1205,95 +1261,117 @@ app.delete("/api/amenities/:id", (req, res) => {
     });
 });
 
-// Rooms: list all rooms with amenities and images
+// Rooms: list all rooms with amenities and images (with pagination)
 app.get("/api/rooms", (req, res) => {
-    const sql = `
-        SELECT 
-            r.*,
-            rt.type_name,
-            GROUP_CONCAT(DISTINCT a.name) as amenity_names,
-            GROUP_CONCAT(DISTINCT ri.image_url) as room_images
-        FROM rooms r
-        LEFT JOIN room_type rt ON r.room_type_id = rt.id
-        LEFT JOIN room_amenities ra ON r.id = ra.room_id
-        LEFT JOIN amenities a ON ra.amenity_id = a.id
-        LEFT JOIN room_images ri ON r.id = ri.room_id
-        GROUP BY r.id
-        ORDER BY r.id DESC
-    `;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
     
-    db.query(sql, [], (err, results) => {
+    // Count total rooms
+    const countSql = "SELECT COUNT(*) as total FROM rooms";
+    db.query(countSql, [], (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
         
-        // Process results to format amenities and images
-        const rooms = (results || []).map((row) => {
-            const id = row.id;
-            const room_number = row.room_number;
-            const room_type_id = row.room_type_id;
-            const type_name = row.type_name;
-            const description = row.description;
-            const rating = Number(row.rating) || 0;
-            const status = row.status || "available";
-            const beds = Number(row.beds) || 0;
-            const bathrooms = Number(row.bathrooms) || 0;
-            const price = Number(row.price) || 0;
-            const original_price = row.original_price;
-            const guests = Number(row.guests) || 0;
-            const size = row.size || "";
-            const category = row.category;
-            const reviews = Number(row.reviews) || 0;
-            const image = row.image;
-            const created_at = row.created_at;
-            const updated_at = row.updated_at;
-
-            // Parse amenities from comma-separated string
-            const amenities = row.amenity_names ? row.amenity_names.split(',') : [];
-            
-            // Parse images from comma-separated string
-            const images = row.room_images ? row.room_images.split(',') : [];
-            // If no room_images but has main image, use that
-            if (images.length === 0 && image) {
-                images.push(image);
+        const totalItems = countResults[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Get paginated rooms data
+        const sql = `
+            SELECT 
+                r.*,
+                rt.type_name,
+                GROUP_CONCAT(DISTINCT a.name) as amenity_names,
+                GROUP_CONCAT(DISTINCT ri.image_url) as room_images
+            FROM rooms r
+            LEFT JOIN room_type rt ON r.room_type_id = rt.id
+            LEFT JOIN room_amenities ra ON r.id = ra.room_id
+            LEFT JOIN amenities a ON ra.amenity_id = a.id
+            LEFT JOIN room_images ri ON r.id = ri.room_id
+            GROUP BY r.id
+            ORDER BY r.id DESC
+            LIMIT ? OFFSET ?
+        `;
+        
+        db.query(sql, [limit, offset], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.code || err.message || "Database error" });
             }
             
-            // Convert relative paths to full URLs
-            const fullImageUrls = images.map(img => {
-                if (img && img.startsWith('/uploads/')) {
-                    return `http://localhost:8081${img}`;
+            // Process results to format amenities and images
+            const rooms = (results || []).map((row) => {
+                const id = row.id;
+                const room_number = row.room_number;
+                const room_type_id = row.room_type_id;
+                const type_name = row.type_name;
+                const description = row.description;
+                const rating = Number(row.rating) || 0;
+                const status = row.status || "available";
+                const beds = Number(row.beds) || 0;
+                const bathrooms = Number(row.bathrooms) || 0;
+                const price = Number(row.price) || 0;
+                const original_price = row.original_price;
+                const guests = Number(row.guests) || 0;
+                const size = row.size || "";
+                const category = row.category;
+                const reviews = Number(row.reviews) || 0;
+                const image = row.image;
+                const created_at = row.created_at;
+                const updated_at = row.updated_at;
+
+                // Parse amenities from comma-separated string
+                const amenities = row.amenity_names ? row.amenity_names.split(',') : [];
+                
+                // Parse images from comma-separated string
+                const images = row.room_images ? row.room_images.split(',') : [];
+                // If no room_images but has main image, use that
+                if (images.length === 0 && image) {
+                    images.push(image);
                 }
-                return img;
+                
+                // Convert relative paths to full URLs
+                const fullImageUrls = images.map(img => {
+                    if (img && img.startsWith('/uploads/')) {
+                        return `http://localhost:8081${img}`;
+                    }
+                    return img;
+                });
+                
+                // Debug: log image data
+                console.log(`Room ${id} images:`, fullImageUrls.length, fullImageUrls.slice(0, 1));
+
+                return {
+                    id,
+                    room_number,
+                    room_type_id,
+                    type_name,
+                    category,
+                    image,
+                    price,
+                    original_price,
+                    status,
+                    rating,
+                    guests,
+                    size,
+                    description,
+                    beds,
+                    bathrooms,
+                    reviews,
+                    amenities,
+                    images: fullImageUrls,
+                    created_at,
+                    updated_at
+                };
             });
             
-            // Debug: log image data
-            console.log(`Room ${id} images:`, fullImageUrls.length, fullImageUrls.slice(0, 1));
-
-            return {
-                id,
-                room_number,
-                room_type_id,
-                type_name,
-                category,
-                image,
-                price,
-                original_price,
-                status,
-                rating,
-                guests,
-                size,
-                description,
-                beds,
-                bathrooms,
-                reviews,
-                amenities,
-                images: fullImageUrls,
-                created_at,
-                updated_at
-            };
+            return res.status(200).json({
+                data: rooms,
+                totalItems,
+                totalPages,
+                currentPage: page
+            });
         });
-        
-        return res.status(200).json(rooms);
     });
 });
 
@@ -2313,14 +2391,35 @@ app.delete("/api/bookings/:bookingId", (req, res) => {
 // INVENTORY MANAGEMENT ENDPOINTS
 // ============================================
 
-// Get all inventory items
+// Get all inventory items (with pagination)
 app.get("/api/inventory/items", requireAuth, (req, res) => {
-    const sql = "SELECT * FROM inventory_items WHERE is_active = 1 ORDER BY name";
-    db.query(sql, [], (err, results) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
+    
+    // Count total items
+    const countSql = "SELECT COUNT(*) as total FROM inventory_items WHERE is_active = 1";
+    db.query(countSql, [], (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        return res.status(200).json(results || []);
+        
+        const totalItems = countResults[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Get paginated data
+        const sql = "SELECT * FROM inventory_items WHERE is_active = 1 ORDER BY name LIMIT ? OFFSET ?";
+        db.query(sql, [limit, offset], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            return res.status(200).json({
+                data: results || [],
+                totalItems,
+                totalPages,
+                currentPage: page
+            });
+        });
     });
 });
 
@@ -2486,21 +2585,49 @@ app.delete("/api/inventory/items/:id", requireAdmin, (req, res) => {
     });
 });
 
-// Get warehouse inventory
+// Get warehouse inventory (with pagination)
 app.get("/api/inventory/warehouse", requireAuth, (req, res) => {
-    const sql = `
-        SELECT w.*, i.name as item_name, i.unit, i.low_stock_threshold
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
+    
+    // Count total warehouse items
+    const countSql = `
+        SELECT COUNT(*) as total
         FROM warehouse_inventory w
         JOIN inventory_items i ON w.item_id = i.id
         WHERE i.is_active = 1
-        ORDER BY i.name
     `;
     
-    db.query(sql, [], (err, results) => {
+    db.query(countSql, [], (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        return res.status(200).json(results || []);
+        
+        const totalItems = countResults[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Get paginated data
+        const sql = `
+            SELECT w.*, i.name as item_name, i.unit, i.low_stock_threshold
+            FROM warehouse_inventory w
+            JOIN inventory_items i ON w.item_id = i.id
+            WHERE i.is_active = 1
+            ORDER BY i.name
+            LIMIT ? OFFSET ?
+        `;
+        
+        db.query(sql, [limit, offset], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            return res.status(200).json({
+                data: results || [],
+                totalItems,
+                totalPages,
+                currentPage: page
+            });
+        });
     });
 });
 
@@ -2897,28 +3024,50 @@ app.delete("/api/inventory/room-inventory/:roomId/:itemId", requireAuth, (req, r
     });
 });
 
-// Get housekeeping tasks
+// Get housekeeping tasks (with pagination)
 app.get("/api/inventory/tasks", requireAuth, (req, res) => {
-    const sql = `
-        SELECT t.*, r.name as room_name, r.room_number, u.username as assigned_to_name
-        FROM housekeeping_tasks t
-        JOIN rooms r ON t.room_id = r.id
-        LEFT JOIN user_account u ON t.assigned_to = u.id
-        ORDER BY 
-            CASE t.priority
-                WHEN 'urgent' THEN 1
-                WHEN 'high' THEN 2
-                WHEN 'medium' THEN 3
-                WHEN 'low' THEN 4
-            END,
-            t.created_at DESC
-    `;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
     
-    db.query(sql, [], (err, results) => {
+    // Count total tasks
+    const countSql = "SELECT COUNT(*) as total FROM housekeeping_tasks";
+    db.query(countSql, [], (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        return res.status(200).json(results || []);
+        
+        const totalItems = countResults[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Get paginated data
+        const sql = `
+            SELECT t.*, r.name as room_name, r.room_number, u.username as assigned_to_name
+            FROM housekeeping_tasks t
+            JOIN rooms r ON t.room_id = r.id
+            LEFT JOIN user_account u ON t.assigned_to = u.id
+            ORDER BY 
+                CASE t.priority
+                    WHEN 'urgent' THEN 1
+                    WHEN 'high' THEN 2
+                    WHEN 'medium' THEN 3
+                    WHEN 'low' THEN 4
+                END,
+                t.created_at DESC
+            LIMIT ? OFFSET ?
+        `;
+        
+        db.query(sql, [limit, offset], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            return res.status(200).json({
+                data: results || [],
+                totalItems,
+                totalPages,
+                currentPage: page
+            });
+        });
     });
 });
 
@@ -3126,27 +3275,49 @@ app.patch("/api/inventory/tasks/:id", requireAuth, async (req, res) => {
     });
 });
 
-// Get inventory alerts
+// Get inventory alerts (with pagination)
 app.get("/api/inventory/alerts", requireAuth, (req, res) => {
-    const sql = `
-        SELECT a.*, i.name as item_name, r.name as room_name, r.room_number
-        FROM inventory_alerts a
-        LEFT JOIN inventory_items i ON a.item_id = i.id
-        LEFT JOIN rooms r ON a.room_id = r.id
-        ORDER BY 
-            CASE a.severity
-                WHEN 'critical' THEN 1
-                WHEN 'warning' THEN 2
-                WHEN 'info' THEN 3
-            END,
-            a.created_at DESC
-    `;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
     
-    db.query(sql, [], (err, results) => {
+    // Count total alerts
+    const countSql = "SELECT COUNT(*) as total FROM inventory_alerts";
+    db.query(countSql, [], (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.message });
         }
-        return res.status(200).json(results || []);
+        
+        const totalItems = countResults[0].total;
+        const totalPages = Math.ceil(totalItems / limit);
+        
+        // Get paginated data
+        const sql = `
+            SELECT a.*, i.name as item_name, r.name as room_name, r.room_number
+            FROM inventory_alerts a
+            LEFT JOIN inventory_items i ON a.item_id = i.id
+            LEFT JOIN rooms r ON a.room_id = r.id
+            ORDER BY 
+                CASE a.severity
+                    WHEN 'critical' THEN 1
+                    WHEN 'warning' THEN 2
+                    WHEN 'info' THEN 3
+                END,
+                a.created_at DESC
+            LIMIT ? OFFSET ?
+        `;
+        
+        db.query(sql, [limit, offset], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: err.message });
+            }
+            return res.status(200).json({
+                data: results || [],
+                totalItems,
+                totalPages,
+                currentPage: page
+            });
+        });
     });
 });
 

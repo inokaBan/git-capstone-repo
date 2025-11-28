@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { API_ENDPOINTS } from '../../config/api';
+import Pagination from '../../components/Pagination';
 
 const InventoryAlertsPage = () => {
   const { getAuthHeader } = useAuth();
@@ -12,17 +13,23 @@ const InventoryAlertsPage = () => {
   const [loading, setLoading] = useState(true);
   const [severityFilter, setSeverityFilter] = useState('all');
   const [showResolvedFilter, setShowResolvedFilter] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     fetchAlerts();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const fetchAlerts = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.INVENTORY_ALERTS, {
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_ALERTS}?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: getAuthHeader(),
       });
-      setAlerts(response.data);
+      setAlerts(response.data.data || response.data || []);
+      setTotalItems(response.data.totalItems || (response.data.data || response.data || []).length);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error('Error fetching alerts:', error);
     } finally {
@@ -81,6 +88,15 @@ const InventoryAlertsPage = () => {
       console.error('Error creating task:', error);
       showError('Failed to create task');
     }
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
   };
 
   const filteredAlerts = alerts.filter(alert => {
@@ -239,6 +255,18 @@ const InventoryAlertsPage = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredAlerts.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
     </div>
   );
 };

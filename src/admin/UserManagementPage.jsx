@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
 import PasswordStrengthMeter from '../components/PasswordStrengthMeter';
+import Pagination from '../components/Pagination';
 
 const UserManagementPage = () => {
   const { getAuthHeader, role: currentUserRole } = useAuth();
@@ -24,6 +25,10 @@ const UserManagementPage = () => {
   const [validationErrors, setValidationErrors] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all'); // 'all', 'guest', 'staff', 'admin'
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   const roleOptions = [
     { value: 'guest', label: 'Guest', color: 'bg-blue-100 text-blue-800' },
@@ -54,15 +59,17 @@ const UserManagementPage = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('http://localhost:8081/api/admin/users', {
+      const res = await axios.get(`http://localhost:8081/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: getAuthHeader(),
       });
 
-      let filteredUsers = res.data || [];
+      let filteredUsers = res.data.data || res.data || [];
       if (currentUserRole === 'staff') {
         filteredUsers = filteredUsers.filter((user) => user.role !== 'admin');
       }
       setUsers(filteredUsers);
+      setTotalItems(res.data.totalItems || filteredUsers.length);
+      setTotalPages(res.data.totalPages || 1);
     } catch (e) {
       console.error('Failed to load users', e);
       showError(e?.response?.data?.error || 'Failed to load users');
@@ -169,6 +176,15 @@ const UserManagementPage = () => {
     setRoleFilter(e.target.value);
   };
 
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
+  };
+
   // Filter users based on search query and role
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
@@ -184,7 +200,7 @@ const UserManagementPage = () => {
 
   useEffect(() => {
     loadUsers();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -352,6 +368,16 @@ const UserManagementPage = () => {
               ))}
             </div>
           </div>
+        )}
+        {guestUsers.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            itemsPerPage={itemsPerPage}
+            onPageChange={handlePageChange}
+            onItemsPerPageChange={handleItemsPerPageChange}
+          />
         )}
       </div>
 

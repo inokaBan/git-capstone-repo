@@ -3,6 +3,7 @@ import { Plus, Minus, Package, Search, History } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
+import Pagination from '../../components/Pagination';
 
 const WarehouseInventoryPage = () => {
   const { getAuthHeader, user } = useAuth();
@@ -20,10 +21,14 @@ const WarehouseInventoryPage = () => {
     notes: '',
   });
   const [showHistory, setShowHistory] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const fetchData = async () => {
     await Promise.all([
@@ -36,10 +41,12 @@ const WarehouseInventoryPage = () => {
 
   const fetchWarehouseStock = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.INVENTORY_WAREHOUSE, {
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_WAREHOUSE}?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: getAuthHeader(),
       });
-      setWarehouseStock(response.data);
+      setWarehouseStock(response.data.data || response.data || []);
+      setTotalItems(response.data.totalItems || (response.data.data || response.data || []).length);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error('Error fetching warehouse stock:', error);
     }
@@ -102,6 +109,15 @@ const WarehouseInventoryPage = () => {
     setShowModal(false);
     setSelectedItem(null);
     setTransactionData({ quantity: '', notes: '' });
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
   };
 
   const getItemDetails = (itemId) => {
@@ -221,6 +237,18 @@ const WarehouseInventoryPage = () => {
           );
         })}
       </div>
+
+      {/* Pagination */}
+      {filteredStock.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
 
       {/* Transaction History */}
       {showHistory && (

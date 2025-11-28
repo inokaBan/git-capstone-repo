@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Package, Search, X } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
+import Pagination from '../../components/Pagination';
 
 const InventoryItemsPage = () => {
   const { getAuthHeader } = useAuth();
@@ -13,6 +14,10 @@ const InventoryItemsPage = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -29,14 +34,16 @@ const InventoryItemsPage = () => {
   useEffect(() => {
     fetchItems();
     fetchWarehouseStock();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   const fetchItems = async () => {
     try {
-      const response = await axios.get(API_ENDPOINTS.INVENTORY_ITEMS, {
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_ITEMS}?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: getAuthHeader(),
       });
-      setItems(response.data);
+      setItems(response.data.data || response.data || []);
+      setTotalItems(response.data.totalItems || (response.data.data || response.data || []).length);
+      setTotalPages(response.data.totalPages || 1);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -122,6 +129,15 @@ const InventoryItemsPage = () => {
       location: 'Main Storage Room',
       initial_quantity: 0,
     });
+  };
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
   };
 
   const categories = [...new Set(items.map(item => item.category).filter(Boolean))];
@@ -249,6 +265,18 @@ const InventoryItemsPage = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {filteredItems.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
 
       {/* Add/Edit Modal */}
       {showModal && (

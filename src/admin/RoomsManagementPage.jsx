@@ -5,6 +5,7 @@ import AmenityIcon from '../components/AmenityIcon';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
 import { API_ENDPOINTS, buildApiUrl } from '../config/api';
+import Pagination from '../components/Pagination';
 
 const RoomsManagementPage = () => {
   const MAX_IMAGES = 5;
@@ -26,6 +27,10 @@ const RoomsManagementPage = () => {
   const [newCategory, setNewCategory] = useState('');
   const [showAmenityModal, setShowAmenityModal] = useState(false);
   const [newAmenity, setNewAmenity] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [totalItems, setTotalItems] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
   const [newRoom, setNewRoom] = useState({
     room_number: '',
     room_type_id: '',
@@ -255,8 +260,10 @@ const RoomsManagementPage = () => {
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(API_ENDPOINTS.ROOMS);
-      setRooms(res.data || []);
+      const res = await axios.get(`${API_ENDPOINTS.ROOMS}?page=${currentPage}&limit=${itemsPerPage}`);
+      setRooms(res.data.data || res.data || []);
+      setTotalItems(res.data.totalItems || (res.data.data || res.data || []).length);
+      setTotalPages(res.data.totalPages || 1);
     } catch (e) {
       console.error('Failed to load rooms', e);
       showError(e?.response?.data?.error || 'Failed to load rooms');
@@ -440,13 +447,22 @@ const RoomsManagementPage = () => {
     }
   };
 
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage);
+  };
+
+  const handleItemsPerPageChange = (newLimit) => {
+    setItemsPerPage(newLimit);
+    setCurrentPage(1);
+  };
+
   useEffect(() => {
     loadRooms();
     loadAmenities();
     loadRoomTypes();
     loadCategories();
     loadItemCategories();
-  }, []);
+  }, [currentPage, itemsPerPage]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -696,6 +712,18 @@ const RoomsManagementPage = () => {
           ))}
         </div>
       </div>
+
+      {/* Pagination */}
+      {rooms.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
 
       {/* Add/Edit Room Modal */}
       {showAddModal && (
