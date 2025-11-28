@@ -15,7 +15,7 @@ const RoomSection = () => {
       try {
         setLoading(true)
         const res = await axios.get(API_ENDPOINTS.ROOMS)
-        setRooms(Array.isArray(res.data) ? res.data : [])
+        setRooms(Array.isArray(res.data.data) ? res.data.data : (Array.isArray(res.data) ? res.data : []))
       } catch (e) {
         setError('Failed to load rooms')
       } finally {

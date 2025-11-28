@@ -40,7 +40,7 @@ const RoomsPage = () => {
         setError('');
         
         const roomsRes = await axios.get(API_ENDPOINTS.ROOMS);
-        setRooms(Array.isArray(roomsRes.data) ? roomsRes.data : []);
+        setRooms(Array.isArray(roomsRes.data.data) ? roomsRes.data.data : (Array.isArray(roomsRes.data) ? roomsRes.data : []));
         
         const typesRes = await axios.get(API_ENDPOINTS.ROOM_TYPES);
         const types = Array.isArray(typesRes.data) ? typesRes.data : [];

@@ -61,8 +61,9 @@ const WalkinReservationPage = () => {
     try {
       // Load all rooms from database
       const { data } = await axios.get('http://localhost:8081/api/rooms');
-      // Filter only available rooms
-      const availableRooms = (Array.isArray(data) ? data : []).filter(room => 
+      // Handle paginated response structure: { data: [...], totalItems, totalPages, currentPage }
+      const roomsArray = data.data || data || [];
+      const availableRooms = (Array.isArray(roomsArray) ? roomsArray : []).filter(room => 
         room.status && room.status.toLowerCase() === 'available'
       );
       setRooms(availableRooms);
@@ -138,7 +139,7 @@ const WalkinReservationPage = () => {
       return;
     }
 
-    const bookingId = 'OSNHTL-' + Date.now().toString().slice(-6);
+    const bookingId = 'OSINTAL' + Date.now().toString().slice(-6);
     const payload = {
       bookingId,
       roomId: Number(selectedRoom.id),

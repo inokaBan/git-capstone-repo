@@ -22,7 +22,7 @@ const WarehouseInventoryPage = () => {
   });
   const [showHistory, setShowHistory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
@@ -57,7 +57,7 @@ const WarehouseInventoryPage = () => {
       const response = await axios.get(API_ENDPOINTS.INVENTORY_ITEMS, {
         headers: getAuthHeader(),
       });
-      setItems(response.data);
+      setItems(response.data.data || []);
     } catch (error) {
       console.error('Error fetching items:', error);
     }

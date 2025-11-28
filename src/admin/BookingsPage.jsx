@@ -21,7 +21,7 @@ const BookingsPage = () => {
   const [roomSearchQuery, setRoomSearchQuery] = useState('');
   const [selectedRoomForAssignment, setSelectedRoomForAssignment] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const { showConfirm } = useAlertDialog();
@@ -80,7 +80,7 @@ const BookingsPage = () => {
     try {
       // Fetch all rooms
       const response = await axios.get(API_ENDPOINTS.ROOMS);
-      const allRooms = response.data || [];
+      const allRooms = response.data.data || response.data || [];
       
       // Filter available rooms that can accommodate the booking and match room type
       const available = allRooms.filter(room => {

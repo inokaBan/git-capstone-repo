@@ -14,7 +14,7 @@ const InventoryAlertsPage = () => {
   const [severityFilter, setSeverityFilter] = useState('all');
   const [showResolvedFilter, setShowResolvedFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 

@@ -2818,9 +2818,16 @@ app.post("/api/inventory/room-inventory", requireAuth, async (req, res) => {
             }
             
             // Determine status based on quantity
-            const getItemSql = "SELECT i.*, rti.standard_quantity FROM inventory_items i LEFT JOIN room_type_inventory rti ON i.id = rti.item_id LEFT JOIN rooms r ON rti.room_type_id = r.room_type_id WHERE i.id = ? AND r.id = ? LIMIT 1";
+            const getItemSql = `
+                SELECT i.*, rti.standard_quantity 
+                FROM inventory_items i 
+                LEFT JOIN rooms r ON r.id = ?
+                LEFT JOIN room_type_inventory rti ON i.id = rti.item_id AND rti.room_type_id = r.room_type_id
+                WHERE i.id = ?
+                LIMIT 1
+            `;
             const itemInfo = await new Promise((resolve, reject) => {
-                db.query(getItemSql, [item_id, room_id], (err, results) => {
+                db.query(getItemSql, [room_id, item_id], (err, results) => {
                     if (err) reject(err);
                     else resolve(results);
                 });

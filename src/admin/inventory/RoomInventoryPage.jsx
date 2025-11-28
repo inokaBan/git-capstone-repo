@@ -36,7 +36,7 @@ const RoomInventoryPage = () => {
       const response = await axios.get(API_ENDPOINTS.ROOMS, {
         headers: getAuthHeader(),
       });
-      setRooms(response.data);
+      setRooms(response.data.data || []);
     } catch (error) {
       console.error('Error fetching rooms:', error);
     } finally {
@@ -49,7 +49,7 @@ const RoomInventoryPage = () => {
       const response = await axios.get(API_ENDPOINTS.INVENTORY_ITEMS, {
         headers: getAuthHeader(),
       });
-      setItems(response.data);
+      setItems(response.data.data || []);
     } catch (error) {
       console.error('Error fetching items:', error);
     }
