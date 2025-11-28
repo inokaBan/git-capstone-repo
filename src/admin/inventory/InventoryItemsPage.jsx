@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Package, Search, X } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../config/api';
 
 const InventoryItemsPage = () => {
   const { getAuthHeader } = useAuth();
@@ -31,11 +33,10 @@ const InventoryItemsPage = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/items', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_ITEMS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setItems(data);
+      setItems(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -45,12 +46,11 @@ const InventoryItemsPage = () => {
 
   const fetchWarehouseStock = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/warehouse', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_WAREHOUSE, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
       const stockMap = {};
-      data.forEach(item => {
+      response.data.forEach(item => {
         stockMap[item.item_id] = item.quantity;
       });
       setWarehouseStock(stockMap);
@@ -63,25 +63,17 @@ const InventoryItemsPage = () => {
     e.preventDefault();
     
     try {
-      const url = editingItem
-        ? `http://localhost:8081/api/inventory/items/${editingItem.id}`
-        : 'http://localhost:8081/api/inventory/items';
-      
-      const method = editingItem ? 'PATCH' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (response.ok) {
-        fetchItems();
-        handleCloseModal();
+      if (editingItem) {
+        await axios.patch(`${API_ENDPOINTS.INVENTORY_ITEMS}/${editingItem.id}`, formData, {
+          headers: getAuthHeader(),
+        });
+      } else {
+        await axios.post(API_ENDPOINTS.INVENTORY_ITEMS, formData, {
+          headers: getAuthHeader(),
+        });
       }
+      fetchItems();
+      handleCloseModal();
     } catch (error) {
       console.error('Error saving item:', error);
     }
@@ -91,14 +83,10 @@ const InventoryItemsPage = () => {
     if (!window.confirm('Are you sure you want to delete this item?')) return;
 
     try {
-      const response = await fetch(`http://localhost:8081/api/inventory/items/${id}`, {
-        method: 'DELETE',
+      await axios.delete(`${API_ENDPOINTS.INVENTORY_ITEMS}/${id}`, {
         headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        fetchItems();
-      }
+      fetchItems();
     } catch (error) {
       console.error('Error deleting item:', error);
     }

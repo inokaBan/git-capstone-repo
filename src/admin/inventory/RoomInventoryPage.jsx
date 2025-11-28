@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Package, Plus, AlertTriangle, CheckCircle, ClipboardList } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { useAlertDialog } from '../../context/AlertDialogContext';
+import { API_ENDPOINTS } from '../../config/api';
 
 const RoomInventoryPage = () => {
   const { getAuthHeader } = useAuth();
@@ -31,11 +33,10 @@ const RoomInventoryPage = () => {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/rooms', {
+      const response = await axios.get(API_ENDPOINTS.ROOMS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setRooms(data);
+      setRooms(response.data);
     } catch (error) {
       console.error('Error fetching rooms:', error);
     } finally {
@@ -45,11 +46,10 @@ const RoomInventoryPage = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/items', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_ITEMS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setItems(data);
+      setItems(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
     }
@@ -57,14 +57,13 @@ const RoomInventoryPage = () => {
 
   const fetchRoomInventory = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/room-inventory', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_ROOM, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
       
       // Group by room_id
       const grouped = {};
-      data.forEach(item => {
+      response.data.forEach(item => {
         if (!grouped[item.room_id]) {
           grouped[item.room_id] = [];
         }
@@ -78,26 +77,16 @@ const RoomInventoryPage = () => {
 
   const createRestockTask = async (roomId) => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          room_id: roomId,
-          task_type: 'restocking',
-          priority: 'medium',
-          description: 'Restock room after checkout',
-        }),
+      await axios.post(API_ENDPOINTS.INVENTORY_TASKS, {
+        room_id: roomId,
+        task_type: 'restocking',
+        priority: 'medium',
+        description: 'Restock room after checkout',
+      }, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        showSuccess('Restocking task created successfully!');
-        setShowTaskModal(false);
-      } else {
-        showError('Failed to create restocking task');
-      }
+      showSuccess('Restocking task created successfully!');
+      setShowTaskModal(false);
     } catch (error) {
       console.error('Error creating task:', error);
       showError('Failed to create restocking task');
@@ -110,32 +99,22 @@ const RoomInventoryPage = () => {
     if (!selectedRoomForInventory) return;
     
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/room-inventory', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          room_id: selectedRoomForInventory.id,
-          item_id: inventoryFormData.item_id,
-          quantity: inventoryFormData.quantity,
-          action: inventoryFormData.action
-        }),
+      await axios.post(API_ENDPOINTS.INVENTORY_ROOM, {
+        room_id: selectedRoomForInventory.id,
+        item_id: inventoryFormData.item_id,
+        quantity: inventoryFormData.quantity,
+        action: inventoryFormData.action
+      }, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        showSuccess('Inventory updated successfully!');
-        fetchRoomInventory();
-        setShowInventoryModal(false);
-        setInventoryFormData({ item_id: '', quantity: 0, action: 'set' });
-      } else {
-        const error = await response.json();
-        showError(`Error: ${error.error || 'Failed to update inventory'}`);
-      }
+      showSuccess('Inventory updated successfully!');
+      fetchRoomInventory();
+      setShowInventoryModal(false);
+      setInventoryFormData({ item_id: '', quantity: 0, action: 'set' });
     } catch (error) {
       console.error('Error updating inventory:', error);
-      showError('Failed to update inventory');
+      const errorMessage = error.response?.data?.error || 'Failed to update inventory';
+      showError(`Error: ${errorMessage}`);
     }
   };
 
@@ -147,29 +126,20 @@ const RoomInventoryPage = () => {
     }
     
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/room-inventory/restock', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({ room_id: roomId }),
+      const response = await axios.post(`${API_ENDPOINTS.INVENTORY_ROOM}/restock`, {
+        room_id: roomId
+      }, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        const data = await response.json();
-        showSuccess(data.message || 'Room restocked successfully!');
-        fetchRoomInventory();
-        if (selectedRoom && selectedRoom.id === roomId) {
-          setSelectedRoom(rooms.find(r => r.id === roomId));
-        }
-      } else {
-        const error = await response.json();
-        showError(`Error: ${error.error || 'Failed to restock room'}`);
+      showSuccess(response.data.message || 'Room restocked successfully!');
+      fetchRoomInventory();
+      if (selectedRoom && selectedRoom.id === roomId) {
+        setSelectedRoom(rooms.find(r => r.id === roomId));
       }
     } catch (error) {
       console.error('Error restocking room:', error);
-      showError('Failed to restock room');
+      const errorMessage = error.response?.data?.error || 'Failed to restock room';
+      showError(`Error: ${errorMessage}`);
     }
   };
 
@@ -181,21 +151,15 @@ const RoomInventoryPage = () => {
     }
     
     try {
-      const response = await fetch(`http://localhost:8081/api/inventory/room-inventory/${roomId}/${itemId}`, {
-        method: 'DELETE',
+      await axios.delete(`${API_ENDPOINTS.INVENTORY_ROOM}/${roomId}/${itemId}`, {
         headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        showSuccess('Item removed successfully!');
-        fetchRoomInventory();
-      } else {
-        const error = await response.json();
-        showError(`Error: ${error.error || 'Failed to remove item'}`);
-      }
+      showSuccess('Item removed successfully!');
+      fetchRoomInventory();
     } catch (error) {
       console.error('Error removing item:', error);
-      showError('Failed to remove item');
+      const errorMessage = error.response?.data?.error || 'Failed to remove item';
+      showError(`Error: ${errorMessage}`);
     }
   };
 

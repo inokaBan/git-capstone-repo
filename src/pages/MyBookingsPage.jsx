@@ -45,6 +45,7 @@ const MyBookingsPage = () => {
         setBookings(response.data || []);
       } catch (err) {
         setError('Failed to load bookings. Please try again.');
+        showError('Failed to load bookings. Please try again.');
       } finally {
         setLoading(false);
       }

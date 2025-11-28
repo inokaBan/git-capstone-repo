@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, CheckCircle, Clock, AlertCircle, User, X } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../config/api';
 
 const HousekeepingTasksPage = () => {
   const { getAuthHeader, isStaff, user } = useAuth();
@@ -26,11 +28,10 @@ const HousekeepingTasksPage = () => {
 
   const fetchTasks = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/tasks', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_TASKS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setTasks(data);
+      setTasks(response.data);
     } catch (error) {
       console.error('Error fetching tasks:', error);
     } finally {
@@ -40,11 +41,10 @@ const HousekeepingTasksPage = () => {
 
   const fetchRooms = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/rooms', {
+      const response = await axios.get(API_ENDPOINTS.ROOMS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setRooms(data);
+      setRooms(response.data);
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
@@ -52,11 +52,10 @@ const HousekeepingTasksPage = () => {
 
   const fetchStaff = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/admin/users', {
+      const response = await axios.get(API_ENDPOINTS.ADMIN_USERS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      const staffUsers = data.filter(u => u.role === 'staff' || u.role === 'admin');
+      const staffUsers = response.data.filter(u => u.role === 'staff' || u.role === 'admin');
       setStaff(staffUsers);
     } catch (error) {
       console.error('Error fetching staff:', error);
@@ -67,19 +66,11 @@ const HousekeepingTasksPage = () => {
     e.preventDefault();
     
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify(formData),
+      await axios.post(API_ENDPOINTS.INVENTORY_TASKS, formData, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        fetchTasks();
-        handleCloseModal();
-      }
+      fetchTasks();
+      handleCloseModal();
     } catch (error) {
       console.error('Error creating task:', error);
     }
@@ -87,18 +78,13 @@ const HousekeepingTasksPage = () => {
 
   const handleStatusChange = async (taskId, newStatus) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/inventory/tasks/${taskId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
-
-      if (response.ok) {
-        fetchTasks();
-      }
+      await axios.patch(`${API_ENDPOINTS.INVENTORY_TASKS}/${taskId}`, 
+        { status: newStatus },
+        {
+          headers: getAuthHeader(),
+        }
+      );
+      fetchTasks();
     } catch (error) {
       console.error('Error updating task:', error);
     }

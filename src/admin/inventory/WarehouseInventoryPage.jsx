@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Minus, Package, Search, History } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
+import { API_ENDPOINTS } from '../../config/api';
 
 const WarehouseInventoryPage = () => {
   const { getAuthHeader, user } = useAuth();
@@ -34,11 +36,10 @@ const WarehouseInventoryPage = () => {
 
   const fetchWarehouseStock = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/warehouse', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_WAREHOUSE, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setWarehouseStock(data);
+      setWarehouseStock(response.data);
     } catch (error) {
       console.error('Error fetching warehouse stock:', error);
     }
@@ -46,11 +47,10 @@ const WarehouseInventoryPage = () => {
 
   const fetchItems = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/items', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_ITEMS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setItems(data);
+      setItems(response.data);
     } catch (error) {
       console.error('Error fetching items:', error);
     }
@@ -58,11 +58,10 @@ const WarehouseInventoryPage = () => {
 
   const fetchLogs = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/logs?limit=50', {
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_LOGS}?limit=50`, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setLogs(data);
+      setLogs(response.data);
     } catch (error) {
       console.error('Error fetching logs:', error);
     }
@@ -78,24 +77,16 @@ const WarehouseInventoryPage = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/warehouse/transaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          item_id: selectedItem.item_id,
-          change_quantity: modalType === 'add' ? quantity : -quantity,
-          reason: modalType === 'add' ? 'Manual restock - added to warehouse' : 'Manual removal from warehouse',
-          notes: transactionData.notes,
-        }),
+      await axios.post(`${API_ENDPOINTS.INVENTORY_WAREHOUSE}/transaction`, {
+        item_id: selectedItem.item_id,
+        change_quantity: modalType === 'add' ? quantity : -quantity,
+        reason: modalType === 'add' ? 'Manual restock - added to warehouse' : 'Manual removal from warehouse',
+        notes: transactionData.notes,
+      }, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        await fetchData();
-        handleCloseModal();
-      }
+      await fetchData();
+      handleCloseModal();
     } catch (error) {
       console.error('Error processing transaction:', error);
     }

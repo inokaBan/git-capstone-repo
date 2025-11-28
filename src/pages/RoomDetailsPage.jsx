@@ -82,8 +82,8 @@ const RoomDetailPage = () => {
     }
 
     if (!isAuthenticated) {
-      showError('Please log in to make a booking');
-      navigate('/login');
+      showError('Please create an account to make a booking');
+      navigate('/register');
       return;
     }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, DollarSign, Package, BarChart, Download } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { API_ENDPOINTS } from '../../config/api';
+import axios from 'axios';
 
 const InventoryReportsPage = () => {
   const { getAuthHeader } = useAuth();
@@ -16,11 +17,10 @@ const InventoryReportsPage = () => {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch(`http://localhost:8081/api/inventory/reports?days=${dateRange}`, {
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_REPORTS}?days=${dateRange}`, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setReports(data);
+      setReports(response.data);
     } catch (error) {
       console.error('Error fetching reports:', error);
     } finally {
@@ -32,20 +32,14 @@ const InventoryReportsPage = () => {
     try {
       setExporting(true);
       
-      // Fetch CSV data from backend
-      const response = await fetch(`${API_ENDPOINTS.INVENTORY_REPORTS_EXPORT}?days=${dateRange}`, {
+      // Fetch CSV data from backend using axios
+      const response = await axios.get(`${API_ENDPOINTS.INVENTORY_REPORTS_EXPORT}?days=${dateRange}`, {
         headers: getAuthHeader(),
+        responseType: 'blob', // Important for file downloads
       });
       
-      if (!response.ok) {
-        throw new Error('Failed to export report');
-      }
-      
-      // Get the CSV data as blob
-      const blob = await response.blob();
-      
       // Create a download link and trigger download
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = url;
       link.download = `inventory-report-${dateRange}days-${Date.now()}.csv`;

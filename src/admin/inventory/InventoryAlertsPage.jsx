@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, CheckCircle, Plus, ClipboardList, X } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { API_ENDPOINTS } from '../../config/api';
 
 const InventoryAlertsPage = () => {
   const { getAuthHeader } = useAuth();
@@ -17,11 +19,10 @@ const InventoryAlertsPage = () => {
 
   const fetchAlerts = async () => {
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/alerts', {
+      const response = await axios.get(API_ENDPOINTS.INVENTORY_ALERTS, {
         headers: getAuthHeader(),
       });
-      const data = await response.json();
-      setAlerts(data);
+      setAlerts(response.data);
     } catch (error) {
       console.error('Error fetching alerts:', error);
     } finally {
@@ -31,14 +32,10 @@ const InventoryAlertsPage = () => {
 
   const handleResolve = async (alertId) => {
     try {
-      const response = await fetch(`http://localhost:8081/api/inventory/alerts/${alertId}/resolve`, {
-        method: 'PATCH',
+      await axios.patch(`${API_ENDPOINTS.INVENTORY_ALERTS}/${alertId}/resolve`, {}, {
         headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        fetchAlerts();
-      }
+      fetchAlerts();
     } catch (error) {
       console.error('Error resolving alert:', error);
     }
@@ -49,23 +46,15 @@ const InventoryAlertsPage = () => {
     if (!quantity || isNaN(quantity)) return;
 
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/warehouse/transaction', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          item_id: alert.item_id,
-          change_quantity: parseInt(quantity),
-          reason: 'Quick restock from alert',
-          notes: `Resolved alert #${alert.id}`,
-        }),
+      await axios.post(`${API_ENDPOINTS.INVENTORY_WAREHOUSE}/transaction`, {
+        item_id: alert.item_id,
+        change_quantity: parseInt(quantity),
+        reason: 'Quick restock from alert',
+        notes: `Resolved alert #${alert.id}`,
+      }, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        handleResolve(alert.id);
-      }
+      handleResolve(alert.id);
     } catch (error) {
       console.error('Error adding stock:', error);
     }
@@ -78,24 +67,16 @@ const InventoryAlertsPage = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:8081/api/inventory/tasks', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader(),
-        },
-        body: JSON.stringify({
-          room_id: alert.room_id,
-          task_type: 'restocking',
-          priority: alert.severity === 'critical' ? 'urgent' : 'high',
-          description: `Restock ${alert.item_name} - ${alert.message}`,
-        }),
+      await axios.post(API_ENDPOINTS.INVENTORY_TASKS, {
+        room_id: alert.room_id,
+        task_type: 'restocking',
+        priority: alert.severity === 'critical' ? 'urgent' : 'high',
+        description: `Restock ${alert.item_name} - ${alert.message}`,
+      }, {
+        headers: getAuthHeader(),
       });
-
-      if (response.ok) {
-        handleResolve(alert.id);
-        showSuccess('Task created successfully!');
-      }
+      handleResolve(alert.id);
+      showSuccess('Task created successfully!');
     } catch (error) {
       console.error('Error creating task:', error);
       showError('Failed to create task');

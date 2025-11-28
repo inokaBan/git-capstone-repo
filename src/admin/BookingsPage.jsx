@@ -153,8 +153,10 @@ const BookingsPage = () => {
             : booking
         )
       );
+      showSuccess(`Booking ${action === 'approve' ? 'approved' : 'declined'} successfully`);
     } catch (error) {
       console.error('Error updating booking:', error);
+      showError(error.response?.data?.error || `Failed to ${action} booking`);
     } finally {
       setProcessingId(null);
     }
