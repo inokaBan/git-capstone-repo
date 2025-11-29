@@ -1,0 +1,440 @@
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { ArrowLeft, Bed, Users, Star, Bath, Filter } from 'lucide-react';
+import { useToast } from '../context/ToastContext';
+import { API_ENDPOINTS } from '../config/api';
+import Pagination from '../components/Pagination';
+
+const RoomCategoriesPage = () => {
+  const { showError } = useToast();
+  
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [rooms, setRooms] = useState([]);
+  const [filteredRooms, setFilteredRooms] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedRoomType, setSelectedRoomType] = useState(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(25);
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 text-green-800';
+      case 'booked': return 'bg-red-100 text-red-800';
+      case 'maintenance': return 'bg-yellow-100 text-yellow-800';
+      case 'unavailable': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const loadRoomTypes = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(API_ENDPOINTS.ROOM_TYPES);
+      setRoomTypes(res.data || []);
+    } catch (e) {
+      console.error('Failed to load room types', e);
+      showError(e?.response?.data?.error || 'Failed to load room types');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadCategories = async () => {
+    try {
+      const res = await axios.get(API_ENDPOINTS.ROOM_CATEGORIES);
+      setCategories(res.data || []);
+    } catch (e) {
+      console.error('Failed to load room categories', e);
+      showError(e?.response?.data?.error || 'Failed to load room categories');
+    }
+  };
+
+  const loadRooms = async () => {
+    try {
+      setLoading(true);
+      // Fetch all rooms without pagination for filtering
+      const res = await axios.get(`${API_ENDPOINTS.ROOMS}?limit=1000`);
+      setRooms(res.data.data || res.data || []);
+    } catch (e) {
+      console.error('Failed to load rooms', e);
+      showError(e?.response?.data?.error || 'Failed to load rooms');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRoomTypeClick = async (roomType) => {
+    setSelectedRoomType(roomType);
+    setSelectedCategoryFilter('all');
+    setCurrentPage(1);
+    
+    // If rooms not loaded yet, load them
+    if (rooms.length === 0) {
+      await loadRooms();
+    }
+    
+    // Filter rooms by room type
+    const filtered = rooms.filter(room => 
+      room.type_name === roomType.type_name || 
+      room.room_type_id === roomType.id
+    );
+    setFilteredRooms(filtered);
+  };
+
+  const handleBackToRoomTypes = () => {
+    setSelectedRoomType(null);
+    setFilteredRooms([]);
+    setSelectedCategoryFilter('all');
+    setCurrentPage(1);
+  };
+
+  const handleCategoryFilterChange = (categoryName) => {
+    setSelectedCategoryFilter(categoryName);
+    setCurrentPage(1);
+  };
+
+  const getRoomCountForType = (typeName) => {
+    return rooms.filter(room => 
+      room.type_name === typeName || 
+      room.room_type_id === typeName
+    ).length;
+  };
+
+  // Apply category filter on top of room type filter
+  const displayedRooms = selectedCategoryFilter === 'all' 
+    ? filteredRooms 
+    : filteredRooms.filter(room => room.category === selectedCategoryFilter);
+
+  const totalItems = displayedRooms.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedRooms = displayedRooms.slice(startIndex, endIndex);
+
+  useEffect(() => {
+    loadRoomTypes();
+    loadCategories();
+    loadRooms();
+  }, []);
+
+  // If no room type is selected, show room types grid
+  if (!selectedRoomType) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Header */}
+        <div className="bg-white rounded-xl p-4 sm:p-6 mb-6 border border-slate-200">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">Room Types</h1>
+            <p className="text-sm text-gray-500 mt-1">Browse rooms by type</p>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-gray-500 text-center">
+            <div className="animate-pulse">Loading room types...</div>
+          </div>
+        )}
+
+        {/* Room Types Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+          {roomTypes.map((roomType) => {
+            const roomCount = getRoomCountForType(roomType.type_name);
+            return (
+              <div
+                key={roomType.id}
+                onClick={() => handleRoomTypeClick(roomType)}
+                className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-lg transition-all duration-200 cursor-pointer group"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+                    <Bed className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <span className="text-2xl font-bold text-gray-900">{roomCount}</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                  {roomType.type_name}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {roomCount} {roomCount === 1 ? 'room' : 'rooms'} available
+                </p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Empty State */}
+        {!loading && roomTypes.length === 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+            <Bed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No Room Types Found</h3>
+            <p className="text-gray-500">Room types will appear here once they are created.</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Show rooms table for selected room type
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* Header with Back Button */}
+      <div className="bg-white rounded-xl p-4 sm:p-6 mb-6 border border-slate-200">
+        <div className="flex items-center gap-4 mb-4">
+          <button
+            onClick={handleBackToRoomTypes}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Back to room types"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+              {selectedRoomType.type_name} Rooms
+            </h1>
+            <p className="text-sm text-gray-500 mt-1">
+              {displayedRooms.length} {displayedRooms.length === 1 ? 'room' : 'rooms'} 
+              {selectedCategoryFilter !== 'all' && ` in ${selectedCategoryFilter} category`}
+            </p>
+          </div>
+        </div>
+
+        {/* Category Filter */}
+        {categories.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center gap-2 mb-3">
+              <Filter className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Filter by Category:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => handleCategoryFilterChange('all')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedCategoryFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All Categories
+              </button>
+              {categories.map((category) => (
+                <button
+                  key={category.id}
+                  onClick={() => handleCategoryFilterChange(category.category_name)}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    selectedCategoryFilter === category.category_name
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {category.category_name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-gray-500 text-center">
+          <div className="animate-pulse">Loading rooms...</div>
+        </div>
+      )}
+
+      {/* Rooms Table */}
+      {!loading && displayedRooms.length > 0 && (
+        <>
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            {/* Table Layout (sm and above) */}
+            <div className="hidden sm:block overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Room Details</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Rating</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Capacity</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Amenities</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {paginatedRooms.map((room) => (
+                    <tr key={room.id} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center gap-3 sm:gap-4">
+                          {room.images[0] && (
+                            <img
+                              src={room.images[0]}
+                              alt={`${room.type_name} preview`}
+                              className="w-12 h-12 rounded-md object-cover"
+                            />
+                          )}
+                          <div>
+                            <h3 className="text-sm font-bold text-gray-900">
+                              {room.room_number ? `#${room.room_number}` : room.type_name}
+                            </h3>
+                            {room.room_number && (
+                              <div className="text-xs text-gray-900 font-bold">{room.type_name}</div>
+                            )}
+                            <div className="flex items-center gap-2 sm:gap-3 mt-1 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                {room.beds} beds
+                              </span>
+                              <span className="flex items-center gap-1">
+                                {room.bathrooms} baths
+                              </span>
+                              <span>{room.size}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center gap-1.5">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">{room.rating}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(room.status)}`}>
+                          {room.status}
+                        </span>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-gray-500" />
+                          <span className="text-sm">{room.guests} guests</span>
+                        </div>
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <span className="text-sm font-medium text-gray-900">₱{Number(room.price || 0).toLocaleString()}</span>
+                        {room.original_price && (
+                          <div className="text-xs text-gray-400 line-through">{room.original_price}</div>
+                        )}
+                      </td>
+                      <td className="px-4 sm:px-6 py-3 sm:py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {room.amenities.slice(0, 3).map((amenity, index) => (
+                            <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-md text-xs text-gray-600">
+                              {amenity}
+                            </span>
+                          ))}
+                          {room.amenities.length > 3 && (
+                            <span className="inline-flex px-2 py-0.5 bg-gray-100 rounded-md text-xs text-gray-600">
+                              +{room.amenities.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Card Layout (below sm) */}
+            <div className="sm:hidden grid gap-4 p-4">
+              {paginatedRooms.map((room) => (
+                <div 
+                  key={room.id}
+                  className="bg-white rounded-lg shadow-sm p-4 border border-gray-100"
+                >
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-start gap-3">
+                      {room.images[0] && (
+                        <img
+                          src={room.images[0]}
+                          alt={`${room.type_name} preview`}
+                          className="w-16 h-16 rounded-md object-cover"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h3 className="text-sm font-bold text-gray-900">{room.type_name}</h3>
+                        {room.room_number && (
+                          <span className="text-xs text-gray-600">Room #{room.room_number}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <Bed className="w-4 h-4" />
+                        {room.beds} beds
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Bath className="w-4 h-4" />
+                        {room.bathrooms} baths
+                      </span>
+                      <span>{room.size}</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1.5">
+                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm font-medium">{room.rating}</span>
+                      </div>
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(room.status)}`}>
+                        {room.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{room.guests} guests</span>
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-gray-900">₱{Number(room.price || 0).toLocaleString()}</span>
+                      {room.original_price && (
+                        <div className="text-xs text-gray-400 line-through">{room.original_price}</div>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {room.amenities.slice(0, 3).map((amenity, index) => (
+                        <span key={index} className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 rounded-md text-xs text-gray-600">
+                          {amenity}
+                        </span>
+                      ))}
+                      {room.amenities.length > 3 && (
+                        <span className="inline-flex px-2 py-0.5 bg-gray-100 rounded-md text-xs text-gray-600">
+                          +{room.amenities.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Pagination */}
+          {displayedRooms.length > itemsPerPage && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={(page) => setCurrentPage(page)}
+              onItemsPerPageChange={() => {}} // Fixed items per page for this view
+            />
+          )}
+        </>
+      )}
+
+      {/* Empty State */}
+      {!loading && displayedRooms.length === 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-8 text-center">
+          <Bed className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Rooms Found</h3>
+          <p className="text-gray-500">
+            {selectedCategoryFilter === 'all' 
+              ? `There are no rooms of type ${selectedRoomType.type_name} yet.`
+              : `There are no ${selectedRoomType.type_name} rooms in the ${selectedCategoryFilter} category.`
+            }
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default RoomCategoriesPage;

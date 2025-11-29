@@ -18,6 +18,7 @@ import MyBookingsPage from "./pages/MyBookingsPage";
 import AdminOverview from "./admin/AdminOverview";
 import AdminLayout from "./admin/AdminLayout";
 import RoomsManagementPage from "./admin/RoomsManagementPage";
+import RoomCategoriesPage from "./admin/RoomCategoriesPage";
 import BookingsPage from "./admin/BookingsPage";
 import InventoryPage from "./admin/InventoryPage";
 import AnalyticsPage from "./admin/AnalyticsPage";
@@ -50,7 +51,8 @@ const router = createBrowserRouter(
       }>
         <Route index element={<AdminOverview />} />
         <Route path="overview" element={<AdminOverview />} />
-        <Route path="rooms" element={<RoomsManagementPage />} />
+        <Route path="rooms/management" element={<RoomsManagementPage />} />
+        <Route path="rooms/categories" element={<RoomCategoriesPage />} />
         <Route path="bookings" element={<BookingsPage />} />
         <Route path="inventory" element={<InventoryPage />} />
         <Route path="inventory/items" element={<InventoryItemsPage />} />

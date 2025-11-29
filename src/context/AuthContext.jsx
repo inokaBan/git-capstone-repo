@@ -7,14 +7,14 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [role, setRole] = useState(null); // 'admin' or 'guest'
   const [token, setToken] = useState(null); // Add token state
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start with loading true while checking localStorage
 
-  // Load auth state from localStorage on mount
+  // Restore session from localStorage on app load
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     const storedRole = localStorage.getItem('role');
     const storedToken = localStorage.getItem('authToken');
-    
+
     if (storedUser && storedRole && storedToken) {
       try {
         const parsedUser = JSON.parse(storedUser);
@@ -23,12 +23,14 @@ export const AuthProvider = ({ children }) => {
         setToken(storedToken);
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Failed to parse stored user:', error);
+        // If parsing fails, clear invalid data
+        console.error('Failed to parse stored user data:', error);
         localStorage.removeItem('user');
         localStorage.removeItem('role');
         localStorage.removeItem('authToken');
       }
     }
+    
     setLoading(false);
   }, []);
 

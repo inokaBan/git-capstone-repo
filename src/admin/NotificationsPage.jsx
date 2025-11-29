@@ -132,7 +132,13 @@ const NotificationsPage = () => {
     }
   };
 
-  const handleViewDetails = (notification) => {
+  const handleViewDetails = async (notification) => {
+    // If it's an unresolved inventory alert, resolve it first
+    if (notification.type === 'alert' && !notification.is_resolved) {
+      await handleResolveAlert(notification);
+    }
+    
+    // Navigate to the details page if a link exists
     if (notification.link) {
       navigate(notification.link);
     }

@@ -25,6 +25,16 @@ const AdminLayout = () => {
       return inventoryTitles[subPath] || 'Inventory'
     }
     
+    // Handle rooms sub-routes
+    if (path.startsWith('rooms/')) {
+      const subPath = path.replace('rooms/', '')
+      const roomsTitles = {
+        'management': 'Rooms Management',
+        'categories': 'Room Types'
+      }
+      return roomsTitles[subPath] || 'Rooms'
+    }
+    
     const segment = path.split('/')[0]
     const map = {
       overview: 'Overview',
