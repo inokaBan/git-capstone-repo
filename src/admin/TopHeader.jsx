@@ -1,9 +1,46 @@
-import React from 'react'
-import {  Bell, Menu } from 'lucide-react';
+import React, { useState, useEffect } from 'react'
+import { Bell, Menu } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { API_ENDPOINTS } from '../config/api';
 
 const TopHeader = ({activeTab, setSidebarOpen}) => {
-  const { user } = useAuth();
+  const { user, getAuthHeader } = useAuth();
+  const navigate = useNavigate();
+  const [notificationCount, setNotificationCount] = useState(0);
+  
+  // Fetch notification count
+  const fetchNotificationCount = async () => {
+    try {
+      const response = await axios.get(API_ENDPOINTS.ADMIN_NOTIFICATIONS_COUNT, {
+        headers: getAuthHeader(),
+      });
+      setNotificationCount(response.data.count || 0);
+    } catch (error) {
+      console.error('Error fetching notification count:', error);
+      // Don't show error to user, just keep the count at current value
+    }
+  };
+
+  // Fetch on mount and set up polling
+  useEffect(() => {
+    fetchNotificationCount();
+    
+    // Poll every 30 seconds for updates
+    const interval = setInterval(fetchNotificationCount, 30000);
+    
+    // Listen for alert resolution events for immediate updates
+    const handleAlertResolved = () => {
+      fetchNotificationCount();
+    };
+    window.addEventListener('alertResolved', handleAlertResolved);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('alertResolved', handleAlertResolved);
+    };
+  }, []);
   
   return (
     <>
@@ -19,9 +56,16 @@ const TopHeader = ({activeTab, setSidebarOpen}) => {
                 </button>
               </div>
               <div className="flex items-center space-x-4">
-                <button className="relative p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                <button 
+                  onClick={() => navigate('/admin/notifications')}
+                  className="relative p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
                   <Bell className="h-5 w-5 text-gray-600" />
-                  <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-medium">3</span>
+                  {notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-xs text-white font-medium">
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </span>
+                  )}
                 </button>
                 <div className="flex items-center space-x-3">
                   <div className="hidden sm:block text-right">

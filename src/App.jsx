@@ -25,6 +25,7 @@ import SettingsPage from "./admin/SettingsPage";
 import BookingsCalendar from "./admin/BookingsCalendar";
 import WalkinReservationPage from "./admin/WalkinReservationPage";
 import UserManagementPage from "./admin/UserManagementPage";
+import NotificationsPage from "./admin/NotificationsPage";
 
 import InventoryItemsPage from "./admin/inventory/InventoryItemsPage";
 import RoomInventoryPage from "./admin/inventory/RoomInventoryPage";
@@ -63,6 +64,7 @@ const router = createBrowserRouter(
         <Route path="calendar" element={<BookingsCalendar />} />
         <Route path="walkin" element={<WalkinReservationPage />} />
         <Route path="users" element={<UserManagementPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
       </Route>
 
       {/* User pages with MainLayout */}

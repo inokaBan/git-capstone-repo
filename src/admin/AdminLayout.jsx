@@ -36,6 +36,7 @@ const AdminLayout = () => {
       calendar: 'Calendar',
       walkin: 'Walk-in Reservation',
       users: 'User Management',
+      notifications: 'Notifications',
     }
     if (map[segment]) return map[segment]
     return segment.charAt(0).toUpperCase() + segment.slice(1)

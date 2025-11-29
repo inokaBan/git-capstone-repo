@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Bed, Calendar, Package, X, Settings, BarChart3, Home, LogOut, Users, ChevronDown, ChevronRight, UserPlus } from 'lucide-react';
+import { Bed, Calendar, Package, X, Settings, BarChart3, Home, LogOut, Users, ChevronDown, ChevronRight, UserPlus, Bell } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import logo from "../assets/logo.jpg"
 
@@ -26,6 +26,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       { to: '/admin/overview', label: 'Overview', icon: Home },
       { to: '/admin/rooms', label: 'Rooms', icon: Bed },
       { to: '/admin/bookings', label: 'Bookings', icon: Calendar },
+      { to: '/admin/notifications', label: 'Notifications', icon: Bell },
       { to: '/admin/calendar', label: 'Calendar', icon: Calendar },
       { to: '/admin/walkin', label: 'Walkin Reservation', icon: UserPlus },
       { 

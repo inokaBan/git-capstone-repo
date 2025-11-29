@@ -3781,6 +3781,245 @@ app.get("/api/admin/stats", requireAuth, async (req, res) => {
     }
 });
 
+// Get count of unresolved inventory alerts, pending bookings, and due bookings (for notification badge)
+app.get("/api/admin/notifications/count", requireAuth, async (req, res) => {
+    try {
+        // Count unresolved inventory alerts
+        const alertsSql = "SELECT COUNT(*) as count FROM inventory_alerts WHERE is_resolved = 0";
+        const alertsResult = await new Promise((resolve, reject) => {
+            db.query(alertsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const alertsCount = alertsResult[0].count || 0;
+        
+        // Count pending bookings (new bookings awaiting approval)
+        const pendingBookingsSql = "SELECT COUNT(*) as count FROM bookings WHERE status = 'pending'";
+        const pendingBookingsResult = await new Promise((resolve, reject) => {
+            db.query(pendingBookingsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const pendingBookingsCount = pendingBookingsResult[0].count || 0;
+        
+        // Count due bookings (check-in is today or tomorrow, and status is pending or confirmed)
+        const dueBookingsSql = `
+            SELECT COUNT(*) as count 
+            FROM bookings 
+            WHERE status IN ('pending', 'confirmed') 
+            AND checkIn >= CURDATE() 
+            AND checkIn <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        `;
+        const dueBookingsResult = await new Promise((resolve, reject) => {
+            db.query(dueBookingsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const dueBookingsCount = dueBookingsResult[0].count || 0;
+        
+        // Total count
+        const totalCount = alertsCount + pendingBookingsCount + dueBookingsCount;
+        
+        return res.status(200).json({ 
+            count: totalCount,
+            breakdown: {
+                alerts: alertsCount,
+                pendingBookings: pendingBookingsCount,
+                dueBookings: dueBookingsCount
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching notification count:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
+// Get all notifications (inventory alerts, pending bookings, due bookings) with pagination
+app.get("/api/admin/notifications", requireAuth, async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 25;
+    const offset = (page - 1) * limit;
+    const type = req.query.type || 'all'; // 'all', 'alerts', 'pending_bookings', 'due_bookings'
+    const severity = req.query.severity || 'all'; // 'all', 'critical', 'warning', 'info'
+    
+    try {
+        let notifications = [];
+        
+        // Get inventory alerts if requested
+        if (type === 'all' || type === 'alerts') {
+            const alertsSql = `
+                SELECT 
+                    CONCAT('alert_', a.id) as id,
+                    'alert' as type,
+                    a.alert_type,
+                    a.severity,
+                    a.message,
+                    a.created_at,
+                    a.is_resolved,
+                    a.item_id,
+                    i.name as item_name,
+                    a.room_id,
+                    r.name as room_name,
+                    r.room_number
+                FROM inventory_alerts a
+                LEFT JOIN inventory_items i ON a.item_id = i.id
+                LEFT JOIN rooms r ON a.room_id = r.id
+                WHERE a.is_resolved = 0
+                ${severity !== 'all' ? 'AND a.severity = ?' : ''}
+                ORDER BY 
+                    CASE a.severity
+                        WHEN 'critical' THEN 1
+                        WHEN 'warning' THEN 2
+                        WHEN 'info' THEN 3
+                    END,
+                    a.created_at DESC
+            `;
+            
+            const alertsResult = await new Promise((resolve, reject) => {
+                db.query(alertsSql, severity !== 'all' ? [severity] : [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results || []);
+                });
+            });
+            
+            notifications = notifications.concat(alertsResult.map(alert => ({
+                ...alert,
+                title: alert.alert_type.replace('_', ' ').toUpperCase(),
+                description: alert.message,
+                link: '/admin/inventory/alerts',
+                actionable: !alert.is_resolved
+            })));
+        }
+        
+        // Get pending bookings if requested
+        if (type === 'all' || type === 'pending_bookings') {
+            const pendingBookingsSql = `
+                SELECT 
+                    CONCAT('pending_', b.bookingId) as id,
+                    'pending_booking' as type,
+                    'pending_booking' as alert_type,
+                    'warning' as severity,
+                    CONCAT('New booking from ', b.guestName, ' awaiting approval') as message,
+                    b.bookingDate as created_at,
+                    0 as is_resolved,
+                    b.bookingId,
+                    b.guestName,
+                    b.guest_email,
+                    b.roomName,
+                    b.room_id,
+                    r.room_number,
+                    b.checkIn,
+                    b.checkOut,
+                    b.totalPrice
+                FROM bookings b
+                LEFT JOIN rooms r ON b.room_id = r.id
+                WHERE b.status = 'pending'
+                ${severity !== 'all' && severity !== 'warning' ? 'AND 1=0' : ''}
+                ORDER BY b.bookingDate DESC
+            `;
+            
+            const pendingResult = await new Promise((resolve, reject) => {
+                db.query(pendingBookingsSql, [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results || []);
+                });
+            });
+            
+            notifications = notifications.concat(pendingResult.map(booking => ({
+                ...booking,
+                title: 'Pending Booking',
+                description: `${booking.guestName} - ${booking.roomName} (${booking.checkIn} to ${booking.checkOut})`,
+                link: '/admin/bookings',
+                actionable: true
+            })));
+        }
+        
+        // Get due bookings if requested
+        if (type === 'all' || type === 'due_bookings') {
+            const dueBookingsSql = `
+                SELECT 
+                    CONCAT('due_', b.bookingId) as id,
+                    'due_booking' as type,
+                    'due_booking' as alert_type,
+                    CASE 
+                        WHEN DATE(b.checkIn) = CURDATE() THEN 'critical'
+                        ELSE 'info'
+                    END as severity,
+                    CONCAT('Check-in ', 
+                        CASE 
+                            WHEN DATE(b.checkIn) = CURDATE() THEN 'today'
+                            ELSE 'tomorrow'
+                        END,
+                        ' for ', b.guestName
+                    ) as message,
+                    b.bookingDate as created_at,
+                    0 as is_resolved,
+                    b.bookingId,
+                    b.guestName,
+                    b.guest_email,
+                    b.roomName,
+                    b.room_id,
+                    r.room_number,
+                    b.checkIn,
+                    b.checkOut,
+                    b.totalPrice,
+                    b.status
+                FROM bookings b
+                LEFT JOIN rooms r ON b.room_id = r.id
+                WHERE b.status IN ('pending', 'confirmed')
+                AND b.checkIn >= CURDATE()
+                AND b.checkIn <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+                ${severity !== 'all' ? `AND CASE 
+                    WHEN DATE(b.checkIn) = CURDATE() THEN 'critical'
+                    ELSE 'info'
+                END = ?` : ''}
+                ORDER BY b.checkIn ASC
+            `;
+            
+            const dueResult = await new Promise((resolve, reject) => {
+                db.query(dueBookingsSql, severity !== 'all' ? [severity] : [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results || []);
+                });
+            });
+            
+            notifications = notifications.concat(dueResult.map(booking => ({
+                ...booking,
+                title: 'Upcoming Check-in',
+                description: `${booking.guestName} - ${booking.roomName} (Check-in: ${booking.checkIn})`,
+                link: '/admin/bookings',
+                actionable: true
+            })));
+        }
+        
+        // Sort all notifications by severity and date
+        notifications.sort((a, b) => {
+            const severityOrder = { critical: 1, warning: 2, info: 3 };
+            const severityDiff = (severityOrder[a.severity] || 4) - (severityOrder[b.severity] || 4);
+            if (severityDiff !== 0) return severityDiff;
+            return new Date(b.created_at) - new Date(a.created_at);
+        });
+        
+        // Apply pagination
+        const totalItems = notifications.length;
+        const totalPages = Math.ceil(totalItems / limit);
+        const paginatedNotifications = notifications.slice(offset, offset + limit);
+        
+        return res.status(200).json({
+            data: paginatedNotifications,
+            totalItems,
+            totalPages,
+            currentPage: page
+        });
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        return res.status(500).json({ error: error.message });
+    }
+});
+
 // Export analytics data as CSV
 app.get("/api/admin/reports/analytics/export", requireAuth, async (req, res) => {
     const days = parseInt(req.query.days) || 30;

@@ -43,8 +43,13 @@ const InventoryAlertsPage = () => {
         headers: getAuthHeader(),
       });
       fetchAlerts();
+      showSuccess('Alert resolved successfully!');
+      
+      // Dispatch event to update notification count in header
+      window.dispatchEvent(new Event('alertResolved'));
     } catch (error) {
       console.error('Error resolving alert:', error);
+      showError('Failed to resolve alert');
     }
   };
 
@@ -61,9 +66,11 @@ const InventoryAlertsPage = () => {
       }, {
         headers: getAuthHeader(),
       });
-      handleResolve(alert.id);
+      await handleResolve(alert.id);
+      showSuccess('Stock added and alert resolved!');
     } catch (error) {
       console.error('Error adding stock:', error);
+      showError('Failed to add stock');
     }
   };
 
@@ -82,8 +89,8 @@ const InventoryAlertsPage = () => {
       }, {
         headers: getAuthHeader(),
       });
-      handleResolve(alert.id);
-      showSuccess('Task created successfully!');
+      await handleResolve(alert.id);
+      showSuccess('Task created and alert resolved!');
     } catch (error) {
       console.error('Error creating task:', error);
       showError('Failed to create task');

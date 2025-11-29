@@ -29,6 +29,8 @@ export const API_ENDPOINTS = {
   // Admin
   ADMIN_USERS: `${API_BASE_URL}/api/admin/users`,
   ADMIN_STATS: `${API_BASE_URL}/api/admin/stats`,
+  ADMIN_NOTIFICATIONS: `${API_BASE_URL}/api/admin/notifications`,
+  ADMIN_NOTIFICATIONS_COUNT: `${API_BASE_URL}/api/admin/notifications/count`,
   
   // Reports Export
   ANALYTICS_EXPORT: `${API_BASE_URL}/api/admin/reports/analytics/export`,
