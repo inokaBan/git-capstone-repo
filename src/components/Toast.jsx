@@ -42,14 +42,14 @@ const Toast = () => {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 right-4 z-[10000] space-y-2 pointer-events-none">
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 md:top-20 md:right-4 md:left-auto md:translate-x-0 z-[10000] space-y-2 pointer-events-none">
       {toasts.map((toast, index) => {
         const styles = getToastStyles(toast.type);
         
         return (
           <div
             key={toast.id}
-            className={`${styles.bg} ${styles.border} ${styles.text} border rounded-lg shadow-lg p-4 min-w-[300px] max-w-md pointer-events-auto animate-slide-in-right`}
+            className={`${styles.bg} ${styles.border} ${styles.text} border rounded-lg shadow-lg p-4 min-w-[280px] sm:min-w-[300px] max-w-md pointer-events-auto animate-slide-in-right`}
             style={{
               animation: 'slideInRight 0.3s ease-out',
             }}

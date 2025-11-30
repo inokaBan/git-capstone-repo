@@ -57,7 +57,10 @@ const TopHeader = ({activeTab, setSidebarOpen}) => {
               </div>
               <div className="flex items-center space-x-4">
                 <button 
-                  onClick={() => navigate('/admin/notifications')}
+                  onClick={() => {
+                    setNotificationCount(0);
+                    navigate('/admin/notifications');
+                  }}
                   className="relative p-2.5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
                 >
                   <Bell className="h-5 w-5 text-gray-600" />

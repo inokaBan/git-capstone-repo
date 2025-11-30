@@ -3781,7 +3781,7 @@ app.get("/api/admin/stats", requireAuth, async (req, res) => {
     }
 });
 
-// Get count of unresolved inventory alerts, pending bookings, and due bookings (for notification badge)
+// Get count of unresolved inventory alerts, pending bookings, due bookings, due checkouts, and late checkouts (for notification badge)
 app.get("/api/admin/notifications/count", requireAuth, async (req, res) => {
     try {
         // Count unresolved inventory alerts
@@ -3820,15 +3820,48 @@ app.get("/api/admin/notifications/count", requireAuth, async (req, res) => {
         });
         const dueBookingsCount = dueBookingsResult[0].count || 0;
         
+        // Count due checkouts (check-out is today or tomorrow, and status is checked_in or confirmed)
+        const dueCheckoutsSql = `
+            SELECT COUNT(*) as count 
+            FROM bookings 
+            WHERE status IN ('checked_in', 'confirmed') 
+            AND checkOut >= CURDATE() 
+            AND checkOut <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+        `;
+        const dueCheckoutsResult = await new Promise((resolve, reject) => {
+            db.query(dueCheckoutsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const dueCheckoutsCount = dueCheckoutsResult[0].count || 0;
+        
+        // Count late checkouts (check-out date has passed and status is NOT completed, cancelled, or declined)
+        const lateCheckoutsSql = `
+            SELECT COUNT(*) as count 
+            FROM bookings 
+            WHERE status NOT IN ('completed', 'cancelled', 'declined') 
+            AND checkOut < CURDATE()
+        `;
+        const lateCheckoutsResult = await new Promise((resolve, reject) => {
+            db.query(lateCheckoutsSql, [], (err, results) => {
+                if (err) reject(err);
+                else resolve(results);
+            });
+        });
+        const lateCheckoutsCount = lateCheckoutsResult[0].count || 0;
+        
         // Total count
-        const totalCount = alertsCount + pendingBookingsCount + dueBookingsCount;
+        const totalCount = alertsCount + pendingBookingsCount + dueBookingsCount + dueCheckoutsCount + lateCheckoutsCount;
         
         return res.status(200).json({ 
             count: totalCount,
             breakdown: {
                 alerts: alertsCount,
                 pendingBookings: pendingBookingsCount,
-                dueBookings: dueBookingsCount
+                dueBookings: dueBookingsCount,
+                dueCheckouts: dueCheckoutsCount,
+                lateCheckouts: lateCheckoutsCount
             }
         });
     } catch (error) {
@@ -3837,12 +3870,12 @@ app.get("/api/admin/notifications/count", requireAuth, async (req, res) => {
     }
 });
 
-// Get all notifications (inventory alerts, pending bookings, due bookings) with pagination
+// Get all notifications (inventory alerts, pending bookings, due bookings, due checkouts, late checkouts) with pagination
 app.get("/api/admin/notifications", requireAuth, async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const offset = (page - 1) * limit;
-    const type = req.query.type || 'all'; // 'all', 'alerts', 'pending_bookings', 'due_bookings'
+    const type = req.query.type || 'all'; // 'all', 'alerts', 'pending_bookings', 'due_bookings', 'due_checkouts', 'late_checkouts'
     const severity = req.query.severity || 'all'; // 'all', 'critical', 'warning', 'info'
     
     try {
@@ -3932,7 +3965,7 @@ app.get("/api/admin/notifications", requireAuth, async (req, res) => {
                 ...booking,
                 title: 'Pending Booking',
                 description: `${booking.guestName} - ${booking.roomName} (${booking.checkIn} to ${booking.checkOut})`,
-                link: '/admin/bookings',
+                link: `/admin/bookings?bookingId=${booking.bookingId}`,
                 actionable: true
             })));
         }
@@ -3990,7 +4023,110 @@ app.get("/api/admin/notifications", requireAuth, async (req, res) => {
                 ...booking,
                 title: 'Upcoming Check-in',
                 description: `${booking.guestName} - ${booking.roomName} (Check-in: ${booking.checkIn})`,
-                link: '/admin/bookings',
+                link: `/admin/bookings?bookingId=${booking.bookingId}`,
+                actionable: true
+            })));
+        }
+        
+        // Get due checkouts if requested
+        if (type === 'all' || type === 'due_checkouts') {
+            const dueCheckoutsSql = `
+                SELECT 
+                    CONCAT('due_checkout_', b.bookingId) as id,
+                    'due_checkout' as type,
+                    'due_checkout' as alert_type,
+                    CASE 
+                        WHEN DATE(b.checkOut) = CURDATE() THEN 'critical'
+                        ELSE 'warning'
+                    END as severity,
+                    CONCAT('Check-out ', 
+                        CASE 
+                            WHEN DATE(b.checkOut) = CURDATE() THEN 'today'
+                            ELSE 'tomorrow'
+                        END,
+                        ' for ', b.guestName
+                    ) as message,
+                    b.bookingDate as created_at,
+                    0 as is_resolved,
+                    b.bookingId,
+                    b.guestName,
+                    b.guest_email,
+                    b.roomName,
+                    b.room_id,
+                    r.room_number,
+                    b.checkIn,
+                    b.checkOut,
+                    b.totalPrice,
+                    b.status
+                FROM bookings b
+                LEFT JOIN rooms r ON b.room_id = r.id
+                WHERE b.status IN ('checked_in', 'confirmed')
+                AND b.checkOut >= CURDATE()
+                AND b.checkOut <= DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+                ${severity !== 'all' ? `AND CASE 
+                    WHEN DATE(b.checkOut) = CURDATE() THEN 'critical'
+                    ELSE 'warning'
+                END = ?` : ''}
+                ORDER BY b.checkOut ASC
+            `;
+            
+            const dueCheckoutsResult = await new Promise((resolve, reject) => {
+                db.query(dueCheckoutsSql, severity !== 'all' ? [severity] : [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results || []);
+                });
+            });
+            
+            notifications = notifications.concat(dueCheckoutsResult.map(booking => ({
+                ...booking,
+                title: 'Upcoming Check-out',
+                description: `${booking.guestName} - ${booking.roomName} (Check-out: ${booking.checkOut})`,
+                link: `/admin/bookings?bookingId=${booking.bookingId}`,
+                actionable: true
+            })));
+        }
+        
+        // Get late checkouts if requested
+        if (type === 'all' || type === 'late_checkouts') {
+            const lateCheckoutsSql = `
+                SELECT 
+                    CONCAT('late_checkout_', b.bookingId) as id,
+                    'late_checkout' as type,
+                    'late_checkout' as alert_type,
+                    'critical' as severity,
+                    CONCAT('Overdue check-out for ', b.guestName, ' (was ', b.checkOut, ')') as message,
+                    b.checkOut as created_at,
+                    0 as is_resolved,
+                    b.bookingId,
+                    b.guestName,
+                    b.guest_email,
+                    b.roomName,
+                    b.room_id,
+                    r.room_number,
+                    b.checkIn,
+                    b.checkOut,
+                    b.totalPrice,
+                    b.status
+                FROM bookings b
+                LEFT JOIN rooms r ON b.room_id = r.id
+                WHERE b.status NOT IN ('completed', 'cancelled', 'declined')
+                AND b.checkOut < CURDATE()
+                ${severity !== 'all' && severity !== 'critical' ? 'AND 1=0' : ''}
+                ORDER BY b.checkOut ASC
+            `;
+            
+            const lateCheckoutsResult = await new Promise((resolve, reject) => {
+                db.query(lateCheckoutsSql, [], (err, results) => {
+                    if (err) reject(err);
+                    else resolve(results || []);
+                });
+            });
+            
+            notifications = notifications.concat(lateCheckoutsResult.map(booking => ({
+                ...booking,
+                title: 'Overdue Check-out',
+                description: `${booking.guestName} - ${booking.roomName} (Should have checked out: ${booking.checkOut})`,
+                link: `/admin/bookings?bookingId=${booking.bookingId}`,
                 actionable: true
             })));
         }

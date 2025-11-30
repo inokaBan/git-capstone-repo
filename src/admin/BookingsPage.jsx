@@ -6,6 +6,7 @@ import axios from 'axios';
 import { useAlertDialog } from '../context/AlertDialogContext';
 import { useToast } from '../context/ToastContext';
 import { API_ENDPOINTS } from '../config/api';
+import { useSearchParams } from 'react-router-dom';
 
 const BookingsPage = () => {
   const [bookings, setBookings] = useState([]);
@@ -26,6 +27,9 @@ const BookingsPage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const { showConfirm } = useAlertDialog();
   const { showSuccess, showError } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [roomTypes, setRoomTypes] = useState([]);
+  const [roomTypeFilter, setRoomTypeFilter] = useState('all');
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -42,6 +46,32 @@ const BookingsPage = () => {
     };
     fetchBookings();
   }, [currentPage, itemsPerPage]);
+
+  // Check for bookingId in URL parameters and auto-open details modal
+  useEffect(() => {
+    const bookingIdParam = searchParams.get('bookingId');
+    if (bookingIdParam && bookings.length > 0) {
+      const booking = bookings.find(b => b.bookingId === bookingIdParam);
+      if (booking) {
+        showBookingDetails(booking);
+        // Clear the URL parameter after opening the modal
+        setSearchParams({});
+      }
+    }
+  }, [bookings, searchParams, setSearchParams]);
+
+  // Effect to fetch room types
+  useEffect(() => {
+    const fetchRoomTypes = async () => {
+      try {
+        const response = await axios.get(API_ENDPOINTS.ROOM_TYPES);
+        setRoomTypes(response.data || []);
+      } catch (error) {
+        console.error('Error fetching room types:', error);
+      }
+    };
+    fetchRoomTypes();
+  }, []);
 
   // Identify first booker for each room (priority bookings)
   const firstBookerIds = useMemo(() => {
@@ -286,6 +316,10 @@ const BookingsPage = () => {
       const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
       if (!matchesStatus) return false;
       
+      // Filter by Room Type
+      const matchesRoomType = roomTypeFilter === 'all' || booking.roomName === roomTypeFilter;
+      if (!matchesRoomType) return false;
+      
       // General search query across all relevant fields
       const query = searchQuery.trim().toLowerCase();
       if (query) {
@@ -308,7 +342,7 @@ const BookingsPage = () => {
       // Within the same room, sort by bookingDate (earliest first)
       return new Date(a.bookingDate) - new Date(b.bookingDate);
     });
-  }, [bookings, statusFilter, searchQuery]);
+  }, [bookings, statusFilter, searchQuery, roomTypeFilter]);
 
   const filteredAvailableRooms = useMemo(() => {
     if (!roomSearchQuery.trim()) return availableRooms;
@@ -377,12 +411,30 @@ const BookingsPage = () => {
 
         {/* Filter Section */}
         <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <FilterButtonGroup 
               statusFilter={statusFilter}
               statusCounts={statusCounts}
               setStatusFilter={setStatusFilter}
             />
+
+            {/* Room Type Filter Dropdown */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="room-type-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">Room Type:</label>
+              <select
+                id="room-type-filter"
+                value={roomTypeFilter}
+                onChange={(e) => setRoomTypeFilter(e.target.value)}
+                className="block w-full sm:w-auto px-4 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="all">All Room Types</option>
+                {roomTypes.map((type) => (
+                  <option key={type.id} value={type.type_name}>
+                    {type.type_name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -542,7 +594,7 @@ const BookingsPage = () => {
                               <div className="text-sm text-gray-600">{booking.roomName}</div>
                             </>
                           ) : (
-                            <div className="font-bold text-blue-600">{booking.roomName}</div>
+                            <div className="text-sm font-medium text-gray-500 italic">Unassigned</div>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -622,9 +674,16 @@ const BookingsPage = () => {
                             <Home className="w-4 h-4" />
                             Room
                           </span>
-                          <span className={`mt-1 inline-flex px-2.5 py-1 text-xs font-bold rounded-full ${getRoomTypeColor(booking.roomName)}`}>
-                            {booking.roomName}
-                          </span>
+                          {booking.room_number ? (
+                            <div className="mt-1">
+                              <div className="text-sm font-bold text-blue-600">Room #{booking.room_number}</div>
+                              <span className={`inline-flex px-2.5 py-1 text-xs font-bold rounded-full ${getRoomTypeColor(booking.roomName)}`}>
+                                {booking.roomName}
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="mt-1 text-sm font-medium text-gray-500 italic">Unassigned</p>
+                          )}
                         </div>
                         <div>
                           <span className="text-gray-500 flex items-center gap-1">
