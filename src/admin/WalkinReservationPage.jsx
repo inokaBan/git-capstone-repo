@@ -180,25 +180,25 @@ const WalkinReservationPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
-      <div className="bg-white border-b border-slate-200">
+      <div className="bg-white dark:bg-gray-800 border-b border-slate-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-6 py-8">
-          <h1 className="text-4xl font-bold text-slate-900">Find Your Room</h1>
-          <p className="text-slate-600 mt-2">Quick walk-in booking for available rooms</p>
-          <p className="text-sm text-slate-500 mt-1">All available rooms from the database are displayed below</p>
+          <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Find Your Room</h1>
+          <p className="text-slate-600 dark:text-gray-400 mt-2">Quick walk-in booking for available rooms</p>
+          <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">All available rooms from the database are displayed below</p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Search Section */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-          <h2 className="text-lg font-semibold text-slate-900 mb-6">Search Criteria</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-8">
+          <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Search Criteria</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
             {/* Check-in */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
                 <Calendar className="inline w-4 h-4 mr-1" />
                 Check-in
               </label>
@@ -207,13 +207,13 @@ const WalkinReservationPage = () => {
                 value={checkIn} 
                 min={todayISO()} 
                 onChange={e => setCheckIn(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
             {/* Check-out */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
                 <Calendar className="inline w-4 h-4 mr-1" />
                 Check-out
               </label>
@@ -222,13 +222,13 @@ const WalkinReservationPage = () => {
                 value={checkOut} 
                 min={checkIn || todayISO()} 
                 onChange={e => setCheckOut(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
             {/* Guests */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
                 <Users className="inline w-4 h-4 mr-1" />
                 Guests
               </label>
@@ -238,20 +238,20 @@ const WalkinReservationPage = () => {
                 max={10}
                 value={guests} 
                 onChange={e => setGuests(Number(e.target.value))}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 
             {/* Category */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">
                 <MapPin className="inline w-4 h-4 mr-1" />
                 Category
               </label>
               <select 
                 value={categoryFilter} 
                 onChange={e => setCategoryFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -259,11 +259,11 @@ const WalkinReservationPage = () => {
 
             {/* Price */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Price Range</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Price Range</label>
               <select 
                 value={priceFilter} 
                 onChange={e => setPriceFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 {priceRanges.map(p => <option key={p.label} value={p.label}>{p.label}</option>)}
               </select>
@@ -271,11 +271,11 @@ const WalkinReservationPage = () => {
 
             {/* Sort By */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Sort By</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Sort By</label>
               <select 
                 value={sortBy} 
                 onChange={e => setSortBy(e.target.value)}
-                className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                className="w-full px-3 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="name">Room Name</option>
                 <option value="room-number">Room Number</option>
@@ -311,11 +311,11 @@ const WalkinReservationPage = () => {
         <div>
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Available Rooms</h2>
-              <p className="text-sm text-slate-600">{filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''} available</p>
+              <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Available Rooms</h2>
+              <p className="text-sm text-slate-600 dark:text-gray-400">{filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''} available</p>
             </div>
             <button 
-              onClick={() => navigate('/rooms')}
+              onClick={() => navigate('/admin/rooms/management')}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
             >
               <Eye className="w-4 h-4" />
@@ -331,23 +331,23 @@ const WalkinReservationPage = () => {
                   onClick={() => setSelectedRoomId(String(room.id))}
                   className={`rounded-xl border-2 transition cursor-pointer ${
                     String(room.id) === String(selectedRoomId)
-                      ? 'border-blue-500 bg-blue-50 shadow-lg'
-                      : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-md'
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg'
+                      : 'border-slate-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-slate-300 dark:hover:border-gray-600 hover:shadow-md'
                   }`}
                 >
                   <div className="p-6">
-                    <h3 className="text-lg font-semibold text-slate-900">
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                       {room.room_number ? `Room #${room.room_number}` : room.type_name}
                     </h3>
                     {room.room_number && (
-                      <p className="text-sm text-slate-500">{room.type_name}</p>
+                      <p className="text-sm text-slate-500 dark:text-gray-400">{room.type_name}</p>
                     )}
-                    <p className="text-sm text-slate-600">{room.category}</p>
+                    <p className="text-sm text-slate-600 dark:text-gray-400">{room.category}</p>
                     
-                    <div className="mt-4 pt-4 border-t border-slate-200">
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-gray-700">
                       <div className="flex items-baseline justify-between">
-                        <span className="text-sm text-slate-600">Price per night</span>
-                        <span className="text-2xl font-bold text-blue-600">
+                        <span className="text-sm text-slate-600 dark:text-gray-400">Price per night</span>
+                        <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                           ₱{Number(room.price).toLocaleString()}
                         </span>
                       </div>
@@ -358,7 +358,7 @@ const WalkinReservationPage = () => {
                       className={`mt-4 w-full py-2 rounded-lg font-medium transition flex items-center justify-center gap-2 ${
                         String(room.id) === String(selectedRoomId)
                           ? 'bg-blue-600 text-white'
-                          : 'border border-slate-300 text-slate-700 hover:bg-slate-50'
+                          : 'border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-300 hover:bg-slate-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       {String(room.id) === String(selectedRoomId) ? 'Selected' : 'Select Room'}
@@ -369,10 +369,10 @@ const WalkinReservationPage = () => {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-              <AlertCircle className="w-12 h-12 text-slate-400 mx-auto mb-3" />
-              <p className="text-slate-600">No available rooms match your search criteria</p>
-              <p className="text-sm text-slate-500 mt-1">Try adjusting your filters or click "View All Rooms" to see all rooms</p>
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-12 text-center">
+              <AlertCircle className="w-12 h-12 text-slate-400 dark:text-gray-600 mx-auto mb-3" />
+              <p className="text-slate-600 dark:text-gray-400">No available rooms match your search criteria</p>
+              <p className="text-sm text-slate-500 dark:text-gray-500 mt-1">Try adjusting your filters or click "View All Rooms" to see all rooms</p>
             </div>
           )}
         </div>
@@ -380,31 +380,31 @@ const WalkinReservationPage = () => {
         {/* Booking Summary & Guest Details */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Guest Details */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">Guest Information</h2>
+          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-slate-200 dark:border-gray-700 p-8">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Guest Information</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Full Name</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Full Name</label>
                 <input 
                   type="text"
                   value={guestName}
                   onChange={e => setGuestName(e.target.value)}
                   placeholder="Enter guest name"
-                  className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                  className="w-full px-4 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Contact Information</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Contact Information</label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <input 
                     type="email"
                     value={guestEmail}
                     onChange={e => setGuestEmail(e.target.value)}
                     placeholder="Email"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                   <input 
@@ -412,7 +412,7 @@ const WalkinReservationPage = () => {
                     value={guestPhone}
                     onChange={e => setGuestPhone(e.target.value)}
                     placeholder="Contact number"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
@@ -421,11 +421,11 @@ const WalkinReservationPage = () => {
               {/* Gender and Age - 2 Column Grid */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Gender</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Gender</label>
                   <select
                     value={guestGender}
                     onChange={e => setGuestGender(e.target.value)}
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     required
                   >
                     <option value="">Select Gender</option>
@@ -436,7 +436,7 @@ const WalkinReservationPage = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">Age</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-gray-300 mb-2">Age</label>
                   <input 
                     type="number"
                     value={guestAge}
@@ -444,7 +444,7 @@ const WalkinReservationPage = () => {
                     placeholder="Age"
                     min="1"
                     max="120"
-                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition"
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     required
                   />
                 </div>
@@ -460,50 +460,50 @@ const WalkinReservationPage = () => {
           </div>
 
           {/* Booking Summary */}
-          <div className="bg-gradient-to-b from-blue-50 to-blue-100 rounded-2xl border border-blue-200 p-8 h-fit">
-            <h2 className="text-lg font-semibold text-slate-900 mb-6">Booking Summary</h2>
+          <div className="bg-gradient-to-b from-blue-50 to-blue-100 dark:from-gray-800 dark:to-gray-700 rounded-2xl border border-blue-200 dark:border-gray-600 p-8 h-fit">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Booking Summary</h2>
             
             {selectedRoom ? (
               <div className="space-y-4">
-                <div className="pb-4 border-b border-blue-200">
-                  <p className="text-sm text-slate-600">Room</p>
-                  <p className="text-xl font-semibold text-slate-900">
+                <div className="pb-4 border-b border-blue-200 dark:border-gray-600">
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Room</p>
+                  <p className="text-xl font-semibold text-slate-900 dark:text-white">
                     {selectedRoom.room_number ? `Room #${selectedRoom.room_number}` : selectedRoom.type_name}
                   </p>
                   {selectedRoom.room_number && (
-                    <p className="text-sm text-slate-500">{selectedRoom.type_name}</p>
+                    <p className="text-sm text-slate-500 dark:text-gray-400">{selectedRoom.type_name}</p>
                   )}
                 </div>
 
-                <div className="pb-4 border-b border-blue-200">
-                  <p className="text-sm text-slate-600">Check-in</p>
-                  <p className="text-sm font-medium text-slate-900">{new Date(checkIn).toLocaleDateString()}</p>
+                <div className="pb-4 border-b border-blue-200 dark:border-gray-600">
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Check-in</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{new Date(checkIn).toLocaleDateString()}</p>
                 </div>
 
-                <div className="pb-4 border-b border-blue-200">
-                  <p className="text-sm text-slate-600">Check-out</p>
-                  <p className="text-sm font-medium text-slate-900">{new Date(checkOut).toLocaleDateString()}</p>
+                <div className="pb-4 border-b border-blue-200 dark:border-gray-600">
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Check-out</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{new Date(checkOut).toLocaleDateString()}</p>
                 </div>
 
-                <div className="pb-4 border-b border-blue-200">
-                  <p className="text-sm text-slate-600">Nights</p>
-                  <p className="text-sm font-medium text-slate-900">{nights}</p>
+                <div className="pb-4 border-b border-blue-200 dark:border-gray-600">
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Nights</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{nights}</p>
                 </div>
 
-                <div className="pb-4 border-b border-blue-200">
-                  <p className="text-sm text-slate-600">Guests</p>
-                  <p className="text-sm font-medium text-slate-900">{guests}</p>
+                <div className="pb-4 border-b border-blue-200 dark:border-gray-600">
+                  <p className="text-sm text-slate-600 dark:text-gray-400">Guests</p>
+                  <p className="text-sm font-medium text-slate-900 dark:text-white">{guests}</p>
                 </div>
 
                 <div className="pt-4">
-                  <p className="text-sm text-slate-600 mb-1">Total Amount</p>
-                  <p className="text-3xl font-bold text-blue-600">
+                  <p className="text-sm text-slate-600 dark:text-gray-400 mb-1">Total Amount</p>
+                  <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                     ₱{totalPrice.toLocaleString()}
                   </p>
                 </div>
               </div>
             ) : (
-              <p className="text-slate-600 text-center py-8">Select a room to see summary</p>
+              <p className="text-slate-600 dark:text-gray-400 text-center py-8">Select a room to see summary</p>
             )}
           </div>
         </div>

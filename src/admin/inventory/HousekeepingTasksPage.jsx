@@ -143,7 +143,7 @@ const HousekeepingTasksPage = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return <div className="flex justify-center items-center h-64 text-gray-900 dark:text-white">Loading...</div>;
   }
 
   return (
@@ -151,8 +151,8 @@ const HousekeepingTasksPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Housekeeping Tasks</h1>
-          <p className="text-gray-600">Manage restocking and maintenance tasks</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Housekeeping Tasks</h1>
+          <p className="text-gray-600 dark:text-gray-400">Manage restocking and maintenance tasks</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -164,11 +164,11 @@ const HousekeepingTasksPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 flex gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex gap-4">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         >
           <option value="all">All Tasks</option>
           <option value="pending">Pending</option>
@@ -185,11 +185,11 @@ const HousekeepingTasksPage = () => {
           const assignedStaff = staff.find(s => s.id === task.assigned_to);
 
           return (
-            <div key={task.id} className="bg-white rounded-lg shadow p-6">
+            <div key={task.id} className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                       {room ? `${room.name} - Room ${room.room_number}` : 'Unknown Room'}
                     </h3>
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(task.status)}`}>
@@ -199,8 +199,8 @@ const HousekeepingTasksPage = () => {
                       {task.priority} priority
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-2">{task.description}</p>
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <p className="text-gray-600 dark:text-gray-400 mb-2">{task.description}</p>
+                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-1">
                       <User className="h-4 w-4" />
                       {assignedStaff ? assignedStaff.username : 'Unassigned'}
@@ -244,7 +244,7 @@ const HousekeepingTasksPage = () => {
         })}
 
         {filteredTasks.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             No tasks found
           </div>
         )}
@@ -265,24 +265,24 @@ const HousekeepingTasksPage = () => {
       {/* Create Task Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center p-6 border-b">
-              <h2 className="text-xl font-bold">Create New Task</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Task</h2>
               <button onClick={handleCloseModal}>
-                <X className="h-6 w-6" />
+                <X className="h-6 w-6 text-gray-500 dark:text-gray-400" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Room *
                 </label>
                 <select
                   required
                   value={formData.room_id}
                   onChange={(e) => setFormData({ ...formData, room_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Select Room</option>
                   {rooms.map(room => (
@@ -294,14 +294,14 @@ const HousekeepingTasksPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Task Type *
                 </label>
                 <select
                   required
                   value={formData.task_type}
                   onChange={(e) => setFormData({ ...formData, task_type: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="restocking">Restocking</option>
                   <option value="cleaning">Cleaning</option>
@@ -311,14 +311,14 @@ const HousekeepingTasksPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Priority *
                 </label>
                 <select
                   required
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -328,13 +328,13 @@ const HousekeepingTasksPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Assign To
                 </label>
                 <select
                   value={formData.assigned_to}
                   onChange={(e) => setFormData({ ...formData, assigned_to: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Unassigned</option>
                   {staff.map(member => (
@@ -346,22 +346,22 @@ const HousekeepingTasksPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows="3"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t sticky bottom-0 bg-white">
+              <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800">
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
                 >
                   Cancel
                 </button>

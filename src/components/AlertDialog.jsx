@@ -76,15 +76,15 @@ const AlertDialog = () => {
         }
       }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="p-6">
           {/* Icon */}
           <div className="text-center mb-6">
             <div className={`w-20 h-20 ${getIconBgColor()} rounded-full flex items-center justify-center mx-auto mb-4`}>
               {getIcon()}
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">{dialog.title}</h2>
-            <p className="text-gray-600 whitespace-pre-wrap">{dialog.message}</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{dialog.title}</h2>
+            <p className="text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{dialog.message}</p>
           </div>
 
           {/* Action Buttons */}
@@ -92,7 +92,7 @@ const AlertDialog = () => {
             {dialog.type === 'confirm' && dialog.onCancel && (
               <button
                 onClick={dialog.onCancel}
-                className="flex-1 bg-gray-100 text-gray-700 py-3 px-4 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                className="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 py-3 px-4 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium"
               >
                 {dialog.cancelText}
               </button>
@@ -117,10 +117,10 @@ const AlertDialog = () => {
           </div>
 
           {/* Keyboard hint */}
-          <p className="text-xs text-gray-500 text-center mt-4">
-            Press <kbd className="px-2 py-1 bg-gray-100 rounded border border-gray-300">Enter</kbd> to confirm
+          <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
+            Press <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600">Enter</kbd> to confirm
             {dialog.type === 'confirm' && ' or '}
-            {dialog.type === 'confirm' && <kbd className="px-2 py-1 bg-gray-100 rounded border border-gray-300">Esc</kbd>}
+            {dialog.type === 'confirm' && <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600">Esc</kbd>}
             {dialog.type === 'confirm' && ' to cancel'}
           </p>
         </div>

@@ -205,28 +205,28 @@ const UserManagementPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Header */}
-      <div className="bg-white rounded-xl p-4 sm:p-6 mb-6 border border-slate-200">
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 mb-6 border border-slate-200 dark:border-gray-700">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">User Management</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage guest and staff accounts</p>
+            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">User Management</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage guest and staff accounts</p>
           </div>
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
             <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={handleSearchChange}
                 placeholder="Search by username or email"
-                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 aria-label="Search users"
               />
             </div>
             <select
               value={roleFilter}
               onChange={handleRoleFilterChange}
-              className="w-full sm:w-40 px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full sm:w-40 px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               aria-label="Filter by role"
             >
               {availableFilterOptions.map((option) => (
@@ -249,48 +249,48 @@ const UserManagementPage = () => {
 
       {/* Loading State */}
       {loading && (
-        <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-gray-500 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6 mb-6 text-gray-500 dark:text-gray-400 text-center">
           <div className="animate-pulse">Loading users...</div>
         </div>
       )}
 
       {/* Guest Accounts Section */}
       <div className="mb-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Guest Accounts</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Guest Accounts</h2>
         {guestUsers.length === 0 && !loading ? (
-          <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-center">
-            <User className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No guest accounts</h3>
-            <p className="mt-1 text-sm text-gray-500">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6 text-center">
+            <User className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No guest accounts</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {searchQuery || roleFilter !== 'all'
                 ? 'No guest accounts match your search or filter.'
                 : 'Create a new guest account to get started.'}
             </p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden">
             {/* Table Layout (sm and above) */}
             <div className="hidden sm:block overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
-                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                       User
                     </th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                       Email
                     </th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                       Created At
                     </th>
-                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-100">
+                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                   {guestUsers.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-150">
+                    <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -299,26 +299,26 @@ const UserManagementPage = () => {
                             </span>
                           </div>
                           <div>
-                            <h3 className="text-sm font-medium text-gray-900">{user.username}</h3>
-                            <p className="text-xs text-gray-500">ID: {user.id}</p>
+                            <h3 className="text-sm font-medium text-gray-900 dark:text-white">{user.username}</h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">ID: {user.id}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm text-gray-900">{user.email}</span>
+                          <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                          <span className="text-sm text-gray-900 dark:text-white">{user.email}</span>
                         </div>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                           {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                         </span>
                       </td>
                       <td className="px-4 sm:px-6 py-3 sm:py-4">
                         <button
                           onClick={() => handleDeleteUser(user.id, user.username, user.role)}
-                          className="text-red-600 hover:text-red-800 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                          className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                           title="Delete user"
                           aria-label={`Delete ${user.username}`}
                         >
@@ -333,7 +333,7 @@ const UserManagementPage = () => {
             {/* Card Layout (below sm) */}
             <div className="sm:hidden grid gap-4 p-4">
               {guestUsers.map((user) => (
-                <div key={user.id} className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                <div key={user.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-100 dark:border-gray-700">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="h-12 w-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                       <span className="text-white text-sm font-semibold">
@@ -341,23 +341,23 @@ const UserManagementPage = () => {
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-gray-900 truncate">{user.username}</h3>
-                      <p className="text-xs text-gray-500">ID: {user.id}</p>
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.username}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">ID: {user.id}</p>
                     </div>
                   </div>
                   <div className="space-y-2 mb-3">
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Mail className="w-4 h-4 text-gray-400" />
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       <span className="truncate">{user.email}</span>
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
                       Created: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                     </div>
                   </div>
                   <div className="flex justify-end">
                     <button
                       onClick={() => handleDeleteUser(user.id, user.username, user.role)}
-                      className="text-red-600 hover:text-red-800 p-2 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                      className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                       title="Delete user"
                       aria-label={`Delete ${user.username}`}
                     >
@@ -384,44 +384,44 @@ const UserManagementPage = () => {
       {/* Staff and Admin Accounts Section */}
       {currentUserRole !== 'staff' && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Staff & Admin Accounts</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Staff & Admin Accounts</h2>
           {staffAdminUsers.length === 0 && !loading ? (
-            <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 text-center">
-              <User className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No staff or admin accounts</h3>
-              <p className="mt-1 text-sm text-gray-500">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-4 sm:p-6 text-center">
+              <User className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-600" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No staff or admin accounts</h3>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {searchQuery || roleFilter !== 'all'
                   ? 'No staff or admin accounts match your search or filter.'
                   : 'Create a new staff or admin account to get started.'}
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden">
               {/* Table Layout (sm and above) */}
               <div className="hidden sm:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                         User
                       </th>
-                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                         Email
                       </th>
-                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                         Role
                       </th>
-                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                         Created At
                       </th>
-                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                      <th scope="col" className="px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                     {staffAdminUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50 transition-colors duration-150">
+                      <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-150">
                         <td className="px-4 sm:px-6 py-3 sm:py-4">
                           <div className="flex items-center gap-3">
                             <div className="h-10 w-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
@@ -430,15 +430,15 @@ const UserManagementPage = () => {
                               </span>
                             </div>
                             <div>
-                              <h3 className="text-sm font-medium text-gray-900">{user.username}</h3>
-                              <p className="text-xs text-gray-500">ID: {user.id}</p>
+                              <h3 className="text-sm font-medium text-gray-900 dark:text-white">{user.username}</h3>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">ID: {user.id}</p>
                             </div>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-3 sm:py-4">
                           <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-gray-400" />
-                            <span className="text-sm text-gray-900">{user.email}</span>
+                            <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                            <span className="text-sm text-gray-900 dark:text-white">{user.email}</span>
                           </div>
                         </td>
                         <td className="px-4 sm:px-6 py-3 sm:py-4">
@@ -448,14 +448,14 @@ const UserManagementPage = () => {
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3 sm:py-4">
-                          <span className="text-sm text-gray-500">
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
                             {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                           </span>
                         </td>
                         <td className="px-4 sm:px-6 py-3 sm:py-4">
                           <button
                             onClick={() => handleDeleteUser(user.id, user.username, user.role)}
-                            className="text-red-600 hover:text-red-800 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                             title="Delete user"
                             aria-label={`Delete ${user.username}`}
                           >
@@ -470,7 +470,7 @@ const UserManagementPage = () => {
               {/* Card Layout (below sm) */}
               <div className="sm:hidden grid gap-4 p-4">
                 {staffAdminUsers.map((user) => (
-                  <div key={user.id} className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+                  <div key={user.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 border border-gray-100 dark:border-gray-700">
                     <div className="flex items-start gap-3 mb-3">
                       <div className="h-12 w-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center flex-shrink-0">
                         <span className="text-white text-sm font-semibold">
@@ -478,8 +478,8 @@ const UserManagementPage = () => {
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium text-gray-900 truncate">{user.username}</h3>
-                        <p className="text-xs text-gray-500">ID: {user.id}</p>
+                        <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.username}</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">ID: {user.id}</p>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${getRoleColor(user.role || 'guest')}`}>
                           <Shield className="w-3 h-3" />
                           {user.role || 'guest'}
@@ -487,18 +487,18 @@ const UserManagementPage = () => {
                       </div>
                     </div>
                     <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Mail className="w-4 h-4 text-gray-400" />
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                         <span className="truncate">{user.email}</span>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         Created: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
                     <div className="flex justify-end">
                       <button
                         onClick={() => handleDeleteUser(user.id, user.username, user.role)}
-                        className="text-red-600 hover:text-red-800 p-2 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                        className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-2 focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
                         title="Delete user"
                         aria-label={`Delete ${user.username}`}
                       >
@@ -516,15 +516,15 @@ const UserManagementPage = () => {
       {/* Add User Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" role="dialog" aria-modal="true">
-          <div className="bg-white rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="p-4 sm:p-6 border-b border-gray-100">
-              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Add New User Account</h2>
-              <p className="text-sm text-gray-500 mt-1">Create a new guest or staff account</p>
+          <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-white">Add New User Account</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Create a new guest or staff account</p>
             </div>
             <div className="p-4 sm:p-6 space-y-4">
               {/* Role Selection */}
               <div>
-                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Account Type
                 </label>
                 <select
@@ -532,7 +532,7 @@ const UserManagementPage = () => {
                   name="role"
                   value={newUser.role}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   {availableRoleOptions.map((option) => (
                     <option key={option.value} value={option.value}>
@@ -543,7 +543,7 @@ const UserManagementPage = () => {
               </div>
               {/* Username Field */}
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Username
                 </label>
                 <input
@@ -552,17 +552,17 @@ const UserManagementPage = () => {
                   name="username"
                   value={newUser.username}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter username"
                   required
                 />
                 {validationErrors.username && (
-                  <span className="text-red-500 text-xs mt-1 block">{validationErrors.username}</span>
+                  <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">{validationErrors.username}</span>
                 )}
               </div>
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email Address
                 </label>
                 <input
@@ -571,17 +571,17 @@ const UserManagementPage = () => {
                   name="email"
                   value={newUser.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="user@example.com"
                   required
                 />
                 {validationErrors.email && (
-                  <span className="text-red-500 text-xs mt-1 block">{validationErrors.email}</span>
+                  <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">{validationErrors.email}</span>
                 )}
               </div>
               {/* Password Field */}
               <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Password
                 </label>
                 <input
@@ -590,18 +590,18 @@ const UserManagementPage = () => {
                   name="password"
                   value={newUser.password}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Enter password"
                   required
                 />
                 <PasswordStrengthMeter password={newUser.password} />
                 {validationErrors.password && (
-                  <span className="text-red-500 text-xs mt-1 block">{validationErrors.password}</span>
+                  <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">{validationErrors.password}</span>
                 )}
               </div>
               {/* Confirm Password Field */}
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Confirm Password
                 </label>
                 <input
@@ -610,17 +610,17 @@ const UserManagementPage = () => {
                   name="confirmPassword"
                   value={newUser.confirmPassword}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Confirm password"
                   required
                 />
                 {validationErrors.confirmPassword && (
-                  <span className="text-red-500 text-xs mt-1 block">{validationErrors.confirmPassword}</span>
+                  <span className="text-red-500 dark:text-red-400 text-xs mt-1 block">{validationErrors.confirmPassword}</span>
                 )}
               </div>
             </div>
             {/* Modal Footer */}
-            <div className="p-4 sm:p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+            <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 flex justify-end gap-3">
               <button
                 onClick={() => {
                   setShowAddModal(false);
@@ -633,7 +633,7 @@ const UserManagementPage = () => {
                   });
                   setValidationErrors({});
                 }}
-                className="px-4 py-2 border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="px-4 py-2 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600"
                 aria-label="Cancel"
               >
                 Cancel

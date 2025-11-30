@@ -48,26 +48,26 @@ const AdminLogin = () => {
 
 
   return (
-    <div className="min-h-screen bg-white md:bg-gradient-to-br md:from-gray-50 md:to-gray-100 flex flex-col justify-center p-6 md:items-center">
-      <div className="w-full max-w-full md:max-w-md md:bg-white md:p-8 md:rounded-3xl md:shadow-xl">
+    <div className="min-h-screen bg-white dark:bg-gray-900 md:bg-gradient-to-br md:from-gray-50 md:to-gray-100 dark:md:from-gray-900 dark:md:to-gray-800 flex flex-col justify-center p-6 md:items-center">
+      <div className="w-full max-w-full md:max-w-md md:bg-white dark:md:bg-gray-800 md:p-8 md:rounded-3xl md:shadow-xl">
         {/* Logo */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-2xl mb-6">
             <img src={logo} alt="Logo" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Osner Hotel Admin</h1>
-          <p className="text-gray-500 text-base mt-3">Please enter you admin account detailds.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Osner Hotel Admin</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-base mt-3">Please enter you admin account detailds.</p>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="space-y-6">
                       <div>
-                        <label className="block text-base font-medium text-gray-700 mb-3">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-3">
                           Admin address
                         </label>
                         <input
                           autoFocus
                           type="email"
-                          className="w-full px-5 py-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 text-base"
+                          className="w-full px-5 py-4 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base"
                           placeholder="Enter admin address"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
@@ -75,12 +75,12 @@ const AdminLogin = () => {
                       </div>
                       
                       <div>
-                        <label className="block text-base font-medium text-gray-700 mb-3">
+                        <label className="block text-base font-medium text-gray-700 dark:text-gray-300 mb-3">
                           Password
                         </label>
                         <input
                           type="password"
-                          className="w-full px-5 py-4 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 placeholder-gray-400 text-base"
+                          className="w-full px-5 py-4 border border-gray-200 dark:border-gray-600 rounded-xl bg-gray-50 dark:bg-gray-700 focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-base"
                           placeholder="Enter pasword"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
@@ -99,7 +99,7 @@ const AdminLogin = () => {
         <div className="mt-4 text-center">
           <button 
             onClick={handleBackToUser}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
           >
             Go to User Web Page
           </button>

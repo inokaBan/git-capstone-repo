@@ -227,25 +227,25 @@ const AnalyticsPage = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <div className="text-gray-600 animate-pulse">Loading analytics...</div>
+      <div className="flex justify-center items-center h-screen bg-gray-50 dark:bg-gray-900">
+        <div className="text-gray-600 dark:text-gray-400 animate-pulse">Loading analytics...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 space-y-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-6 space-y-8">
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Analytics & Reports</h1>
-          <p className="text-sm text-gray-500 mt-1">Gain insights into your business performance</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics & Reports</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Gain insights into your business performance</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
           <select
             value={dateRange}
             onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm"
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -255,7 +255,7 @@ const AnalyticsPage = () => {
           <button 
             onClick={handleExport}
             disabled={exporting}
-            className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Download className="h-4 w-4" />
             {exporting ? 'Exporting...' : 'Export Report'}
@@ -271,13 +271,13 @@ const AnalyticsPage = () => {
           { title: 'Avg. Booking Value', value: `₱${analytics.avgBookingValue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`, icon: TrendingUp, color: 'text-purple-600', sub: 'Per booking' },
           { title: 'Occupancy Rate', value: stats?.occupancyRate?.value || '0%', icon: Bed, color: 'text-orange-600', sub: 'Current' },
         ].map((metric, index) => (
-          <div key={index} className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
+          <div key={index} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <div className="text-sm font-medium text-gray-600">{metric.title}</div>
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">{metric.title}</div>
               <metric.icon className={`h-5 w-5 ${metric.color}`} />
             </div>
-            <div className="text-3xl font-bold text-gray-900">{metric.value}</div>
-            <div className="text-xs text-gray-500 mt-1">{metric.sub}</div>
+            <div className="text-3xl font-bold text-gray-900 dark:text-white">{metric.value}</div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{metric.sub}</div>
           </div>
         ))}
       </section>
@@ -285,10 +285,10 @@ const AnalyticsPage = () => {
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend */}
-        <section className="bg-white rounded-xl shadow-md overflow-hidden col-span-1 lg:col-span-2">
-          <header className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">Revenue Trend</h2>
+        <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden col-span-1 lg:col-span-2">
+          <header className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Revenue Trend</h2>
           </header>
           <div className="p-6">
             {analytics.revenueByDateArray && analytics.revenueByDateArray.length > 0 ? (
@@ -362,16 +362,16 @@ const AnalyticsPage = () => {
                 />
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-12">No revenue data available</div>
+              <div className="text-center text-gray-500 dark:text-gray-400 py-12">No revenue data available</div>
             )}
           </div>
         </section>
 
         {/* Bookings by Status */}
-        <section className="bg-white rounded-xl shadow-md overflow-hidden">
-          <header className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-            <PieChart className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">Bookings by Status</h2>
+        <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <header className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+            <PieChart className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bookings by Status</h2>
           </header>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex items-center justify-center">
@@ -428,9 +428,9 @@ const AnalyticsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {analytics.bookingsByStatus.map((item, index) => (
-                <div key={index} className="bg-gray-50 rounded-md p-4 text-center shadow-sm">
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-md p-4 text-center shadow-sm">
                   <div className={`text-2xl font-bold ${item.color.replace('bg-', 'text-')}`}>{item.count}</div>
-                  <div className="text-sm text-gray-600 mt-1">{item.status}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.status}</div>
                 </div>
               ))}
             </div>
@@ -438,10 +438,10 @@ const AnalyticsPage = () => {
         </section>
 
         {/* Bookings by Gender */}
-        <section className="bg-white rounded-xl shadow-md overflow-hidden">
-          <header className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-            <Users className="h-5 w-5 text-gray-700" />
-            <h2 className="text-lg font-semibold text-gray-900">Bookings by Gender</h2>
+        <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <header className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+            <Users className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Bookings by Gender</h2>
           </header>
           <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="flex items-center justify-center">
@@ -498,9 +498,9 @@ const AnalyticsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {analytics.bookingsByGender.map((item, index) => (
-                <div key={index} className="bg-gray-50 rounded-md p-4 text-center shadow-sm">
+                <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-md p-4 text-center shadow-sm">
                   <div className={`text-2xl font-bold ${item.color.replace('bg-', 'text-')}`}>{item.count}</div>
-                  <div className="text-sm text-gray-600 mt-1">{item.gender}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">{item.gender}</div>
                 </div>
               ))}
             </div>
@@ -509,10 +509,10 @@ const AnalyticsPage = () => {
       </div>
 
       {/* Top Performing Rooms */}
-      <section className="bg-white rounded-xl shadow-md overflow-hidden">
-        <header className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-gray-700" />
-          <h2 className="text-lg font-semibold text-gray-900">Top Performing Rooms</h2>
+      <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <header className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Top Performing Rooms</h2>
         </header>
         <div className="p-6 space-y-8">
           {analytics.topRooms.length > 0 ? (
@@ -578,31 +578,31 @@ const AnalyticsPage = () => {
                 />
               </div>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-100">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rank</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Type</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Revenue</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Share</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Rank</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Room Type</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Revenue</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Share</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                     {analytics.topRooms.map((room, index) => {
                       const percentage = analytics.totalRevenue > 0 ? (room.revenue / analytics.totalRevenue) * 100 : 0;
                       return (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{index + 1}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{room.name}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#{index + 1}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-300">{room.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
                             ₱{room.revenue.toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-3">
-                              <div className="flex-1 bg-gray-200 rounded-full h-2.5 overflow-hidden">
-                                <div className="bg-blue-600 h-full" style={{ width: `${percentage}%` }} />
+                              <div className="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                <div className="bg-blue-600 dark:bg-blue-500 h-full" style={{ width: `${percentage}%` }} />
                               </div>
-                              <span className="text-sm text-gray-600 min-w-[4rem]">{percentage.toFixed(1)}%</span>
+                              <span className="text-sm text-gray-600 dark:text-gray-400 min-w-[4rem]">{percentage.toFixed(1)}%</span>
                             </div>
                           </td>
                         </tr>
@@ -613,16 +613,16 @@ const AnalyticsPage = () => {
               </div>
             </>
           ) : (
-            <div className="text-center text-gray-500 py-12">No booking data available</div>
+            <div className="text-center text-gray-500 dark:text-gray-400 py-12">No booking data available</div>
           )}
         </div>
       </section>
 
       {/* Recent Activity Summary */}
-      <section className="bg-white rounded-xl shadow-md overflow-hidden">
-        <header className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-          <Clock className="h-5 w-5 text-gray-700" />
-          <h2 className="text-lg font-semibold text-gray-900">Recent Activity Summary</h2>
+      <section className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+        <header className="px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2">
+          <Clock className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Activity Summary</h2>
         </header>
         <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
@@ -630,10 +630,10 @@ const AnalyticsPage = () => {
             { title: 'Pending Bookings', value: analytics.pendingBookings, color: 'text-yellow-600', sub: 'Awaiting confirmation' },
             { title: 'Cancelled Bookings', value: analytics.cancelledBookings, color: 'text-red-600', sub: 'Cancelled or declined' },
           ].map((item, index) => (
-            <div key={index} className="bg-gray-50 rounded-md p-6 text-center shadow-sm">
-              <div className="text-sm font-medium text-gray-600 mb-2">{item.title}</div>
+            <div key={index} className="bg-gray-50 dark:bg-gray-700 rounded-md p-6 text-center shadow-sm">
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-2">{item.title}</div>
               <div className={`text-3xl font-bold ${item.color}`}>{item.value}</div>
-              <div className="text-xs text-gray-500 mt-2">{item.sub}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-2">{item.sub}</div>
             </div>
           ))}
         </div>

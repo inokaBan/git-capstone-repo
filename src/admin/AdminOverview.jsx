@@ -123,15 +123,15 @@ const AdminOverview = () => {
                 {loadingStats ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="bg-white rounded-xl border border-slate-200 p-6 animate-pulse">
-                        <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
-                        <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
-                        <div className="h-3 bg-gray-200 rounded w-1/4"></div>
+                      <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-6 animate-pulse">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2 mb-2"></div>
+                        <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
+                        <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
                       </div>
                     ))}
                   </div>
                 ) : statsError ? (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-red-600">
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 text-red-600 dark:text-red-400">
                     {statsError}
                   </div>
                 ) : (
@@ -139,14 +139,14 @@ const AdminOverview = () => {
                     {overviewStats.map((stat, index) => {
                       const Icon = stat.icon;
                       return (
-                        <div key={index} className="bg-white rounded-xl border border-slate-200 p-6 hover:shadow-md transition-all duration-200 hover:-translate-y-1">
+                        <div key={index} className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 p-6 hover:shadow-md dark:hover:shadow-gray-900/50 transition-all duration-200 hover:-translate-y-1">
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
-                              <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                              <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{stat.title}</p>
+                              <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">{stat.value}</p>
                               <div className="flex items-center mt-2">
-                                <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                                <span className="text-sm text-green-600 font-medium">{stat.change}</span>
+                                <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400 mr-1" />
+                                <span className="text-sm text-green-600 dark:text-green-400 font-medium">{stat.change}</span>
                               </div>
                             </div>
                             <div className={`p-4 rounded-xl ${stat.color} shadow-lg`}>
@@ -160,53 +160,53 @@ const AdminOverview = () => {
                 )}
 
                 {/* Recent Bookings */}
-                <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                  <div className="p-6 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-purple-50">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700 overflow-hidden">
+                  <div className="p-6 border-b border-slate-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-xl font-semibold text-gray-900">Recent Bookings</h2>
-                        <p className="text-sm text-gray-600 mt-1">Latest reservations and check-ins</p>
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Bookings</h2>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Latest reservations and check-ins</p>
                       </div>
-                      <NavLink to="/admin/bookings" className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                      <NavLink to="/admin/bookings" className="px-4 py-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors">
                         View All
                       </NavLink>
                     </div>
                   </div>
                   <div className="overflow-x-auto">
                     {loadingBookings ? (
-                      <div className="p-6 text-sm text-gray-600">Loading recent bookings...</div>
+                      <div className="p-6 text-sm text-gray-600 dark:text-gray-400">Loading recent bookings...</div>
                     ) : bookingsError ? (
-                      <div className="p-6 text-sm text-red-600">{bookingsError}</div>
+                      <div className="p-6 text-sm text-red-600 dark:text-red-400">{bookingsError}</div>
                     ) : recentBookings.length === 0 ? (
-                      <div className="p-6 text-sm text-gray-600">No recent bookings.</div>
+                      <div className="p-6 text-sm text-gray-600 dark:text-gray-400">No recent bookings.</div>
                     ) : (
                       <table className="w-full">
-                        <thead className="bg-gray-50">
+                        <thead className="bg-gray-50 dark:bg-gray-700">
                           <tr>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room Type</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Customer</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Room Type</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Check-in</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
                           </tr>
                         </thead>
-                        <tbody className="bg-white divide-y divide-gray-100">
+                        <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                           {recentBookings.map((booking) => (
-                            <tr key={booking.bookingId} className="hover:bg-gray-50 transition-colors">
+                            <tr key={booking.bookingId} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="flex items-center">
-                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <User className="w-4 h-4 text-blue-600" />
+                                  <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                                    <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                                   </div>
                                   <div className="ml-3">
-                                    <div className="text-sm font-medium text-gray-900">{booking.guestName}</div>
-                                    <div className="text-xs text-gray-500">#{booking.bookingId}</div>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.guestName}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">#{booking.bookingId}</div>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-800">{booking.roomName}</span>
+                                <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">{booking.roomName}</span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{formatDate(booking.checkIn)}</td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">{formatDate(booking.checkIn)}</td>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
                                   {getStatusIcon(booking.status)}

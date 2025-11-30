@@ -9,32 +9,32 @@ const Toast = () => {
     switch (type) {
       case 'success':
         return {
-          bg: 'bg-green-50',
-          border: 'border-green-200',
-          text: 'text-green-800',
-          icon: <CheckCircle className="w-5 h-5 text-green-600" />,
+          bg: 'bg-green-50 dark:bg-green-900/30',
+          border: 'border-green-200 dark:border-green-800',
+          text: 'text-green-800 dark:text-green-200',
+          icon: <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />,
         };
       case 'error':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          text: 'text-red-800',
-          icon: <XCircle className="w-5 h-5 text-red-600" />,
+          bg: 'bg-red-50 dark:bg-red-900/30',
+          border: 'border-red-200 dark:border-red-800',
+          text: 'text-red-800 dark:text-red-200',
+          icon: <XCircle className="w-5 h-5 text-red-600 dark:text-red-400" />,
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-200',
-          text: 'text-yellow-800',
-          icon: <AlertTriangle className="w-5 h-5 text-yellow-600" />,
+          bg: 'bg-yellow-50 dark:bg-yellow-900/30',
+          border: 'border-yellow-200 dark:border-yellow-800',
+          text: 'text-yellow-800 dark:text-yellow-200',
+          icon: <AlertTriangle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />,
         };
       case 'info':
       default:
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-200',
-          text: 'text-blue-800',
-          icon: <Info className="w-5 h-5 text-blue-600" />,
+          bg: 'bg-blue-50 dark:bg-blue-900/30',
+          border: 'border-blue-200 dark:border-blue-800',
+          text: 'text-blue-800 dark:text-blue-200',
+          icon: <Info className="w-5 h-5 text-blue-600 dark:text-blue-400" />,
         };
     }
   };
@@ -65,7 +65,7 @@ const Toast = () => {
               </div>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="flex-shrink-0 ml-2 text-gray-400 hover:text-gray-600 transition-colors"
+                className="flex-shrink-0 ml-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 aria-label="Close notification"
               >
                 <X className="w-4 h-4" />

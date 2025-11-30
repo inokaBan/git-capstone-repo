@@ -98,36 +98,36 @@ const BookingsCalendar = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br p-4 md:p-6">
+    <div className="min-h-screen bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <CalendarIcon className="w-8 h-8 text-blue-600" />
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Bookings Calendar</h1>
+            <CalendarIcon className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Bookings Calendar</h1>
           </div>
           <div className="flex items-center space-x-2">
-            <button onClick={goPrev} className="p-2 rounded-md hover:bg-gray-100">
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <button onClick={goPrev} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
-            <div className="px-3 py-1 text-sm font-medium text-gray-800">{monthLabel}</div>
-            <button onClick={goNext} className="p-2 rounded-md hover:bg-gray-100">
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+            <div className="px-3 py-1 text-sm font-medium text-gray-800 dark:text-gray-200">{monthLabel}</div>
+            <button onClick={goNext} className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700">
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200">
-          <div className="grid grid-cols-7 border-b border-slate-200 text-xs font-medium text-gray-600">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-slate-200 dark:border-gray-700">
+          <div className="grid grid-cols-7 border-b border-slate-200 dark:border-gray-700 text-xs font-medium text-gray-600 dark:text-gray-400">
             {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => (
               <div key={d} className="px-3 py-2 text-center">{d}</div>
             ))}
           </div>
           {loading ? (
-            <div className="p-6 text-sm text-gray-600">Loading...</div>
+            <div className="p-6 text-sm text-gray-600 dark:text-gray-400">Loading...</div>
           ) : error ? (
-            <div className="p-6 text-sm text-red-600">{error}</div>
+            <div className="p-6 text-sm text-red-600 dark:text-red-400">{error}</div>
           ) : (
-            <div className="grid grid-cols-7 gap-px bg-slate-200">
+            <div className="grid grid-cols-7 gap-px bg-slate-200 dark:bg-gray-700">
               {days.map(({ date, inCurrentMonth }, idx) => {
                 const ymd = formatYMD(date)
                 const count = countsByDate.get(ymd) || 0
@@ -135,14 +135,14 @@ const BookingsCalendar = () => {
                 return (
                   <div
                     key={idx}
-                    className={`bg-white min-h-[100px] p-2 flex flex-col ${
+                    className={`bg-white dark:bg-gray-800 min-h-[100px] p-2 flex flex-col ${
                       inCurrentMonth ? '' : 'opacity-40'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className={`text-sm font-semibold ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>{date.getDate()}</span>
+                      <span className={`text-sm font-semibold ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-white'}`}>{date.getDate()}</span>
                       {count > 0 && (
-                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-medium">
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-medium">
                           {count} booking{count > 1 ? 's' : ''}
                         </span>
                       )}
@@ -159,5 +159,3 @@ const BookingsCalendar = () => {
 }
 
 export default BookingsCalendar
-
-

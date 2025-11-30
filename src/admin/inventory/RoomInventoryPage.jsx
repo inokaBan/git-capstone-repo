@@ -181,23 +181,23 @@ const RoomInventoryPage = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return <div className="flex justify-center items-center h-64 text-gray-900 dark:text-white">Loading...</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Room Inventory</h1>
-        <p className="text-gray-600">Monitor and manage inventory in each room</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Room Inventory</h1>
+        <p className="text-gray-600 dark:text-gray-400">Monitor and manage inventory in each room</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         >
           <option value="all">All Rooms</option>
           <option value="available">Available</option>
@@ -215,13 +215,13 @@ const RoomInventoryPage = () => {
           return (
             <div
               key={room.id}
-              className="bg-white rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => setSelectedRoom(room)}
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
-                  <h3 className="font-semibold text-lg">{room.name}</h3>
-                  <p className="text-sm text-gray-600">Room {room.room_number}</p>
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{room.name}</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Room {room.room_number}</p>
                 </div>
                 <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
                   room.status === 'available' ? 'bg-green-100 text-green-800' :
@@ -233,15 +233,15 @@ const RoomInventoryPage = () => {
               </div>
 
               <div className="flex items-center gap-2 mb-3">
-                <Package className={`h-5 w-5 text-${inventoryStatus.color}-600`} />
-                <span className={`text-sm font-medium text-${inventoryStatus.color}-600`}>
+                <Package className={`h-5 w-5 text-${inventoryStatus.color}-600 dark:text-${inventoryStatus.color}-400`} />
+                <span className={`text-sm font-medium text-${inventoryStatus.color}-600 dark:text-${inventoryStatus.color}-400`}>
                   {inventoryStatus.status === 'sufficient' && 'Fully Stocked'}
                   {inventoryStatus.status === 'needs_restock' && `${inventoryStatus.count} items low`}
                   {inventoryStatus.status === 'unknown' && 'Not checked'}
                 </span>
               </div>
 
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 {inventory.length} items tracked
               </div>
 
@@ -265,13 +265,13 @@ const RoomInventoryPage = () => {
       {/* Room Detail Modal */}
       {selectedRoom && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h2 className="text-xl font-bold">{selectedRoom.name} - Room {selectedRoom.room_number}</h2>
-                <p className="text-gray-600">Current inventory status</p>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{selectedRoom.name} - Room {selectedRoom.room_number}</h2>
+                <p className="text-gray-600 dark:text-gray-400">Current inventory status</p>
               </div>
-              <button onClick={() => setSelectedRoom(null)} className="text-gray-500 hover:text-gray-700">
+              <button onClick={() => setSelectedRoom(null)} className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                 ✕
               </button>
             </div>
@@ -281,17 +281,17 @@ const RoomInventoryPage = () => {
                 const itemDetails = items.find(i => i.id === item.item_id);
                 
                 return (
-                  <div key={item.id} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg">
+                  <div key={item.id} className="flex justify-between items-center p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
                     <div className="flex-1">
-                      <h3 className="font-medium">{itemDetails?.name || 'Unknown Item'}</h3>
-                      <p className="text-sm text-gray-600">
+                      <h3 className="font-medium text-gray-900 dark:text-white">{itemDetails?.name || 'Unknown Item'}</h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         Last checked: {item.last_checked ? new Date(item.last_checked).toLocaleDateString() : 'Never'}
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
-                        <div className="text-lg font-semibold">{item.current_quantity}</div>
-                        <div className="text-sm text-gray-600">{itemDetails?.unit || 'units'}</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-white">{item.current_quantity}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">{itemDetails?.unit || 'units'}</div>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
                         item.status === 'sufficient' ? 'bg-green-100 text-green-800' :
@@ -313,7 +313,7 @@ const RoomInventoryPage = () => {
               })}
 
               {(!roomInventory[selectedRoom.id] || roomInventory[selectedRoom.id].length === 0) && (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                   No inventory tracked for this room yet
                 </div>
               )}
@@ -349,27 +349,27 @@ const RoomInventoryPage = () => {
       {/* Add/Update Inventory Modal */}
       {showInventoryModal && selectedRoomForInventory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Add/Update Inventory Item</h2>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add/Update Inventory Item</h2>
               <button onClick={() => {
                 setShowInventoryModal(false);
                 setInventoryFormData({ item_id: '', quantity: 0, action: 'set' });
-              }}>
+              }} className="text-gray-500 dark:text-gray-400">
                 ✕
               </button>
             </div>
 
             <form onSubmit={handleInventorySubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Item *
                 </label>
                 <select
                   required
                   value={inventoryFormData.item_id}
                   onChange={(e) => setInventoryFormData({ ...inventoryFormData, item_id: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Select Item</option>
                   {items.map(item => (
@@ -381,14 +381,14 @@ const RoomInventoryPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Action *
                 </label>
                 <select
                   required
                   value={inventoryFormData.action}
                   onChange={(e) => setInventoryFormData({ ...inventoryFormData, action: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="set">Set Quantity</option>
                   <option value="add">Add to Current</option>
@@ -397,7 +397,7 @@ const RoomInventoryPage = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Quantity *
                 </label>
                 <input
@@ -406,7 +406,7 @@ const RoomInventoryPage = () => {
                   min="0"
                   value={inventoryFormData.quantity}
                   onChange={(e) => setInventoryFormData({ ...inventoryFormData, quantity: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 

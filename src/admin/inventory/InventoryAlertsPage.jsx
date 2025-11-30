@@ -132,15 +132,15 @@ const InventoryAlertsPage = () => {
   };
 
   if (loading) {
-    return <div className="flex justify-center items-center h-64">Loading...</div>;
+    return <div className="flex justify-center items-center h-64 text-gray-900 dark:text-white">Loading...</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Inventory Alerts</h1>
-        <p className="text-gray-600">Monitor and respond to stock warnings</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Inventory Alerts</h1>
+        <p className="text-gray-600 dark:text-gray-400">Monitor and respond to stock warnings</p>
       </div>
 
       {/* Stats */}
@@ -151,22 +151,22 @@ const InventoryAlertsPage = () => {
             : alerts.filter(a => a.severity === severity && !a.is_resolved).length;
           
           return (
-            <div key={severity} className="bg-white rounded-lg shadow p-4">
-              <div className="text-sm text-gray-600 mb-1">
+            <div key={severity} className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">
                 {severity === 'all' ? 'Total Active' : severity.charAt(0).toUpperCase() + severity.slice(1)}
               </div>
-              <div className="text-2xl font-bold">{count}</div>
+              <div className="text-2xl font-bold text-gray-900 dark:text-white">{count}</div>
             </div>
           );
         })}
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 flex gap-4 items-center">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex gap-4 items-center">
         <select
           value={severityFilter}
           onChange={(e) => setSeverityFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         >
           <option value="all">All Severities</option>
           <option value="critical">Critical</option>
@@ -181,7 +181,7 @@ const InventoryAlertsPage = () => {
             onChange={(e) => setShowResolvedFilter(e.target.checked)}
             className="rounded"
           />
-          <span className="text-sm">Show resolved</span>
+          <span className="text-sm text-gray-900 dark:text-gray-300">Show resolved</span>
         </label>
       </div>
 
@@ -190,7 +190,7 @@ const InventoryAlertsPage = () => {
         {filteredAlerts.map((alert) => (
           <div
             key={alert.id}
-            className={`border-l-4 rounded-lg shadow p-6 ${getSeverityColor(alert.severity)}`}
+            className={`border-l-4 rounded-lg shadow p-6 ${getSeverityColor(alert.severity)} dark:bg-gray-800`}
           >
             <div className="flex justify-between items-start">
               <div className="flex items-start gap-4 flex-1">
@@ -206,14 +206,14 @@ const InventoryAlertsPage = () => {
                       </span>
                     )}
                   </div>
-                  <p className="text-gray-700 mb-2">{alert.message}</p>
+                  <p className="text-gray-700 dark:text-gray-300 mb-2">{alert.message}</p>
                   {alert.item_name && (
-                    <p className="text-sm text-gray-600">Item: {alert.item_name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Item: {alert.item_name}</p>
                   )}
                   {alert.room_name && (
-                    <p className="text-sm text-gray-600">Room: {alert.room_name}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Room: {alert.room_name}</p>
                   )}
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                     {new Date(alert.created_at).toLocaleString()}
                   </p>
                 </div>
@@ -256,8 +256,8 @@ const InventoryAlertsPage = () => {
         ))}
 
         {filteredAlerts.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500 dark:text-green-400" />
             <p>No alerts found</p>
           </div>
         )}

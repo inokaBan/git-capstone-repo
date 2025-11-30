@@ -278,24 +278,24 @@ const BookingsPage = () => {
 
   const getRoomTypeColor = (roomType) => {
     const colors = {
-      'Standard Room': 'bg-blue-50 text-blue-700',
-      'Deluxe Suite': 'bg-purple-50 text-purple-700',
-      'Executive Suite': 'bg-emerald-50 text-emerald-700',
-      'Premium Suite': 'bg-amber-50 text-amber-700'
+      'Standard Room': 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      'Deluxe Suite': 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+      'Executive Suite': 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+      'Premium Suite': 'bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
     };
-    return colors[roomType] || 'bg-gray-50 text-gray-700';
+    return colors[roomType] || 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
   };
 
   const getStatusColor = (status) => {
     const colors = {
-      'pending': 'bg-yellow-50 text-yellow-700',
-      'confirmed': 'bg-green-50 text-green-700',
-      'declined': 'bg-red-50 text-red-700',
-      'cancelled': 'bg-gray-50 text-gray-700',
-      'checked_in': 'bg-blue-50 text-blue-700',
-      'completed': 'bg-purple-50 text-purple-700'
+      'pending': 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+      'confirmed': 'bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+      'declined': 'bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+      'cancelled': 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+      'checked_in': 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+      'completed': 'bg-purple-50 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
     };
-    return colors[status] || 'bg-gray-50 text-gray-700';
+    return colors[status] || 'bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300';
   };
 
   const getStatusIcon = (status) => {
@@ -374,23 +374,23 @@ const BookingsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8 flex flex-col items-center space-y-4">
-          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
-          <p className="text-gray-600 text-lg font-medium">Loading bookings...</p>
+      <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-8 flex flex-col items-center space-y-4">
+          <Loader2 className="w-10 h-10 text-blue-600 dark:text-blue-400 animate-spin" />
+          <p className="text-gray-600 dark:text-gray-400 text-lg font-medium">Loading bookings...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br dark:bg-gradient-to-br dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 flex items-center">
           <div className="mr-auto">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Bookings Dashboard</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage and review all hotel bookings</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Bookings Dashboard</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Manage and review all hotel bookings</p>
           </div>
 
           <div className="w-full sm:w-80">
@@ -400,17 +400,17 @@ const BookingsPage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by guest, booking ID, room number, or room type"
-                className="bg-white w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className="bg-white dark:bg-gray-800 w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
               />
               <span className="absolute left-3 top-1/2 -translate-y-1/2">
-                <Search className="w-5 h-5 text-gray-400" />
+                <Search className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </span>
             </div>
           </div>
         </div>
 
         {/* Filter Section */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <FilterButtonGroup 
               statusFilter={statusFilter}
@@ -420,12 +420,12 @@ const BookingsPage = () => {
 
             {/* Room Type Filter Dropdown */}
             <div className="flex items-center gap-2">
-              <label htmlFor="room-type-filter" className="text-sm font-medium text-gray-700 whitespace-nowrap">Room Type:</label>
+              <label htmlFor="room-type-filter" className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">Room Type:</label>
               <select
                 id="room-type-filter"
                 value={roomTypeFilter}
                 onChange={(e) => setRoomTypeFilter(e.target.value)}
-                className="block w-full sm:w-auto px-4 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
+                className="block w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-sm"
               >
                 <option value="all">All Room Types</option>
                 {roomTypes.map((type) => (
@@ -439,14 +439,14 @@ const BookingsPage = () => {
         </div>
 
         {/* Content */}
-        <div className="bg-white rounded-2xl shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm">
           {filteredBookings.length === 0 ? (
             <div className="p-6 sm:p-8 text-center">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-gray-400" />
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No bookings found</h3>
-              <p className="text-gray-500 text-sm">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No bookings found</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
                 {statusFilter === 'all'
                   ? 'No bookings available in the system.'
                   : `No ${statusFilter} bookings found.`}
@@ -454,12 +454,12 @@ const BookingsPage = () => {
             </div>
           ) : (
             <>
-              <div className="px-4 sm:px-6 py-4 border-b border-gray-200">
+              <div className="px-4 sm:px-6 py-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-gray-900">
+                  <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                     {statusFilter === 'all' ? 'All Bookings' : `${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} Bookings`}
                   </h2>
-                  <span className="bg-blue-50 text-blue-700 text-xs font-medium px-3 py-1 rounded-full">
+                  <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-medium px-3 py-1 rounded-full">
                     {filteredBookings.length} {statusFilter === 'all' ? 'total' : statusFilter}
                   </span>
                 </div>
@@ -468,33 +468,33 @@ const BookingsPage = () => {
               {/* Desktop Table View */}
               <div className="hidden lg:block overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
+                  <thead className="bg-gray-50 dark:bg-gray-700 sticky top-0 z-10">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking ID</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guest</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Room</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-in</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check-out</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Guests</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Booking Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gender</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Age</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booking ID</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Guest</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Room</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Check-in</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Check-out</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Total Price</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Guests</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Booking Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Gender</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Age</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-200">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {filteredBookings.map((booking) => (
                       <tr 
                         key={booking.bookingId} 
-                        className={`hover:bg-gray-50 transition-colors ${isFirstBooker(booking.bookingId) ? 'bg-amber-50 border-l-4 border-amber-500' : ''}`}
+                        className={`hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${isFirstBooker(booking.bookingId) ? 'bg-amber-50 dark:bg-amber-900/20 border-l-4 border-amber-500' : ''}`}
                       >
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => showBookingDetails(booking)}
-                              className="inline-flex items-center justify-center p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                              className="inline-flex items-center justify-center p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-md transition-colors"
                               title="View details"
                               aria-label={`View details for booking ${booking.bookingId}`}
                             >
@@ -504,7 +504,7 @@ const BookingsPage = () => {
                               <>
                                 <button
                                   onClick={() => handleAssignRoom(booking)}
-                                  className="inline-flex items-center justify-center p-2 text-purple-600 hover:bg-purple-50 rounded-md transition-colors"
+                                  className="inline-flex items-center justify-center p-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-md transition-colors"
                                   title="Assign room"
                                   aria-label={`Assign room to booking ${booking.bookingId}`}
                                 >
@@ -513,7 +513,7 @@ const BookingsPage = () => {
                                 <button
                                   onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                                   disabled={processingId === booking.bookingId}
-                                  className="inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                  className="inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                                   title="Approve booking"
                                   aria-label={`Approve booking ${booking.bookingId}`}
                                 >
@@ -526,7 +526,7 @@ const BookingsPage = () => {
                                 <button
                                   onClick={() => handleBookingAction(booking.bookingId, 'decline')}
                                   disabled={processingId === booking.bookingId}
-                                  className="inline-flex items-center justify-center p-2 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                  className="inline-flex items-center justify-center p-2 text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                                   title="Decline booking"
                                   aria-label={`Decline booking ${booking.bookingId}`}
                                 >
@@ -542,7 +542,7 @@ const BookingsPage = () => {
                               <button
                                 onClick={() => handleMarkCompleted(booking.bookingId)}
                                 disabled={processingId === booking.bookingId}
-                                className="inline-flex items-center justify-center p-2 text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                                className="inline-flex items-center justify-center p-2 text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                                 title="Mark as completed"
                                 aria-label={`Mark booking ${booking.bookingId} as completed`}
                               >
@@ -556,7 +556,7 @@ const BookingsPage = () => {
                             <button
                               onClick={() => handleDeleteBooking(booking.bookingId)}
                               disabled={processingId === booking.bookingId}
-                              className="inline-flex items-center justify-center p-2 text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="inline-flex items-center justify-center p-2 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                               title="Delete booking"
                               aria-label={`Delete booking ${booking.bookingId}`}
                             >
@@ -568,12 +568,12 @@ const BookingsPage = () => {
                             </button>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-white">
                           <div className="flex items-center gap-2">
                             #{booking.bookingId}
                             {isFirstBooker(booking.bookingId) && (
-                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                                <Star className="w-3 h-3 mr-1 fill-amber-500 text-amber-500" />
+                              <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-700">
+                                <Star className="w-3 h-3 mr-1 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
                                 Priority
                               </span>
                             )}
@@ -582,19 +582,19 @@ const BookingsPage = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center">
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-gray-900">{booking.guestName}</div>
-                              <div className="text-sm text-gray-500">{booking.guestContact}</div>
+                              <div className="text-sm font-medium text-gray-900 dark:text-white">{booking.guestName}</div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">{booking.guestContact}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm">
                           {booking.room_number ? (
                             <>
-                              <div className="text-lg font-bold text-blue-600">Room #{booking.room_number}</div>
-                              <div className="text-sm text-gray-600">{booking.roomName}</div>
+                              <div className="text-lg font-bold text-blue-600 dark:text-blue-400">Room #{booking.room_number}</div>
+                              <div className="text-sm text-gray-600 dark:text-gray-400">{booking.roomName}</div>
                             </>
                           ) : (
-                            <div className="text-sm font-medium text-gray-500 italic">Unassigned</div>
+                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 italic">Unassigned</div>
                           )}
                         </td>
                         <td className="px-6 py-4">
@@ -603,13 +603,13 @@ const BookingsPage = () => {
                             {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkIn)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{formatDate(booking.checkOut)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">₱{booking.totalPrice}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guests}</td>
-                        <td className="px-6 py-4 text-sm text-gray-500">{formatDateTime(booking.bookingDate)}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_gender || '-'}</td>
-                        <td className="px-6 py-4 text-sm text-gray-900">{booking.guest_age ? `${booking.guest_age} years` : '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{formatDate(booking.checkIn)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{formatDate(booking.checkOut)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">₱{booking.totalPrice}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{booking.guests}</td>
+                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{formatDateTime(booking.bookingDate)}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{booking.guest_gender || '-'}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-300">{booking.guest_age ? `${booking.guest_age} years` : '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -617,26 +617,26 @@ const BookingsPage = () => {
               </div>
 
               {/* Mobile Card View */}
-              <div className="lg:hidden divide-y divide-gray-200">
+              <div className="lg:hidden divide-y divide-gray-200 dark:divide-gray-700">
                 {filteredBookings.map((booking) => (
                   <div key={booking.bookingId} className="p-4 sm:p-5">
-                    <div className={`bg-white rounded-xl shadow-sm border p-4 sm:p-5 space-y-4 ${isFirstBooker(booking.bookingId) ? 'border-amber-400 border-2 bg-amber-50' : 'border-gray-200'}`}>
+                    <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border p-4 sm:p-5 space-y-4 ${isFirstBooker(booking.bookingId) ? 'border-amber-400 border-2 bg-amber-50 dark:bg-amber-900/20' : 'border-gray-200 dark:border-gray-700'}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isFirstBooker(booking.bookingId) ? 'bg-amber-100' : 'bg-blue-50'}`}>
+                          <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isFirstBooker(booking.bookingId) ? 'bg-amber-100 dark:bg-amber-900/40' : 'bg-blue-50 dark:bg-blue-900/30'}`}>
                             {isFirstBooker(booking.bookingId) ? (
-                              <Star className="w-6 h-6 text-amber-600 fill-amber-600" />
+                              <Star className="w-6 h-6 text-amber-600 dark:text-amber-400 fill-amber-600 dark:fill-amber-400" />
                             ) : (
-                              <User className="w-6 h-6 text-blue-600" />
+                              <User className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                             )}
                           </div>
                           <div>
-                            <h3 className="text-base font-semibold text-gray-900">{booking.guestName}</h3>
+                            <h3 className="text-base font-semibold text-gray-900 dark:text-white">{booking.guestName}</h3>
                             <div className="flex items-center gap-2">
-                              <p className="text-sm text-gray-500">ID: #{booking.bookingId}</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">ID: #{booking.bookingId}</p>
                               {isFirstBooker(booking.bookingId) && (
-                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 border border-amber-300">
-                                  <Star className="w-3 h-3 mr-1 fill-amber-500 text-amber-500" />
+                                <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-400 border border-amber-300 dark:border-amber-700">
+                                  <Star className="w-3 h-3 mr-1 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400" />
                                   Priority
                                 </span>
                               )}
@@ -650,78 +650,78 @@ const BookingsPage = () => {
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="col-span-2">
-                          <span className="text-gray-500">Contact</span>
-                          <p className="mt-1 font-medium text-gray-900">{booking.guestContact}</p>
+                          <span className="text-gray-500 dark:text-gray-400">Contact</span>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{booking.guestContact}</p>
                         </div>
                         {(booking.guest_gender || booking.guest_age) && (
                           <>
                             {booking.guest_gender && (
                               <div>
-                                <span className="text-gray-500">Gender</span>
-                                <p className="mt-1 font-medium text-gray-900">{booking.guest_gender}</p>
+                                <span className="text-gray-500 dark:text-gray-400">Gender</span>
+                                <p className="mt-1 font-medium text-gray-900 dark:text-white">{booking.guest_gender}</p>
                               </div>
                             )}
                             {booking.guest_age && (
                               <div>
-                                <span className="text-gray-500">Age</span>
-                                <p className="mt-1 font-medium text-gray-900">{booking.guest_age} years</p>
+                                <span className="text-gray-500 dark:text-gray-400">Age</span>
+                                <p className="mt-1 font-medium text-gray-900 dark:text-white">{booking.guest_age} years</p>
                               </div>
                             )}
                           </>
                         )}
                         <div>
-                          <span className="text-gray-500 flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Home className="w-4 h-4" />
                             Room
                           </span>
                           {booking.room_number ? (
                             <div className="mt-1">
-                              <div className="text-sm font-bold text-blue-600">Room #{booking.room_number}</div>
+                              <div className="text-sm font-bold text-blue-600 dark:text-blue-400">Room #{booking.room_number}</div>
                               <span className={`inline-flex px-2.5 py-1 text-xs font-bold rounded-full ${getRoomTypeColor(booking.roomName)}`}>
                                 {booking.roomName}
                               </span>
                             </div>
                           ) : (
-                            <p className="mt-1 text-sm font-medium text-gray-500 italic">Unassigned</p>
+                            <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400 italic">Unassigned</p>
                           )}
                         </div>
                         <div>
-                          <span className="text-gray-500 flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <User className="w-4 h-4" />
                             Guests
                           </span>
-                          <p className="mt-1 font-medium text-gray-900">{booking.guests}</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{booking.guests}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500 flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             Check-in
                           </span>
-                          <p className="mt-1 font-medium text-gray-900">{formatDate(booking.checkIn)}</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{formatDate(booking.checkIn)}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500 flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Calendar className="w-4 h-4" />
                             Check-out
                           </span>
-                          <p className="mt-1 font-medium text-gray-900">{formatDate(booking.checkOut)}</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{formatDate(booking.checkOut)}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500">Total Price</span>
-                          <p className="mt-1 font-medium text-gray-900">₱{booking.totalPrice}</p>
+                          <span className="text-gray-500 dark:text-gray-400">Total Price</span>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">₱{booking.totalPrice}</p>
                         </div>
                         <div>
-                          <span className="text-gray-500 flex items-center gap-1">
+                          <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <Clock className="w-4 h-4" />
                             Booking Date
                           </span>
-                          <p className="mt-1 font-medium text-gray-900">{formatDateTime(booking.bookingDate)}</p>
+                          <p className="mt-1 font-medium text-gray-900 dark:text-white">{formatDateTime(booking.bookingDate)}</p>
                         </div>
                       </div>
                       <div className="flex flex-wrap gap-2 pt-3">
                         <button
                           onClick={() => showBookingDetails(booking)}
-                          className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-md transition-colors"
+                          className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/50 rounded-md transition-colors"
                           title="View details"
                           aria-label={`View details for booking ${booking.bookingId}`}
                         >
@@ -731,7 +731,7 @@ const BookingsPage = () => {
                           <>
                             <button
                               onClick={() => handleAssignRoom(booking)}
-                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-md transition-colors"
+                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/30 hover:bg-purple-100 dark:hover:bg-purple-900/50 rounded-md transition-colors"
                               title="Assign room"
                               aria-label={`Assign room to booking ${booking.bookingId}`}
                             >
@@ -740,7 +740,7 @@ const BookingsPage = () => {
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'approve')}
                               disabled={processingId === booking.bookingId}
-                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                               title="Approve booking"
                               aria-label={`Approve booking ${booking.bookingId}`}
                             >
@@ -753,7 +753,7 @@ const BookingsPage = () => {
                             <button
                               onClick={() => handleBookingAction(booking.bookingId, 'decline')}
                               disabled={processingId === booking.bookingId}
-                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                              className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-red-600 hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                               title="Decline booking"
                               aria-label={`Decline booking ${booking.bookingId}`}
                             >
@@ -769,7 +769,7 @@ const BookingsPage = () => {
                           <button
                             onClick={() => handleMarkCompleted(booking.bookingId)}
                             disabled={processingId === booking.bookingId}
-                            className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                            className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-purple-600 hover:bg-purple-700 dark:bg-purple-700 dark:hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                             title="Mark as completed"
                             aria-label={`Mark booking ${booking.bookingId} as completed`}
                           >
@@ -783,7 +783,7 @@ const BookingsPage = () => {
                         <button
                           onClick={() => handleDeleteBooking(booking.bookingId)}
                           disabled={processingId === booking.bookingId}
-                          className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-gray-600 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
+                          className="flex-1 min-w-[48px] inline-flex items-center justify-center p-2 text-white bg-gray-600 hover:bg-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
                           title="Delete booking"
                           aria-label={`Delete booking ${booking.bookingId}`}
                         >
@@ -814,14 +814,14 @@ const BookingsPage = () => {
 
         {/* Booking Details Modal */}
         {showDetailsModal && selectedBooking && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-gray-900">Booking Details</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Booking Details</h2>
                   <button
                     onClick={() => setShowDetailsModal(false)}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                     aria-label="Close modal"
                   >
                     <X className="w-6 h-6" />
@@ -830,72 +830,72 @@ const BookingsPage = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Booking ID</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">#{selectedBooking.bookingId}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Booking ID</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">#{selectedBooking.bookingId}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Status</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
                       <span className={`mt-1 inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedBooking.status)}`}>
                         {getStatusIcon(selectedBooking.status)}
                         {selectedBooking.status.charAt(0).toUpperCase() + selectedBooking.status.slice(1)}
                       </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Guest Name</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guestName}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Guest Name</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedBooking.guestName}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Contact</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guestContact}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Contact</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedBooking.guestContact}</p>
                     </div>
                     {(selectedBooking.guest_gender || selectedBooking.guest_age) && (
                       <>
                         {selectedBooking.guest_gender && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500">Gender</label>
-                            <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guest_gender}</p>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Gender</label>
+                            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedBooking.guest_gender}</p>
                           </div>
                         )}
                         {selectedBooking.guest_age && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500">Age</label>
-                            <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guest_age} years</p>
+                            <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Age</label>
+                            <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedBooking.guest_age} years</p>
                           </div>
                         )}
                       </>
                     )}
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Room Type</label>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Room Type</label>
                       <span className={`mt-1 inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${getRoomTypeColor(selectedBooking.roomName)}`}>
                         {selectedBooking.roomName}
                       </span>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Guests</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{selectedBooking.guests}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Guests</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{selectedBooking.guests}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Check-in</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{formatDate(selectedBooking.checkIn)}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Check-in</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{formatDate(selectedBooking.checkIn)}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Check-out</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{formatDate(selectedBooking.checkOut)}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Check-out</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{formatDate(selectedBooking.checkOut)}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Total Price</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">₱{selectedBooking.totalPrice}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Total Price</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">₱{selectedBooking.totalPrice}</p>
                     </div>
                     <div>
-                      <label className="text-sm font-medium text-gray-500">Booking Date</label>
-                      <p className="mt-1 text-sm font-medium text-gray-900">{formatDateTime(selectedBooking.bookingDate)}</p>
+                      <label className="text-sm font-medium text-gray-500 dark:text-gray-400">Booking Date</label>
+                      <p className="mt-1 text-sm font-medium text-gray-900 dark:text-white">{formatDateTime(selectedBooking.bookingDate)}</p>
                     </div>
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end">
                   <button
                     onClick={() => setShowDetailsModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
                     aria-label="Close modal"
                   >
                     Close
@@ -908,45 +908,45 @@ const BookingsPage = () => {
 
         {/* Room Assignment Modal */}
         {showRoomAssignmentModal && selectedBooking && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-              <div className="p-6 border-b border-gray-200">
+          <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-bold text-gray-900">Assign Room</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Assign Room</h2>
                   <button
                     onClick={() => {
                       setShowRoomAssignmentModal(false);
                       setSelectedBooking(null);
                       setSelectedRoomForAssignment(null);
                     }}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                     aria-label="Close modal"
                   >
                     <X className="w-6 h-6" />
                   </button>
                 </div>
                 
-                <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 mb-4">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span className="text-gray-600">Booking ID:</span>
-                      <span className="ml-2 font-semibold">#{selectedBooking.bookingId}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Booking ID:</span>
+                      <span className="ml-2 font-semibold text-gray-900 dark:text-white">#{selectedBooking.bookingId}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Guest:</span>
-                      <span className="ml-2 font-semibold">{selectedBooking.guestName}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Guest:</span>
+                      <span className="ml-2 font-semibold text-gray-900 dark:text-white">{selectedBooking.guestName}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Check-in:</span>
-                      <span className="ml-2 font-semibold">{formatDate(selectedBooking.checkIn)}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Check-in:</span>
+                      <span className="ml-2 font-semibold text-gray-900 dark:text-white">{formatDate(selectedBooking.checkIn)}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Check-out:</span>
-                      <span className="ml-2 font-semibold">{formatDate(selectedBooking.checkOut)}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Check-out:</span>
+                      <span className="ml-2 font-semibold text-gray-900 dark:text-white">{formatDate(selectedBooking.checkOut)}</span>
                     </div>
                     <div>
-                      <span className="text-gray-600">Guests:</span>
-                      <span className="ml-2 font-semibold">{selectedBooking.guests}</span>
+                      <span className="text-gray-600 dark:text-gray-400">Guests:</span>
+                      <span className="ml-2 font-semibold text-gray-900 dark:text-white">{selectedBooking.guests}</span>
                     </div>
                   </div>
                 </div>
@@ -957,16 +957,16 @@ const BookingsPage = () => {
                     value={roomSearchQuery}
                     onChange={(e) => setRoomSearchQuery(e.target.value)}
                     placeholder="Search by room number, type, or category..."
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                   />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-gray-500" />
                 </div>
               </div>
               
               <div className="flex-1 overflow-y-auto p-6">
                 {loadingRooms ? (
                   <div className="flex items-center justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
+                    <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin" />
                   </div>
                 ) : filteredAvailableRooms.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -976,45 +976,45 @@ const BookingsPage = () => {
                         onClick={() => setSelectedRoomForAssignment(room)}
                         className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
                           selectedRoomForAssignment?.id === room.id
-                            ? 'border-blue-500 bg-blue-50'
-                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
                             {room.room_number && (
-                              <h3 className="text-xl font-bold text-gray-900">Room #{room.room_number}</h3>
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white">Room #{room.room_number}</h3>
                             )}
-                            <p className="text-sm text-gray-600 font-medium">
+                            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
                               {room.type_name || room.name}
                             </p>
                           </div>
-                          <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                          <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-medium rounded">
                             Available
                           </span>
                         </div>
                         
-                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
+                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
                           <span className="flex items-center gap-1">
                             <Users className="w-4 h-4" />
                             {room.guests} guests
                           </span>
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-700 rounded text-xs">
+                          <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
                             {room.category}
                           </span>
                         </div>
                         
-                        <div className="text-lg font-bold text-blue-600">
+                        <div className="text-lg font-bold text-blue-600 dark:text-blue-400">
                           ₱{Number(room.price).toLocaleString()}
-                          <span className="text-sm text-gray-500 font-normal"> / night</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 font-normal"> / night</span>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <Home className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                    <p className="text-gray-600">
+                    <Home className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-3" />
+                    <p className="text-gray-600 dark:text-gray-400">
                       {roomSearchQuery 
                         ? 'No rooms match your search criteria'
                         : 'No available rooms found for this booking'
@@ -1024,21 +1024,21 @@ const BookingsPage = () => {
                 )}
               </div>
               
-              <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
                 <button
                   onClick={() => {
                     setShowRoomAssignmentModal(false);
                     setSelectedBooking(null);
                     setSelectedRoomForAssignment(null);
                   }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleConfirmRoomAssignment}
                   disabled={!selectedRoomForAssignment || processingId === selectedBooking.bookingId}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-md transition-colors flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 disabled:bg-gray-400 dark:disabled:bg-gray-600 disabled:cursor-not-allowed rounded-md transition-colors flex items-center gap-2"
                 >
                   {processingId === selectedBooking.bookingId ? (
                     <>

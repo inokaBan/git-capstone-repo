@@ -60,7 +60,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
       )}
 
       {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-800 border-r border-slate-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
@@ -69,15 +69,15 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
             <div className="flex items-center space-x-3">
                 <img src={logo} className="h-8 w-8" />
               <div>
-                <h1 className="text-lg font-bold text-gray-900">Osner Hotel</h1>
-                <p className="text-xs text-gray-600">Hotel Management</p>
+                <h1 className="text-lg font-bold text-gray-900 dark:text-white">Osner Hotel</h1>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Hotel Management</p>
               </div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="p-1 rounded-md hover:bg-gray-100 lg:hidden"
+              className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 lg:hidden"
             >
-              <X className="h-5 w-5 text-gray-500" />
+              <X className="h-5 w-5 text-gray-500 dark:text-gray-400" />
             </button>
           </div>
 
@@ -93,7 +93,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   <div key={label}>
                     <button
                       onClick={() => toggleMenu(label)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+                      className="w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                     >
                       <div className="flex items-center space-x-3">
                         <Icon className="h-5 w-5" />
@@ -115,7 +115,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                             onClick={() => setSidebarOpen(false)}
                             className={({ isActive }) =>
                               `block px-3 py-2 text-sm rounded-lg transition-all duration-200 ${
-                                isActive ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                isActive ? 'bg-blue-600 text-white' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                               }`
                             }
                           >
@@ -136,7 +136,7 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
                   onClick={() => setSidebarOpen(false)}
                   className={({ isActive }) =>
                     `w-full flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                      isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      isActive ? 'bg-blue-600 text-white' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white'
                     }`
                   }
                 >
@@ -148,25 +148,25 @@ const Sidebar = ({ sidebarOpen, setSidebarOpen }) => {
           </nav>
 
           {/* Sidebar Footer */}
-          <div className="p-4 border-t border-slate-200">
-            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg mb-3">
+          <div className="p-4 border-t border-slate-200 dark:border-gray-700">
+            <div className="flex items-center space-x-3 p-3 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-700 dark:to-gray-600 rounded-lg mb-3">
               <div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-sm font-semibold">
                   {user?.username ? user.username.charAt(0).toUpperCase() : 'A'}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+                <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                   {user?.username || 'Admin User'}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
+                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                   {user?.email || 'admin@osner.com'}
                 </p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+              className="w-full flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-700 dark:hover:text-red-300"
             >
               <LogOut className="h-5 w-5" />
               <span>Logout</span>
