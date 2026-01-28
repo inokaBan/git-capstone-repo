@@ -31,6 +31,8 @@ const RoomsManagementPage = () => {
   const [itemsPerPage, setItemsPerPage] = useState(25);
   const [totalItems, setTotalItems] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roomTypeFilter, setRoomTypeFilter] = useState('');
   const [newRoom, setNewRoom] = useState({
     room_number: '',
     room_type_id: '',
@@ -260,7 +262,20 @@ const RoomsManagementPage = () => {
   const loadRooms = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API_ENDPOINTS.ROOMS}?page=${currentPage}&limit=${itemsPerPage}`);
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString()
+      });
+      
+      if (roomTypeFilter) {
+        params.append('room_type_id', roomTypeFilter);
+      }
+      
+      if (searchTerm.trim()) {
+        params.append('searchTerm', searchTerm.trim());
+      }
+      
+      const res = await axios.get(`${API_ENDPOINTS.ROOMS}?${params.toString()}`);
       setRooms(res.data.data || res.data || []);
       setTotalItems(res.data.totalItems || (res.data.data || res.data || []).length);
       setTotalPages(res.data.totalPages || 1);
@@ -456,13 +471,29 @@ const RoomsManagementPage = () => {
     setCurrentPage(1);
   };
 
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(1); // Reset to first page when search changes
+  };
+
+  const handleRoomTypeFilterChange = (e) => {
+    setRoomTypeFilter(e.target.value);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  const handleClearFilters = () => {
+    setSearchTerm('');
+    setRoomTypeFilter('');
+    setCurrentPage(1);
+  };
+
   useEffect(() => {
     loadRooms();
     loadAmenities();
     loadRoomTypes();
     loadCategories();
     loadItemCategories();
-  }, [currentPage, itemsPerPage]);
+  }, [currentPage, itemsPerPage, searchTerm, roomTypeFilter]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -482,6 +513,68 @@ const RoomsManagementPage = () => {
             Add Room
           </button>
         </div>
+      </div>
+
+      {/* Search and Filter Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 mb-6 border border-slate-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Search Bar */}
+          <div className="lg:col-span-2">
+            <label htmlFor="search-rooms" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Search Rooms
+            </label>
+            <input
+              id="search-rooms"
+              type="text"
+              value={searchTerm}
+              onChange={handleSearchChange}
+              placeholder="Search by room number, type, or category..."
+              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Room Type Filter */}
+          <div>
+            <label htmlFor="filter-room-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Filter by Room Type
+            </label>
+            <select
+              id="filter-room-type"
+              value={roomTypeFilter}
+              onChange={handleRoomTypeFilterChange}
+              className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Room Types</option>
+              {roomTypes.map(type => (
+                <option key={type.id} value={type.id}>{type.type_name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Active Filters Display and Clear Button */}
+        {(searchTerm || roomTypeFilter) && (
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex flex-wrap gap-2">
+              {searchTerm && (
+                <span className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                  Search: "{searchTerm}"
+                </span>
+              )}
+              {roomTypeFilter && (
+                <span className="inline-flex items-center px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm">
+                  Type: {roomTypes.find(t => t.id === parseInt(roomTypeFilter))?.type_name || roomTypeFilter}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={handleClearFilters}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Loading State */}

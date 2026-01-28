@@ -1261,15 +1261,34 @@ app.delete("/api/amenities/:id", (req, res) => {
     });
 });
 
-// Rooms: list all rooms with amenities and images (with pagination)
+// Rooms: list all rooms with amenities and images (with pagination, filtering, and search)
 app.get("/api/rooms", (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 25;
     const offset = (page - 1) * limit;
+    const roomTypeId = req.query.room_type_id;
+    const searchTerm = req.query.searchTerm;
     
-    // Count total rooms
-    const countSql = "SELECT COUNT(*) as total FROM rooms";
-    db.query(countSql, [], (err, countResults) => {
+    // Build WHERE clause for filtering and searching
+    let whereConditions = [];
+    let queryParams = [];
+    
+    if (roomTypeId) {
+        whereConditions.push('r.room_type_id = ?');
+        queryParams.push(roomTypeId);
+    }
+    
+    if (searchTerm && searchTerm.trim()) {
+        whereConditions.push('(r.room_number LIKE ? OR rt.type_name LIKE ? OR r.category LIKE ?)');
+        const searchPattern = `%${searchTerm.trim()}%`;
+        queryParams.push(searchPattern, searchPattern, searchPattern);
+    }
+    
+    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+    
+    // Count total rooms with filters applied
+    const countSql = `SELECT COUNT(*) as total FROM rooms r LEFT JOIN room_type rt ON r.room_type_id = rt.id ${whereClause}`;
+    db.query(countSql, queryParams, (err, countResults) => {
         if (err) {
             return res.status(500).json({ error: err.code || err.message || "Database error" });
         }
@@ -1277,7 +1296,7 @@ app.get("/api/rooms", (req, res) => {
         const totalItems = countResults[0].total;
         const totalPages = Math.ceil(totalItems / limit);
         
-        // Get paginated rooms data
+        // Get paginated rooms data with filters applied
         const sql = `
             SELECT 
                 r.*,
@@ -1289,12 +1308,15 @@ app.get("/api/rooms", (req, res) => {
             LEFT JOIN room_amenities ra ON r.id = ra.room_id
             LEFT JOIN amenities a ON ra.amenity_id = a.id
             LEFT JOIN room_images ri ON r.id = ri.room_id
+            ${whereClause}
             GROUP BY r.id
             ORDER BY r.id DESC
             LIMIT ? OFFSET ?
         `;
         
-        db.query(sql, [limit, offset], (err, results) => {
+        const dataParams = [...queryParams, limit, offset];
+        
+        db.query(sql, dataParams, (err, results) => {
             if (err) {
                 return res.status(500).json({ error: err.code || err.message || "Database error" });
             }

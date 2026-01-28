@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { ArrowLeft, Bed, Users, Star, Bath, Filter } from 'lucide-react';
+import { ArrowLeft, Bed, Users, Star, Bath, Filter, Plus, Trash2, X, Settings } from 'lucide-react';
 import { useToast } from '../context/ToastContext';
-import { API_ENDPOINTS } from '../config/api';
+import { useAlertDialog } from '../context/AlertDialogContext';
+import { API_ENDPOINTS, buildApiUrl } from '../config/api';
 import Pagination from '../components/Pagination';
 
 const RoomCategoriesPage = () => {
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
+  const { showConfirm } = useAlertDialog();
   
   const [roomTypes, setRoomTypes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -17,6 +19,8 @@ const RoomCategoriesPage = () => {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(25);
+  const [showRoomTypeModal, setShowRoomTypeModal] = useState(false);
+  const [newRoomType, setNewRoomType] = useState('');
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -62,6 +66,42 @@ const RoomCategoriesPage = () => {
       showError(e?.response?.data?.error || 'Failed to load rooms');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddRoomType = async () => {
+    if (!newRoomType.trim()) {
+      showError('Room type name is required');
+      return;
+    }
+    
+    try {
+      await axios.post(API_ENDPOINTS.ROOM_TYPES, {
+        type_name: newRoomType.trim()
+      });
+      setNewRoomType('');
+      await loadRoomTypes();
+      showSuccess('Room type added successfully!');
+    } catch (e) {
+      console.error('Failed to add room type', e);
+      showError(e?.response?.data?.error || 'Failed to add room type');
+    }
+  };
+
+  const handleDeleteRoomType = async (id) => {
+    const confirmed = await showConfirm('Are you sure you want to delete this room type?', 'Delete Room Type');
+    
+    if (!confirmed) {
+      return;
+    }
+    
+    try {
+      await axios.delete(`${API_ENDPOINTS.ROOM_TYPES}/${id}`);
+      await loadRoomTypes();
+      showSuccess('Room type deleted successfully!');
+    } catch (e) {
+      console.error('Failed to delete room type', e);
+      showError(e?.response?.data?.error || 'Failed to delete room type');
     }
   };
 
@@ -125,9 +165,19 @@ const RoomCategoriesPage = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 sm:p-6 mb-6 border border-slate-200 dark:border-gray-700">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">Room Types</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Browse rooms by type</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-white">Room Types</h1>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Browse rooms by type</p>
+            </div>
+            <button
+              onClick={() => setShowRoomTypeModal(true)}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Manage room types"
+            >
+              <Settings className="w-5 h-5 mr-2" />
+              Manage Room Types
+            </button>
           </div>
         </div>
 
@@ -171,6 +221,101 @@ const RoomCategoriesPage = () => {
             <Bed className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Room Types Found</h3>
             <p className="text-gray-500 dark:text-gray-400">Room types will appear here once they are created.</p>
+          </div>
+        )}
+
+        {/* Room Type Management Modal */}
+        {showRoomTypeModal && (
+          <div 
+            className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center p-4 z-50" 
+            role="dialog" 
+            aria-modal="true"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowRoomTypeModal(false);
+                setNewRoomType('');
+              }
+            }}
+          >
+            <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-md">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Manage Room Types</h2>
+                <button
+                  onClick={() => {
+                    setShowRoomTypeModal(false);
+                    setNewRoomType('');
+                  }}
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  aria-label="Close modal"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              
+              <div className="p-6 space-y-4">
+                {/* Add New Room Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Add New Room Type</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newRoomType}
+                      onChange={(e) => setNewRoomType(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleAddRoomType();
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter room type name"
+                    />
+                    <button
+                      onClick={handleAddRoomType}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Existing Room Types */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Existing Room Types</label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {roomTypes.length === 0 ? (
+                      <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
+                        No room types yet. Add one above to get started.
+                      </div>
+                    ) : (
+                      roomTypes.map(roomType => (
+                        <div key={roomType.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                          <span className="text-sm text-gray-900 dark:text-white">{roomType.type_name}</span>
+                          <button
+                            onClick={() => handleDeleteRoomType(roomType.id)}
+                            className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 p-1"
+                            title="Delete room type"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowRoomTypeModal(false);
+                    setNewRoomType('');
+                  }}
+                  className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>

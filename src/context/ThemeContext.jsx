@@ -16,9 +16,9 @@ const applyTheme = (theme) => {
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(() => {
-    // Initialize from localStorage or default to 'light'
+    // Initialize from localStorage or default to 'dark'
     const savedTheme = localStorage.getItem('osner-theme');
-    return savedTheme || 'light';
+    return savedTheme || 'dark';
   });
 
   // Apply theme on mount and whenever it changes

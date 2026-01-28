@@ -502,6 +502,7 @@ const BookingsPage = () => {
                             </button>
                             {booking.status === 'pending' && (
                               <>
+                                {/* Assign Room Button */}
                                 <button
                                   onClick={() => handleAssignRoom(booking)}
                                   className="inline-flex items-center justify-center p-2 text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/30 rounded-md transition-colors"
@@ -510,19 +511,8 @@ const BookingsPage = () => {
                                 >
                                   <Home className="w-4 h-4" />
                                 </button>
-                                <button
-                                  onClick={() => handleBookingAction(booking.bookingId, 'approve')}
-                                  disabled={processingId === booking.bookingId}
-                                  className="inline-flex items-center justify-center p-2 text-white bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors"
-                                  title="Approve booking"
-                                  aria-label={`Approve booking ${booking.bookingId}`}
-                                >
-                                  {processingId === booking.bookingId ? (
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                  ) : (
-                                    <Check className="w-4 h-4" />
-                                  )}
-                                </button>
+
+                                {/* Decline Button */}
                                 <button
                                   onClick={() => handleBookingAction(booking.bookingId, 'decline')}
                                   disabled={processingId === booking.bookingId}
@@ -538,6 +528,7 @@ const BookingsPage = () => {
                                 </button>
                               </>
                             )}
+
                             {(booking.status === 'checked_in' || booking.status === 'confirmed') && (
                               <button
                                 onClick={() => handleMarkCompleted(booking.bookingId)}
@@ -588,15 +579,17 @@ const BookingsPage = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm">
-                          {booking.room_number ? (
+                          {booking.status === 'pending' ? (
+                            <span className="text-gray-500 italic">Room not assigned yet</span>
+                          ) : (booking.status === 'cancelled' || booking.status === 'declined') ? null : booking.room_number ? (
                             <>
                               <div className="text-lg font-bold text-blue-600 dark:text-blue-400">Room #{booking.room_number}</div>
                               <div className="text-sm text-gray-600 dark:text-gray-400">{booking.roomName}</div>
                             </>
-                          ) : (
-                            <div className="text-sm font-medium text-gray-500 dark:text-gray-400 italic">Unassigned</div>
-                          )}
+                          ) : null}
                         </td>
+
+
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full ${getStatusColor(booking.status)}`}>
                             {getStatusIcon(booking.status)}
@@ -674,17 +667,19 @@ const BookingsPage = () => {
                             <Home className="w-4 h-4" />
                             Room
                           </span>
-                          {booking.room_number ? (
+                          {booking.status === 'pending' ? (
+                            <p className="mt-1 text-gray-500 italic">Room not assigned yet</p>
+                          ) : booking.room_number ? (
                             <div className="mt-1">
                               <div className="text-sm font-bold text-blue-600 dark:text-blue-400">Room #{booking.room_number}</div>
                               <span className={`inline-flex px-2.5 py-1 text-xs font-bold rounded-full ${getRoomTypeColor(booking.roomName)}`}>
                                 {booking.roomName}
                               </span>
                             </div>
-                          ) : (
-                            <p className="mt-1 text-sm font-medium text-gray-500 dark:text-gray-400 italic">Unassigned</p>
-                          )}
+                          ) : null}
                         </div>
+
+
                         <div>
                           <span className="text-gray-500 dark:text-gray-400 flex items-center gap-1">
                             <User className="w-4 h-4" />

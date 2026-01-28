@@ -203,63 +203,72 @@ const Navbar = () => {
 
         {/* Mobile Menu - Slide in from right */}
         {isOpen && (
-          <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-blue-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4">
-            <div className="px-4 pt-8 pb-6 space-y-2 flex flex-col items-stretch h-full"> 
-              {/* Close button for mobile menu */}
-              <button
-                onClick={closeMenu}
-                className="self-end mb-4 text-gray-700 hover:text-blue-600 focus:outline-none"
-                aria-label="Close menu"
-              >
-                <X className="h-6 w-6" />
-              </button>
-              {navItems.map((item) => {
-                let customClass = "";
-                let isAuthButton = false;
-                
-                if (item.className === "login-btn") {
-                  customClass = "bg-blue-700 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center mt-56";
-                  isAuthButton = true;
-                } else if (item.className === "signup-btn") {
-                  customClass = "bg-white border-1 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base transition-all duration-300 transform hover:scale-105 block w-full text-center";
-                  isAuthButton = true;
-                } else if (item.className === "logout-btn") {
-                  customClass = "bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
-                }
-                
-                if (item.onClick) {
-                  return (
-                    <button
-                      key={item.name}
-                      onClick={item.onClick}
-                      className={customClass}
-                    >
-                      {item.name}
-                    </button>
-                  );
-                }
-                
+        <div className="md:hidden fixed top-0 right-0 h-full w-4/5 max-w-xs bg-blue-50 shadow-lg z-50 transition-transform duration-700 ease-in-out transform translate-x-0 pr-4">
+          {/* Scrollable menu items */}
+          <div className="px-4 pt-8 pb-32 space-y-2 flex flex-col overflow-y-auto h-full">
+            {/* Close button */}
+            <button
+              onClick={closeMenu}
+              className="self-end mb-4 text-gray-700 hover:text-blue-600 focus:outline-none"
+              aria-label="Close menu"
+            >
+              <X className="h-6 w-6" />
+            </button>
+
+            {/* Menu items */}
+            {navItems.map((item) => {
+              // Skip login/signup buttons here
+              if (item.className === 'login-btn' || item.className === 'signup-btn') return null;
+
+              let customClass = "";
+              if (item.onClick) {
+                customClass = "bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg text-base transition-transform duration-300 ease-in-out hover:scale-105 block w-full text-center";
                 return (
-                  <NavLink
-                    key={item.name}
-                    to={item.to}
-                    onClick={closeMenu}
-                    className={({ isActive }) => {
-                      let baseClass = isActive
-                        ? "text-blue-700 hover:text-blue-600 hover:bg-white px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter flex items-center gap-2"
-                        : "text-gray-700 hover:text-blue-600 hover:bg-white px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter flex items-center gap-2";
-                      if (customClass) baseClass = customClass;
-                      return baseClass;
-                    }}
-                  >
-                    {!isAuthButton && <ChevronRight className="w-5 h-5 flex-shrink-0" />}
-                    <span>{item.name}</span>
-                  </NavLink>
+                  <button key={item.name} onClick={item.onClick} className={customClass}>
+                    {item.name}
+                  </button>
                 );
-              })}
-            </div>
+              }
+
+              return (
+                <NavLink
+                  key={item.name}
+                  to={item.to}
+                  onClick={closeMenu}
+                  className={({ isActive }) =>
+                    `text-gray-700 hover:text-blue-600 hover:bg-white px-3 py-3 rounded-md text-base font-medium transition-colors duration-200 font-inter flex items-center gap-2`
+                  }
+                >
+                  <ChevronRight className="w-5 h-5 flex-shrink-0" />
+                  <span>{item.name}</span>
+                </NavLink>
+              );
+            })}
           </div>
-        )}
+
+          {/* Login / Signup buttons fixed at bottom */}
+          <div className="absolute bottom-0 left-0 w-full px-4 py-4 bg-blue-50 border-t border-gray-200 flex flex-col gap-2">
+            {navItems.filter(item => item.className === 'login-btn' || item.className === 'signup-btn').map(item => {
+              let customClass = "";
+              if (item.className === "login-btn") {
+                customClass = "bg-white border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold py-3 px-6 rounded-lg text-base w-full text-center transition-all duration-300";
+              } else if (item.className === "signup-btn") {
+                customClass = "bg-blue-700 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-lg text-base w-full text-center transition-transform duration-300 ease-in-out";
+              }
+              return (
+                <button
+                  key={item.name}
+                  onClick={item.onClick || (() => { navigate(item.to); closeMenu(); })}
+                  className={customClass}
+                >
+                  {item.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       </div>
     </nav>
   );

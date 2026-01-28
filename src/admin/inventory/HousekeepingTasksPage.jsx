@@ -51,7 +51,8 @@ const HousekeepingTasksPage = () => {
       const response = await axios.get(API_ENDPOINTS.ROOMS, {
         headers: getAuthHeader(),
       });
-      setRooms(response.data);
+      // Extract the rooms array from the paginated response
+      setRooms(response.data.data || response.data || []);
     } catch (error) {
       console.error('Error fetching rooms:', error);
     }
@@ -62,7 +63,9 @@ const HousekeepingTasksPage = () => {
       const response = await axios.get(API_ENDPOINTS.ADMIN_USERS, {
         headers: getAuthHeader(),
       });
-      const staffUsers = response.data.filter(u => u.role === 'staff' || u.role === 'admin');
+      // Extract the users array from the paginated response
+      const users = response.data.data || response.data || [];
+      const staffUsers = users.filter(u => u.role === 'staff' || u.role === 'admin');
       setStaff(staffUsers);
     } catch (error) {
       console.error('Error fetching staff:', error);

@@ -183,8 +183,15 @@ const MyBookingsPage = () => {
                             </span>
                           </div>
                           <p className="text-base font-medium text-gray-900 mt-2">
-                            {booking.room_number ? `Room #${booking.room_number} · ` : ''}{booking.roomName}
+                            {booking.status === 'pending' ? (
+                              <span className="text-gray-500 italic">Room not assigned yet</span>
+                            ) : booking.room_number ? (
+                              <>Room #{booking.room_number} · {booking.roomName}</>
+                            ) : booking.roomName ? (
+                              <>{booking.roomName}</>
+                            ) : null}
                           </p>
+
                         </div>
                         <button
                           onClick={() => setExpandedBooking(isExpanded ? null : booking.bookingId)}

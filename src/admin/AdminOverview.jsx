@@ -39,8 +39,11 @@ const AdminOverview = () => {
     const fetchRecent = async () => {
       try {
         setLoadingBookings(true);
-        const response = await axios.get(`${API_ENDPOINTS.BOOKINGS}?status=all`);
-        const all = Array.isArray(response.data) ? response.data : [];
+        const response = await axios.get(`${API_ENDPOINTS.BOOKINGS}?status=all`, {
+          headers: getAuthHeader()
+        });
+        // Extract the data array from the paginated response
+        const all = Array.isArray(response.data.data) ? response.data.data : [];
         const sorted = [...all].sort((a, b) => new Date(b.bookingDate) - new Date(a.bookingDate));
         setRecentBookings(sorted.slice(0, 5));
       } catch (err) {

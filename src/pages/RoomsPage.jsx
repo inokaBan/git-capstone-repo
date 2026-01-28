@@ -192,71 +192,193 @@ const RoomsPage = () => {
         </div>
       </div>
 
-      {/* Sticky Navigation Bar - Twitter Style */}
+      {/* Sticky Navigation Bar */}
       <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center">
-            {/* Category Tabs - Twitter Style */}
-            <div className="flex-1 flex overflow-x-auto scrollbar-hide">
+        <div className="max-w-7xl mx-auto flex items-center px-4 py-4">
+          {/* Category Tabs - Horizontal Scroll */}
+          <div className="flex-1 flex overflow-x-auto scrollbar-hide gap-2">
+            <button
+              onClick={() => setSelectedCategory('All')}
+              className={`relative px-4 py-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                selectedCategory === 'All' ? 'text-gray-900' : 'text-gray-500'
+              }`}
+            >
+              All Rooms
+              {selectedCategory === 'All' && (
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />
+              )}
+            </button>
+            {categories.filter(cat => cat !== 'All').map(category => (
               <button
-                onClick={() => setSelectedCategory('All')}
-                className={`relative px-6 py-4 text-sm font-semibold transition-colors hover:bg-gray-50 flex-shrink-0 ${
-                  selectedCategory === 'All'
-                    ? 'text-gray-900'
-                    : 'text-gray-500'
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`relative px-4 py-2 text-sm font-semibold transition-colors whitespace-nowrap ${
+                  selectedCategory === category ? 'text-gray-900' : 'text-gray-500'
                 }`}
               >
-                All Rooms
-                {selectedCategory === 'All' && (
+                {category}
+                {selectedCategory === category && (
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />
                 )}
               </button>
-              {categories.filter(cat => cat !== 'All').map((category) => {
-                const categoryCount = rooms.filter(room => room.category === category).length;
-                return (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`relative px-6 py-4 text-sm font-semibold transition-colors hover:bg-gray-50 flex-shrink-0 ${
-                      selectedCategory === category
-                        ? 'text-gray-900'
-                        : 'text-gray-500'
-                    }`}
-                  >
-                    {category}
-                    <span className="ml-1.5 text-xs opacity-60">({categoryCount})</span>
-                    {selectedCategory === category && (
-                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-full" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            ))}
+          </div>
 
-            {/* Desktop Search Bar - Only on larger screens */}
-            <div className="hidden lg:flex items-center px-4 border-l border-gray-200">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search rooms..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 pr-4 py-2 w-64 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
+          {/* Mobile Filter Button */}
+          <button
+            onClick={() => setShowFilters(true)}
+            className="lg:hidden ml-2 p-2 rounded-full text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            <Filter className="w-5 h-5" />
+          </button>
 
-            {/* Filter Button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-4 text-gray-600 hover:bg-gray-50 transition-colors border-l border-gray-200"
+          {/* Desktop Filters - always visible */}
+          <div className="hidden lg:flex items-center gap-2 ml-4">
+            <select
+              value={selectedRoomType}
+              onChange={(e) => setSelectedRoomType(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
             >
-              <Filter className="h-5 w-5" />
-            </button>
+              <option value="All">All Types</option>
+              {roomTypes.map((type) => (
+                <option key={type.id} value={type.type_name}>{type.type_name}</option>
+              ))}
+            </select>
+
+            <select
+              value={priceRange}
+              onChange={(e) => setPriceRange(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+            >
+              {priceRanges.map((range) => (
+                <option key={range} value={range}>{range}</option>
+              ))}
+            </select>
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+            >
+              <option value="name">Name</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="rating">Rating</option>
+            </select>
+          </div>
+
+          {/* Desktop Search */}
+          <div className="hidden lg:flex items-center px-4 ml-auto">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search rooms..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2 w-64 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
       </div>
+
+
+      {/* Mobile Filter Modal */}
+      {showFilters && (
+        <div className="fixed inset-0 z-50 flex justify-center items-end bg-black/40">
+          <div className="bg-white w-full max-w-md rounded-t-3xl shadow-2xl p-6 animate-in slide-in-from-bottom-4 duration-300">
+            
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Filters</h2>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="text-gray-500 hover:text-gray-900 p-1 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Room Type</label>
+                <select
+                  value={selectedRoomType}
+                  onChange={(e) => setSelectedRoomType(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+                >
+                  <option value="All">All Types</option>
+                  {roomTypes.map(type => (
+                    <option key={type.id} value={type.type_name}>{type.type_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+                <select
+                  value={priceRange}
+                  onChange={(e) => setPriceRange(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+                >
+                  {priceRanges.map(range => (
+                    <option key={range} value={range}>{range}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sort By</label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+                >
+                  <option value="name">Name</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="rating">Rating</option>
+                </select>
+              </div>
+
+              {guestCount && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Guests</label>
+                  <select
+                    value={guestCount}
+                    onChange={(e) => setGuests(Number(e.target.value))}
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white hover:border-gray-400 transition-colors"
+                  >
+                    {[...Array(10)].map((_, i) => (
+                      <option key={i+1} value={i+1}>{i+1} Guest{i > 0 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex mt-6 gap-3">
+              <button
+                onClick={() => setShowFilters(false)}
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => setShowFilters(false)}
+                className="flex-1 bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-blue-700 transition-colors"
+              >
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -416,9 +538,17 @@ const RoomsPage = () => {
             </div>
             {searchTerm && (
               <div className="max-h-96 overflow-y-auto p-4">
-                {sortedFilteredRooms.length > 0 ? (
+                {sortedFilteredRooms.filter(room => 
+                  (room.type_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (room.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  (room.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+                ).length > 0 ? (
                   <div className="space-y-2">
-                    {sortedFilteredRooms.slice(0, 5).map(room => (
+                    {sortedFilteredRooms.filter(room => 
+                      (room.type_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (room.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      (room.description || '').toLowerCase().includes(searchTerm.toLowerCase())
+                    ).slice(0, 5).map(room => (
                       <button
                         key={room.id}
                         onClick={() => {
@@ -439,6 +569,7 @@ const RoomsPage = () => {
                     No rooms found matching "{searchTerm}"
                   </div>
                 )}
+
               </div>
             )}
           </div>
